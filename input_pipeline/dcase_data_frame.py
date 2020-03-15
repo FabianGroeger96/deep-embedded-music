@@ -3,7 +3,10 @@ import pathlib
 import re
 from typing import Union
 
+import librosa
 import pandas as pd
+from dtw import dtw
+from numpy.linalg import norm
 
 from utils.utils import Utils
 
@@ -77,20 +80,44 @@ class DCASEDataFrame:
 
         return audio_node_id, audio_session, audio_segment
 
-    def get_neighbour(self, label, session, node):
+    def get_neighbour(self, anchor_id):
+        anchor = self.data_frame.iloc[anchor_id]
+
         filtered_items = self.data_frame
-        filtered_items = filtered_items[filtered_items.activity_label == label]
-        filtered_items = filtered_items[filtered_items.session != session]
-        filtered_items = filtered_items[filtered_items.node_id != node]
+        filtered_items = filtered_items[filtered_items.activity_label == anchor.activity_label]
+        filtered_items = filtered_items[filtered_items.session != anchor.session]
+        filtered_items = filtered_items[filtered_items.node_id != anchor.node_id]
         print("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
 
         neighbour = filtered_items.sample().iloc[0]
-        return neighbour
 
-    def get_opposite(self, label):
+        dist = self.compare_audio(anchor, neighbour)
+        print('Normalized distance between anchor and neighbour: {}'.format(dist))
+
+        return neighbour, dist
+
+    def get_opposite(self, anchor_id):
+        anchor = self.data_frame.iloc[anchor_id]
+
         filtered_items = self.data_frame
-        filtered_items = filtered_items[filtered_items.activity_label != label]
+        filtered_items = filtered_items[filtered_items.activity_label != anchor.activity_label]
         print("Selecting opposite randomly from {} samples".format(len(filtered_items)))
 
         opposite = filtered_items.sample().iloc[0]
-        return opposite
+
+        dist = self.compare_audio(anchor, opposite)
+        print('Normalized distance between anchor and opposite: {}'.format(dist))
+
+        return opposite, dist
+
+    def compare_audio(self, audio_1, audio_2):
+        # compute MFCC from audio1
+        audio_anchor, _ = librosa.load(os.path.join(self.audio_files_path, audio_1.sound_file), sr=self.sample_rate)
+        mfcc_anchor = librosa.feature.mfcc(audio_anchor, self.sample_rate)
+        # compute MFCC from audio2
+        audio_neigh, _ = librosa.load(os.path.join(self.audio_files_path, audio_2.sound_file), sr=self.sample_rate)
+        mfcc_neigh = librosa.feature.mfcc(audio_neigh, self.sample_rate)
+        # compute distance between mfccs with dynamic-time-wrapping (dtw)
+        dist, cost, acc_cost, path = dtw(mfcc_anchor.T, mfcc_neigh.T, dist=lambda x, y: norm(x - y, ord=1))
+
+        return dist

@@ -45,16 +45,19 @@ class TripletsInputPipeline:
 
     def generate_samples(self):
         audio_info_data_frame = DCASEDataFrame(self.audio_files_path, self.info_file_path, self.sample_rate)
-        for audio, label, session, node_id, segment in audio_info_data_frame:
-            neighbour = audio_info_data_frame.get_neighbour(label, session, node_id)
-            opposite = audio_info_data_frame.get_opposite(label)
+        for index, audio_series in enumerate(audio_info_data_frame):
+            audio, label, session, node_id, segment = audio_series
+
+            neighbour, neighbour_dist = audio_info_data_frame.get_neighbour(index)
+            opposite, opposite_dist = audio_info_data_frame.get_opposite(index)
 
             neighbour_audio = Utils.load_audio_from_file(os.path.join(self.audio_files_path, neighbour.sound_file),
                                                          self.sample_rate)
             opposite_audio = Utils.load_audio_from_file(os.path.join(self.audio_files_path, opposite.sound_file),
                                                         self.sample_rate)
 
-            yield audio, neighbour_audio, opposite_audio
+            # yield audio, neighbour_audio, opposite_audio
+            # break
 
     def get_dataset(self, is_training: bool = True):
         dataset = tf.data.Dataset.from_generator(self.generate_samples,
@@ -70,23 +73,3 @@ class TripletsInputPipeline:
         dataset = dataset.prefetch(self.prefetch_batches)
 
         return dataset
-
-    def generate_samples_visualise(self, count):
-        i = 0
-        audio_info_data_frame = DCASEDataFrame(self.audio_files_path, self.info_file_path, self.sample_rate)
-        for audio, label, session, node_id, segment in audio_info_data_frame:
-            if i == count:
-                break
-
-            neighbour = audio_info_data_frame.get_neighbour(label, session, node_id)
-            opposite = audio_info_data_frame.get_opposite(label)
-
-            neighbour_audio = Utils.load_audio_from_file(os.path.join(self.audio_files_path, neighbour.sound_file),
-                                                         self.sample_rate)
-            opposite_audio = Utils.load_audio_from_file(os.path.join(self.audio_files_path, opposite.sound_file),
-                                                        self.sample_rate)
-
-            Utils.visualise_log_mel(audio, neighbour_audio, opposite_audio)
-            Utils.visualise_mfcc(audio, neighbour_audio, opposite_audio, self.sample_rate)
-
-            i += 1
