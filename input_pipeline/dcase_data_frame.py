@@ -84,7 +84,7 @@ class DCASEDataFrame:
 
         return audio_node_id, audio_session, audio_segment
 
-    def get_neighbour(self, anchor_id):
+    def get_neighbour(self, anchor_id, calc_dist: bool = False):
         anchor = self.data_frame.iloc[anchor_id]
 
         filtered_items = self.data_frame
@@ -99,12 +99,15 @@ class DCASEDataFrame:
 
         neighbour = filtered_items.sample().iloc[0]
 
-        dist = self.compare_audio(anchor, neighbour)
-        self.logger.debug('Normalized distance between anchor and neighbour: {}'.format(math.ceil(dist)))
+        if calc_dist:
+            dist = self.compare_audio(anchor, neighbour)
+            self.logger.debug('Normalized distance between anchor and neighbour: {}'.format(math.ceil(dist)))
+        else:
+            dist = None
 
         return neighbour, dist
 
-    def get_opposite(self, anchor_id):
+    def get_opposite(self, anchor_id, calc_dist: bool = False):
         anchor = self.data_frame.iloc[anchor_id]
 
         filtered_items = self.data_frame
@@ -117,8 +120,11 @@ class DCASEDataFrame:
 
         opposite = filtered_items.sample().iloc[0]
 
-        dist = self.compare_audio(anchor, opposite)
-        self.logger.debug('Normalized distance between anchor and opposite: {}'.format(math.ceil(dist)))
+        if calc_dist:
+            dist = self.compare_audio(anchor, opposite)
+            self.logger.debug('Normalized distance between anchor and opposite: {}'.format(math.ceil(dist)))
+        else:
+            dist = None
 
         return opposite, dist
 

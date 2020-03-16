@@ -3,6 +3,8 @@
   "audio_files_path": "/opt/project/datasets/DCASE18-Task5-development/",
   "info_file_path": "/opt/project/datasets/DCASE18-Task5-development/evaluation_setup/fold1_train.txt",
 
+  "log_level": "INFO",
+
   "batch_size": 128,
   "prefetch_batches": 128,
 

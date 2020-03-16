@@ -21,7 +21,7 @@ if __name__ == "__main__":
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
 
-    logger = set_logger(experiment_path)
+    logger = set_logger(experiment_path, params.log_level)
 
     pipeline = audio_pipeline = TripletsInputPipeline(
         audio_files_path=params.audio_files_path,
@@ -32,4 +32,7 @@ if __name__ == "__main__":
         prefetch_batches=params.prefetch_batches,
         input_processing_buffer_size=params.input_processing_buffer_size,
         category_cardinality=params.category_cardinality)
-    pipeline.generate_samples()
+
+    for triplet_audios, triplet_labels in audio_pipeline.get_dataset():
+        print(triplet_audios)
+        print(triplet_labels)

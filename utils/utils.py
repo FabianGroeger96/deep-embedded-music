@@ -77,7 +77,7 @@ class Utils:
         plt.show()
 
 
-def set_logger(log_path):
+def set_logger(log_path, log_level: str = "INFO"):
     """Sets the logger to log info in terminal and file `log_path`.
 
     In general, it is useful to have a logger so that every output to the terminal is saved
@@ -90,9 +90,10 @@ def set_logger(log_path):
 
     Args:
         :param log_path: (string) where to log
+        :param log_level: sets the log level
     """
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
+    logger.setLevel(log_level)
 
     if not logger.handlers:
         # Logging to a file
