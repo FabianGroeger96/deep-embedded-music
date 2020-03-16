@@ -8,6 +8,7 @@
 
   "sample_rate": 16000,
   "sample_size": 10,
+  "input_processing_buffer_size": 1,
 
-  "input_processing_buffer_size": 1
+  "category_cardinality": 9
 }

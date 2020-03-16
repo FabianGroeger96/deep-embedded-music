@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import pathlib
 import re
@@ -45,7 +46,7 @@ class DCASEDataFrame:
 
     def __next__(self):
         while True:
-            if self.current_index > len(self.data_frame):
+            if self.current_index >= len(self.data_frame):
                 raise StopIteration
             else:
                 audio_info = self.data_frame.iloc[self.current_index]
@@ -90,12 +91,16 @@ class DCASEDataFrame:
         filtered_items = filtered_items[filtered_items.activity_label == anchor.activity_label]
         filtered_items = filtered_items[filtered_items.session != anchor.session]
         filtered_items = filtered_items[filtered_items.node_id != anchor.node_id]
-        self.logger.debug("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
+
+        if len(filtered_items) > 0:
+            self.logger.debug("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
+        else:
+            raise ValueError("No valid neighbour found")
 
         neighbour = filtered_items.sample().iloc[0]
 
         dist = self.compare_audio(anchor, neighbour)
-        self.logger.debug('Normalized distance between anchor and neighbour: {}'.format(dist))
+        self.logger.debug('Normalized distance between anchor and neighbour: {}'.format(math.ceil(dist)))
 
         return neighbour, dist
 
@@ -104,12 +109,16 @@ class DCASEDataFrame:
 
         filtered_items = self.data_frame
         filtered_items = filtered_items[filtered_items.activity_label != anchor.activity_label]
-        self.logger.debug("Selecting opposite randomly from {} samples".format(len(filtered_items)))
+
+        if len(filtered_items) > 0:
+            self.logger.debug("Selecting opposite randomly from {} samples".format(len(filtered_items)))
+        else:
+            raise ValueError("No valid opposite found")
 
         opposite = filtered_items.sample().iloc[0]
 
         dist = self.compare_audio(anchor, opposite)
-        self.logger.debug('Normalized distance between anchor and opposite: {}'.format(dist))
+        self.logger.debug('Normalized distance between anchor and opposite: {}'.format(math.ceil(dist)))
 
         return opposite, dist
 

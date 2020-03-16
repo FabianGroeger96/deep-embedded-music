@@ -30,5 +30,6 @@ if __name__ == "__main__":
         sample_size=params.sample_size,
         batch_size=params.batch_size,
         prefetch_batches=params.prefetch_batches,
-        input_processing_buffer_size=params.input_processing_buffer_size)
+        input_processing_buffer_size=params.input_processing_buffer_size,
+        category_cardinality=params.category_cardinality)
     pipeline.generate_samples()
