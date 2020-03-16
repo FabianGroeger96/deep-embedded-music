@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 from typing import Union
@@ -5,7 +6,7 @@ from typing import Union
 import tensorflow as tf
 
 from input_pipeline.dcase_data_frame import DCASEDataFrame
-from utils.utils import Utils
+from utils.utils import Utils, set_logger
 
 
 class TripletsInputPipeline:
@@ -37,11 +38,13 @@ class TripletsInputPipeline:
         self.sample_rate = sample_rate
         self.sample_size = sample_size
 
+        self.logger = logging.getLogger()
+
         files = Utils.get_files_in_path(self.audio_files_path, '.wav')
         if len(files) <= 0:
             raise ValueError("No audio files found in '{}'.".format(self.audio_files_path))
         else:
-            print("Found {} audio files.".format(len(files)))
+            self.logger.debug("Found {} audio files.".format(len(files)))
 
     def generate_samples(self):
         audio_info_data_frame = DCASEDataFrame(self.audio_files_path, self.info_file_path, self.sample_rate)

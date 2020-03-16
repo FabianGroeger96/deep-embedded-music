@@ -1,3 +1,4 @@
+import logging
 import os
 import pathlib
 import re
@@ -35,7 +36,9 @@ class DCASEDataFrame:
         self.data_frame["node_id"], self.data_frame["session"], self.data_frame["segment"] = zip(*self.data_frame.apply(
             lambda row: DCASEDataFrame.extract_info_from_filename(row["sound_file"]), axis=1))
 
-        print(self.data_frame.head())
+        self.logger = logging.getLogger()
+
+        self.logger.debug(self.data_frame.head())
 
     def __iter__(self):
         return self
@@ -53,7 +56,7 @@ class DCASEDataFrame:
                 audio_node_id = audio_info.node_id
                 audio_segment = audio_info.segment
 
-                print("{0}: audio file: {1}, label: {2}, session: {3}, node id: {4}, segment: {5}".format(
+                self.logger.debug("{0}: audio file: {1}, label: {2}, session: {3}, node id: {4}, segment: {5}".format(
                     self.current_index,
                     audio_file,
                     audio_label,
@@ -87,12 +90,12 @@ class DCASEDataFrame:
         filtered_items = filtered_items[filtered_items.activity_label == anchor.activity_label]
         filtered_items = filtered_items[filtered_items.session != anchor.session]
         filtered_items = filtered_items[filtered_items.node_id != anchor.node_id]
-        print("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
+        self.logger.debug("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
 
         neighbour = filtered_items.sample().iloc[0]
 
         dist = self.compare_audio(anchor, neighbour)
-        print('Normalized distance between anchor and neighbour: {}'.format(dist))
+        self.logger.debug('Normalized distance between anchor and neighbour: {}'.format(dist))
 
         return neighbour, dist
 
@@ -101,12 +104,12 @@ class DCASEDataFrame:
 
         filtered_items = self.data_frame
         filtered_items = filtered_items[filtered_items.activity_label != anchor.activity_label]
-        print("Selecting opposite randomly from {} samples".format(len(filtered_items)))
+        self.logger.debug("Selecting opposite randomly from {} samples".format(len(filtered_items)))
 
         opposite = filtered_items.sample().iloc[0]
 
         dist = self.compare_audio(anchor, opposite)
-        print('Normalized distance between anchor and opposite: {}'.format(dist))
+        self.logger.debug('Normalized distance between anchor and opposite: {}'.format(dist))
 
         return opposite, dist
 
