@@ -1,11 +1,3 @@
-dtw
-pandas
-tensorflow
-numpy
-scipy
-jupyter
-matplotlib
-Pillow
-scikit-learn
-librosa
-tqdm
+version https://git-lfs.github.com/spec/v1
+oid sha256:fa81ed39b17130efb78864419ce4cbf5e85465da5e3f38ca52d8bd2e7b2b5134
+size 85
