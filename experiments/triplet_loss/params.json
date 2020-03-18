@@ -2,15 +2,18 @@
   "experiment_name": "triplet_loss",
   "audio_files_path": "/opt/project/datasets/DCASE18-Task5-development/",
   "info_file_path": "/opt/project/datasets/DCASE18-Task5-development/evaluation_setup/fold1_train.txt",
+  "fold": 1,
 
-  "log_level": "INFO",
+  "log_level": "DEBUG",
 
   "batch_size": 128,
   "prefetch_batches": 128,
+  "random_selection_buffer_size": 64,
+
+  "shuffle_dataset": 1,
+
+  "calc_dist": 0,
 
   "sample_rate": 16000,
-  "sample_size": 10,
-  "input_processing_buffer_size": 1,
-
-  "category_cardinality": 9
+  "sample_size": 10
 }

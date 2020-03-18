@@ -1,6 +1,7 @@
 import argparse
 import os
 
+from feature_extractor.log_mel_extractor import LogMelExtractor
 from input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from utils.params import Params
 from utils.utils import set_logger
@@ -24,15 +25,20 @@ if __name__ == "__main__":
     logger = set_logger(experiment_path, params.log_level)
 
     pipeline = audio_pipeline = TripletsInputPipeline(
-        audio_files_path=params.audio_files_path,
-        info_file_path=params.info_file_path,
+        dataset_path=params.audio_files_path,
+        fold=params.fold,
         sample_rate=params.sample_rate,
         sample_size=params.sample_size,
         batch_size=params.batch_size,
         prefetch_batches=params.prefetch_batches,
-        input_processing_buffer_size=params.input_processing_buffer_size,
-        category_cardinality=params.category_cardinality)
+        random_selection_buffer_size=params.random_selection_buffer_size)
 
-    for triplet_audios, triplet_labels in audio_pipeline.get_dataset():
-        print(triplet_audios)
+    feature_extractor = LogMelExtractor(sample_rate=16000, fft_size=512, n_mel_bin=128)
+
+    for anchor, neighbour, opposite, triplet_labels in audio_pipeline.get_dataset(feature_extractor,
+                                                                                  shuffle=bool(params.shuffle_dataset),
+                                                                                  calc_dist=bool(params.calc_dist)):
+        print(anchor)
+        print(neighbour)
+        print(opposite)
         print(triplet_labels)

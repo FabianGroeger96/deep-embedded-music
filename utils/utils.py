@@ -7,6 +7,8 @@ import librosa
 import librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
+from tensorflow.python.ops import io_ops
 
 
 class Utils:
@@ -36,10 +38,16 @@ class Utils:
 
     @staticmethod
     def load_audio_from_file(path: Union[str, pathlib.Path], sample_rate: int):
-        audio, _ = librosa.load(path, sr=sample_rate)
-        audio = audio.reshape(-1, 1)
+        wav_loader = io_ops.read_file(path)
+        data, sr = tf.audio.decode_wav(wav_loader,
+                                       desired_channels=1,
+                                       desired_samples=sample_rate)
 
-        return audio
+        # delete channel dimension
+        # (sampling_rate, 1) -> (sampling_rate,)
+        data = tf.squeeze(data)
+
+        return data
 
     @staticmethod
     def visualise_log_mel(anchor, neighbour, opposite):
@@ -98,10 +106,10 @@ def set_logger(log_path, log_level: str = "INFO"):
     if not logger.handlers:
         # Logging to a file
         file_handler = logging.FileHandler(os.path.join(log_path, "experiment.log"))
-        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)5s - %(message)s'))
+        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)5s - %(message)s'))
         logger.addHandler(file_handler)
 
         # Logging to console
         stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(levelname)5s - %(message)s'))
+        stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)5s - %(message)s'))
         logger.addHandler(stream_handler)
