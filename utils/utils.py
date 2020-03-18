@@ -37,17 +37,22 @@ class Utils:
         return path
 
     @staticmethod
-    def load_audio_from_file(path: Union[str, pathlib.Path], sample_rate: int):
+    def load_audio_from_file(path: Union[str, pathlib.Path], sample_rate: int, stereo_channels: int):
+        """
+        Loads audio file from a path, using tensorflow.
+        :param path: path to audio file.
+        :param sample_rate: sample rate of the audio file.
+        :param stereo_channels: channels of the audio file.
+        :return: the loaded audio data, shape: (sample_rate, channel)
+        """
         wav_loader = io_ops.read_file(path)
-        data, sr = tf.audio.decode_wav(wav_loader,
-                                       desired_channels=1,
-                                       desired_samples=sample_rate)
+        audio, sr = tf.audio.decode_wav(wav_loader,
+                                        desired_channels=stereo_channels,
+                                        desired_samples=sample_rate)
 
-        # delete channel dimension
-        # (sampling_rate, 1) -> (sampling_rate,)
-        data = tf.squeeze(data)
+        assert audio.shape[-1] == stereo_channels, "Failed to load audio file."
 
-        return data
+        return audio
 
     @staticmethod
     def visualise_log_mel(anchor, neighbour, opposite):

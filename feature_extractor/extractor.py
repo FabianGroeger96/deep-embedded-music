@@ -1,27 +1,77 @@
 from abc import ABC, abstractmethod
-from pathlib import Path
-from typing import Union
 
 import tensorflow as tf
-from tensorflow.python.ops import io_ops
 
 
 class Extractor(ABC):
-    def __init__(self, sample_rate: int):
+    def __init__(self, sample_rate: int, sample_size: int):
         self.sample_rate = sample_rate
+        self.sample_size = sample_size
+
+        self.lower_edge_hertz = 0
+        self.upper_edge_hertz = self.get_nyquist_frequency()
 
     @abstractmethod
     def extract(self, audio):
         pass
 
-    def load_audio_from_file(self, audio_path: Union[str, Path]):
-        wav_loader = io_ops.read_file(audio_path)
-        audio, sr = tf.audio.decode_wav(wav_loader,
-                                        desired_channels=1,
-                                        desired_samples=self.sample_rate)
+    @abstractmethod
+    def get_output_shape(self):
+        pass
 
-        # delete channel dimension
-        # (sampling_rate, 1) -> (sampling_rate,)
-        audio = tf.squeeze(audio)
+    def get_nyquist_frequency(self):
+        return self.sample_rate / 2
 
-        return audio
+    # compute STFT
+    # INPUT : (sample_size, )
+    # OUTPUT: (frame_size, fft_size // 2 + 1)
+    def get_stft_spectrogram(self, data, frame_length, frame_step, fft_size):
+        # Input: A Tensor of [batch_size, num_samples]
+        # mono PCM samples in the range [-1, 1].
+        stfts = tf.signal.stft(data,
+                               frame_length=frame_length,
+                               frame_step=frame_step,
+                               fft_length=fft_size)
+
+        # determine the amplitude
+        spectrograms = tf.abs(stfts)
+
+        return spectrograms
+
+    # compute mel-Frequency
+    # INPUT : (frame_size, fft_size // 2 + 1)
+    # OUTPUT: (frame_size, mel_bin_size)
+    def get_mel(self, stfts, n_mel_bin):
+        # STFT-bin
+        # 257 (= FFT size / 2 + 1)
+        n_stft_bin = stfts.shape[-1]
+
+        # linear_to_mel_weight_matrix shape: (257, 128)
+        # (FFT size / 2 + 1, num of mel bins)
+        linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
+            num_mel_bins=n_mel_bin,
+            num_spectrogram_bins=n_stft_bin,
+            sample_rate=self.sample_rate,
+            lower_edge_hertz=self.lower_edge_hertz,
+            upper_edge_hertz=self.upper_edge_hertz
+        )
+
+        # mel_spectrograms shape: (1, 98, 128)
+        mel_spectrograms = tf.tensordot(
+            stfts,  # (1, 98, 257)
+            linear_to_mel_weight_matrix,  # (257, 128)
+            1)
+
+        # take the logarithm (add a small number to avoid log(0))
+        log_mel_spectrograms = tf.math.log(mel_spectrograms + 1e-6)
+
+        return log_mel_spectrograms
+
+    # compute MFCC
+    # INPUT : (frame_size, mel_bin_size)
+    # OUTPUT: (frame_size, n_mfcc_bin)
+    def get_mfcc(self, log_mel_spectrograms, n_mfcc_bin):
+        mfcc = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrograms)
+        mfcc = mfcc[..., :n_mfcc_bin]
+
+        return mfcc

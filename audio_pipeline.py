@@ -33,7 +33,8 @@ if __name__ == "__main__":
         prefetch_batches=params.prefetch_batches,
         random_selection_buffer_size=params.random_selection_buffer_size)
 
-    feature_extractor = LogMelExtractor(sample_rate=16000, fft_size=512, n_mel_bin=128)
+    feature_extractor = LogMelExtractor(sample_rate=16000, sample_size=10, frame_length=480,
+                                        frame_step=160, fft_size=512, n_mel_bin=128)
 
     for anchor, neighbour, opposite, triplet_labels in audio_pipeline.get_dataset(feature_extractor,
                                                                                   shuffle=bool(params.shuffle_dataset),
