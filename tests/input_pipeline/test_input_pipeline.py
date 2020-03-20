@@ -17,6 +17,7 @@ class TestInputPipeline(tf.test.TestCase):
         self.prefetch_batches = 2
         self.random_selection_buffer_size = 1
         self.stereo_channels = 4
+        self.to_mono = False
 
         n_frame = 98
         fft_size = 512
@@ -32,7 +33,8 @@ class TestInputPipeline(tf.test.TestCase):
             batch_size=self.batch_size,
             prefetch_batches=self.prefetch_batches,
             random_selection_buffer_size=self.random_selection_buffer_size,
-            stereo_channels=self.stereo_channels)
+            stereo_channels=self.stereo_channels,
+            to_mono=self.to_mono)
         return audio_pipeline
 
     def test_data_frame_iterator(self):
@@ -51,24 +53,26 @@ class TestInputPipeline(tf.test.TestCase):
     def test_dataset_generator_channels(self):
         # single channel
         self.stereo_channels = 1
+        self.to_mono = True
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True,
                                                       calc_dist=False)
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # check if triplets have a third dimension (channel)
-            self.assertEqual(self.stereo_channels, anchor.shape[2])
-            self.assertEqual(self.stereo_channels, neighbour.shape[2])
-            self.assertEqual(self.stereo_channels, opposite.shape[2])
+            self.assertEqual([self.batch_size, self.sample_rate], anchor.shape)
+            self.assertEqual([self.batch_size, self.sample_rate], neighbour.shape)
+            self.assertEqual([self.batch_size, self.sample_rate], opposite.shape)
 
         # multiple channels
         self.stereo_channels = 4
+        self.to_mono = False
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True, calc_dist=False)
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # check if triplets have a third dimension (channel)
-            self.assertEqual(self.stereo_channels, anchor.shape[2])
-            self.assertEqual(self.stereo_channels, neighbour.shape[2])
-            self.assertEqual(self.stereo_channels, opposite.shape[2])
+            self.assertEqual([self.batch_size, self.sample_rate, self.stereo_channels], anchor.shape)
+            self.assertEqual([self.batch_size, self.sample_rate, self.stereo_channels], neighbour.shape)
+            self.assertEqual([self.batch_size, self.sample_rate, self.stereo_channels], opposite.shape)
 
     def test_dataset_generator_batch_size(self):
         audio_pipeline = self.get_input_pipeline()
