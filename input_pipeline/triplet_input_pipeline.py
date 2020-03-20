@@ -23,7 +23,8 @@ class TripletsInputPipeline:
                  prefetch_batches: int,
                  random_selection_buffer_size: int,
                  input_processing_n_threads: int = 16,
-                 stereo_channels: int = 4):
+                 stereo_channels: int = 4,
+                 to_mono: bool = True):
         """
         Initialises the audio pipeline.
         :param dataset_path: Path to the dataset.
@@ -44,11 +45,12 @@ class TripletsInputPipeline:
         self.input_processing_n_threads = input_processing_n_threads
 
         self.stereo_channels = stereo_channels
+        self.to_mono = to_mono
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
         # check if audio path contains *.wav files
-        files = Utils.get_files_in_path(self.dataset_path, '.wav')
+        files = Utils.get_files_in_path(self.dataset_path, ".wav")
         if len(files) <= 0:
             raise ValueError("No audio files found in '{}'.".format(self.dataset_path))
         else:
@@ -76,13 +78,15 @@ class TripletsInputPipeline:
 
             # load audio files from anchor
             anchor_path = os.path.join(self.dataset_path, anchor.file_name)
-            anchor_audio = Utils.load_audio_from_file(anchor_path, self.sample_rate, self.stereo_channels)
+            anchor_audio = Utils.load_audio_from_file(anchor_path, self.sample_rate, self.stereo_channels, self.to_mono)
             # load audio files from neighbour
             neighbour_path = os.path.join(self.dataset_path, neighbour.file_name)
-            neighbour_audio = Utils.load_audio_from_file(neighbour_path, self.sample_rate, self.stereo_channels)
+            neighbour_audio = Utils.load_audio_from_file(neighbour_path, self.sample_rate, self.stereo_channels,
+                                                         self.to_mono)
             # load audio files from opposite
             opposite_path = os.path.join(self.dataset_path, opposite.file_name)
-            opposite_audio = Utils.load_audio_from_file(opposite_path, self.sample_rate, self.stereo_channels)
+            opposite_audio = Utils.load_audio_from_file(opposite_path, self.sample_rate, self.stereo_channels,
+                                                        self.to_mono)
 
             # make sure audios have the same size
             audio_length = self.sample_size * self.sample_rate
@@ -92,21 +96,28 @@ class TripletsInputPipeline:
 
             # create tuple of triplet labels
             triplet_labels = np.stack((anchor.label, neighbour.label, opposite.label), axis=0)
-            self.logger.debug("Triplet labels, a: {0}, n: {1}, o: {2}".format(anchor.label,
-                                                                              neighbour.label,
-                                                                              opposite.label))
+            if index % 1000 == 0:
+                self.logger.debug("Triplet labels, index: {0}, a: {1}, n: {2}, o: {3}".format(index,
+                                                                                              anchor.label,
+                                                                                              neighbour.label,
+                                                                                              opposite.label))
 
             yield anchor_audio, neighbour_audio, opposite_audio, triplet_labels
 
     def get_dataset(self, feature_extractor: Union[Extractor, None], shuffle: bool = True, calc_dist: bool = False):
         # why not sample rate * sample_size?
+        if self.to_mono:
+            audio_shape = [self.sample_rate]
+        else:
+            audio_shape = [self.sample_rate, self.stereo_channels]
+
         dataset = tf.data.Dataset.from_generator(self.generate_samples,
                                                  args=[calc_dist],
                                                  output_types=(tf.float32, tf.float32, tf.float32, tf.float32),
                                                  output_shapes=(
-                                                     tf.TensorShape([self.sample_rate, self.stereo_channels]),
-                                                     tf.TensorShape([self.sample_rate, self.stereo_channels]),
-                                                     tf.TensorShape([self.sample_rate, self.stereo_channels]),
+                                                     tf.TensorShape(audio_shape),
+                                                     tf.TensorShape(audio_shape),
+                                                     tf.TensorShape(audio_shape),
                                                      tf.TensorShape([3])))
 
         # extract features from dataset

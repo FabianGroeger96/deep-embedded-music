@@ -8,7 +8,7 @@ class Extractor(ABC):
         self.sample_rate = sample_rate
         self.sample_size = sample_size
 
-        self.lower_edge_hertz = 0
+        self.lower_edge_hertz = 50
         self.upper_edge_hertz = self.get_nyquist_frequency()
 
     @abstractmethod
@@ -73,5 +73,30 @@ class Extractor(ABC):
     def get_mfcc(self, log_mel_spectrograms, n_mfcc_bin):
         mfcc = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrograms)
         mfcc = mfcc[..., :n_mfcc_bin]
+
+        return mfcc
+
+    # OUTPUT: (frame_size, mel_bin_size)
+    def extract_log_mel_features(self, audio, frame_length, frame_step, fft_size, n_mel_bin):
+        # find the feature value (STFT)
+        stft = self.get_stft_spectrogram(audio,
+                                         frame_length=frame_length,
+                                         frame_step=frame_step,
+                                         fft_size=fft_size)
+        # find features (logarithmic mel spectrogram)
+        log_mel_spectrogram = self.get_mel(stft, n_mel_bin)
+
+        return log_mel_spectrogram
+
+    # OUTPUT: (frame_size, n_mfcc_bin)
+    def extract_mfcc_features(self, audio, frame_length, frame_step, fft_size, n_mel_bin, n_mfcc_bin):
+        # extract the log mel features from the audio
+        log_mel_spectrogram = self.extract_log_mel_features(audio,
+                                                            frame_length=frame_length,
+                                                            frame_step=frame_step,
+                                                            fft_size=fft_size,
+                                                            n_mel_bin=n_mel_bin)
+        # extract MFCC feature values
+        mfcc = self.get_mfcc(log_mel_spectrogram, n_mfcc_bin)
 
         return mfcc

@@ -18,7 +18,7 @@ class Utils:
         files = []
         for root_dir, dir_names, file_names in os.walk(path):
             # ignore tmp files
-            file_names = [f for f in file_names if not f.startswith('.')]
+            file_names = [f for f in file_names if not f.startswith(".")]
             # find only files with given extension
             file_names = [f for f in file_names if f.endswith(file_extension)]
 
@@ -37,12 +37,15 @@ class Utils:
         return path
 
     @staticmethod
-    def load_audio_from_file(path: Union[str, pathlib.Path], sample_rate: int, stereo_channels: int):
+    def load_audio_from_file(path: Union[str, pathlib.Path], sample_rate: int, stereo_channels: int,
+                             to_mono: bool = True):
         """
         Loads audio file from a path, using tensorflow.
+        
         :param path: path to audio file.
         :param sample_rate: sample rate of the audio file.
         :param stereo_channels: channels of the audio file.
+        :param to_mono: if the audio should be converted to a mono signal.
         :return: the loaded audio data, shape: (sample_rate, channel)
         """
         wav_loader = io_ops.read_file(path)
@@ -52,6 +55,9 @@ class Utils:
 
         assert audio.shape[-1] == stereo_channels, "Failed to load audio file."
 
+        if to_mono:
+            audio = np.mean(audio, axis=1)
+
         return audio
 
     @staticmethod
@@ -59,17 +65,17 @@ class Utils:
         anchor_db = librosa.amplitude_to_db(np.abs(librosa.stft(anchor)), ref=np.max)
         plt.subplot(3, 1, 1)
         plt.title("anchor")
-        librosa.display.specshow(anchor_db, y_axis='linear', x_axis='time')
+        librosa.display.specshow(anchor_db, y_axis="linear", x_axis="time")
 
         neighbour_db = librosa.amplitude_to_db(np.abs(librosa.stft(neighbour)), ref=np.max)
         plt.subplot(3, 1, 2)
         plt.title("neighbour")
-        librosa.display.specshow(neighbour_db, y_axis='linear', x_axis='time')
+        librosa.display.specshow(neighbour_db, y_axis="linear", x_axis="time")
 
         opposite_db = librosa.amplitude_to_db(np.abs(librosa.stft(opposite)), ref=np.max)
         plt.subplot(3, 1, 3)
         plt.title("opposite")
-        librosa.display.specshow(opposite_db, y_axis='linear', x_axis='time')
+        librosa.display.specshow(opposite_db, y_axis="linear", x_axis="time")
 
         plt.show()
 
@@ -77,15 +83,15 @@ class Utils:
     def visualise_mfcc(anchor, neighbour, opposite, sample_rate):
         mfccs_anchor = librosa.feature.mfcc(y=anchor, sr=sample_rate, n_mfcc=13)
         plt.subplot(3, 1, 1)
-        librosa.display.specshow(mfccs_anchor, x_axis='time')
+        librosa.display.specshow(mfccs_anchor, x_axis="time")
 
         mfccs_neighbour = librosa.feature.mfcc(y=neighbour, sr=sample_rate, n_mfcc=13)
         plt.subplot(3, 1, 2)
-        librosa.display.specshow(mfccs_neighbour, x_axis='time')
+        librosa.display.specshow(mfccs_neighbour, x_axis="time")
 
         mfccs_opposite = librosa.feature.mfcc(y=opposite, sr=sample_rate, n_mfcc=13)
         plt.subplot(3, 1, 3)
-        librosa.display.specshow(mfccs_opposite, x_axis='time')
+        librosa.display.specshow(mfccs_opposite, x_axis="time")
 
         plt.show()
 
@@ -111,10 +117,12 @@ def set_logger(log_path, log_level: str = "INFO"):
     if not logger.handlers:
         # Logging to a file
         file_handler = logging.FileHandler(os.path.join(log_path, "experiment.log"))
-        file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)5s - %(message)s'))
+        file_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)-22s - %(levelname)-8s - %(message)s"))
         logger.addHandler(file_handler)
 
         # Logging to console
         stream_handler = logging.StreamHandler()
-        stream_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)5s - %(message)s'))
+        stream_handler.setFormatter(logging.Formatter("%(asctime)s - %(name)-22s - %(levelname)-8s - %(message)s"))
         logger.addHandler(stream_handler)
+
+    return logger

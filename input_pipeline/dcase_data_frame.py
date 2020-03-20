@@ -48,7 +48,7 @@ class DCASEDataFrame:
 
                 if self.current_index % 1000 == 0:
                     self.logger.debug(
-                        "{0}: audio file: {1}, label: {2}, session: {3}, node id: {4}, segment: {5}".format(
+                        "Entry {0}: audio file: {1}, label: {2}, session: {3}, node id: {4}, segment: {5}".format(
                             self.current_index,
                             audio_entry.file_name,
                             audio_entry.label,
@@ -113,7 +113,7 @@ class DCASEDataFrame:
             lambda row: DCASEDataFrame.extract_info_from_filename(row["file_name"]), axis=1))
         return train_df
 
-    def get_neighbour(self, anchor_id, calc_dist: bool = False):
+    def get_neighbour(self, anchor_id, calc_dist: bool = False, log_detail: bool = False):
         anchor = self.data_frame.iloc[anchor_id]
 
         filtered_items = self.data_frame
@@ -122,7 +122,8 @@ class DCASEDataFrame:
         filtered_items = filtered_items[filtered_items.node_id != anchor.node_id]
 
         if len(filtered_items) > 0:
-            self.logger.debug("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
+            if log_detail:
+                self.logger.debug("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
         else:
             raise ValueError("No valid neighbour found")
 
@@ -130,20 +131,22 @@ class DCASEDataFrame:
 
         if calc_dist:
             dist = self.compare_audio(anchor, neighbour)
-            self.logger.debug("Normalized distance between anchor and neighbour: {}".format(math.ceil(dist)))
+            if log_detail:
+                self.logger.debug("Normalized distance between anchor and neighbour: {}".format(math.ceil(dist)))
         else:
             dist = None
 
         return neighbour, dist
 
-    def get_opposite(self, anchor_id, calc_dist: bool = False):
+    def get_opposite(self, anchor_id, calc_dist: bool = False, log_detail: bool = False):
         anchor = self.data_frame.iloc[anchor_id]
 
         filtered_items = self.data_frame
         filtered_items = filtered_items[filtered_items.label != anchor.label]
 
         if len(filtered_items) > 0:
-            self.logger.debug("Selecting opposite randomly from {} samples".format(len(filtered_items)))
+            if log_detail:
+                self.logger.debug("Selecting opposite randomly from {} samples".format(len(filtered_items)))
         else:
             raise ValueError("No valid opposite found")
 
@@ -151,7 +154,8 @@ class DCASEDataFrame:
 
         if calc_dist:
             dist = self.compare_audio(anchor, opposite)
-            self.logger.debug("Normalized distance between anchor and opposite: {}".format(math.ceil(dist)))
+            if log_detail:
+                self.logger.debug("Normalized distance between anchor and opposite: {}".format(math.ceil(dist)))
         else:
             dist = None
 
