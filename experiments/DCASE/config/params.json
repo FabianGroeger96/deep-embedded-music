@@ -6,6 +6,8 @@
 
   "log_level": "DEBUG",
 
+  "save_model": 1,
+
   "epochs": 10,
   "batch_size": 128,
   "prefetch_batches": 256,

@@ -4,10 +4,11 @@ import tensorflow as tf
 
 
 class DenseEncoder(tf.keras.Model):
-    def __init__(self, embedding_dim, name="DenseEncoder"):
+    def __init__(self, embedding_dim, model_name="DenseEncoder"):
         super(DenseEncoder, self).__init__()
         self.dense = tf.keras.layers.Dense(embedding_dim, activation="relu")
 
+        self.model_name = model_name
         self.logger = logging.getLogger(self.__class__.__name__)
 
     @tf.function

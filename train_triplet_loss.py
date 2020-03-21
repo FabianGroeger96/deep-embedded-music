@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 
 import tensorflow as tf
+from tqdm import tqdm
 
 from feature_extractor.log_mel_extractor import LogMelExtractor
 from input_pipeline.triplet_input_pipeline import TripletsInputPipeline
@@ -13,31 +14,42 @@ from utils.params import Params
 from utils.utils import set_logger
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--model_dir", default="experiments/triplet_loss",
+parser.add_argument("--experiment_dir", default="experiments/DCASE",
                     help="Experiment directory containing params.json")
 
 if __name__ == "__main__":
     # load the parameters from json file
     args = parser.parse_args()
-    json_path = os.path.join(args.model_dir, "params.json")
+    json_path = os.path.join(args.experiment_dir, "config", "params.json")
     assert os.path.isfile(
         json_path), "No json configuration file found at {}".format(json_path)
     params = Params(json_path)
 
     # create experiment name folder
-    experiment_path = os.path.join(args.model_dir, params.experiment_name)
+    experiment_path = os.path.join(args.experiment_dir, "results")
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
 
+    # Instantiate model, optimizer, triplet loss function
+    model = DenseEncoder(embedding_dim=params.embedding_size)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
+    triplet_loss_fn = TripletLoss(margin=params.margin)
+
     # create experiment time folder
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-    experiment_path = os.path.join(experiment_path, current_time)
+    experiment_folder_name = "{0}-{1}".format(model.model_name, current_time)
+    experiment_path = os.path.join(experiment_path, experiment_folder_name)
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
 
     # set logger
     set_logger(experiment_path, params.log_level)
     logger = logging.getLogger("Main ({})".format(params.experiment_name))
+
+    # define checkpoint and checkpoint manager
+    ckpt_path = os.path.join(experiment_path, "saved_model")
+    ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
+    manager = tf.train.CheckpointManager(ckpt, ckpt_path, max_to_keep=5)
 
     # set the folder for the summary writer
     train_log_dir = os.path.join(experiment_path, "train")
@@ -46,11 +58,7 @@ if __name__ == "__main__":
     # define triplet loss metric
     train_triplet_loss = tf.keras.metrics.Mean("train_triplet_loss", dtype=tf.float32)
 
-    # Instantiate model, optimizer, triplet loss function
-    model = DenseEncoder(embedding_dim=params.embedding_size)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
-    triplet_loss_fn = TripletLoss(margin=params.margin)
-
+    # define triplet input pipeline
     pipeline = TripletsInputPipeline(
         dataset_path=params.audio_files_path,
         fold=params.fold,
@@ -62,6 +70,7 @@ if __name__ == "__main__":
         stereo_channels=params.stereo_channels,
         to_mono=params.to_mono)
 
+    # define feature extractor
     extractor = LogMelExtractor(sample_rate=params.sample_rate,
                                 sample_size=params.sample_size,
                                 frame_length=params.frame_length,
@@ -69,11 +78,19 @@ if __name__ == "__main__":
                                 fft_size=params.fft_size,
                                 n_mel_bin=params.n_mel_bin)
 
-    for epoch in range(params.epochs):
+    # check if model has been trained before
+    ckpt.restore(manager.latest_checkpoint)
+    if manager.latest_checkpoint:
+        logger.info("Restored model from {}".format(manager.latest_checkpoint))
+    else:
+        logger.info("Initializing model from scratch.")
+
+    # start of the training loop
+    for epoch in tqdm(range(params.epochs), desc="Epochs"):
         logger.info("Starting epoch {0} from {1}".format(epoch, params.epochs))
         dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset, calc_dist=params.calc_dist)
         # Iterate over the batches of the dataset.
-        for step, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
+        for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # Open a GradientTape to record the operations run
             # during the forward pass, which enables auto differentiation.
             with tf.GradientTape() as tape:
@@ -85,7 +102,7 @@ if __name__ == "__main__":
 
                 # Compute the loss value for batch
                 triplet_loss = triplet_loss_fn(triplet_labels, [emb_anchor, emb_neighbour, emb_opposite])
-                logger.debug("Triplet loss at batch {0}: {1}".format(step, float(triplet_loss)))
+                logger.debug("Triplet loss at batch {0}: {1:1.2f}".format(int(ckpt.step), float(triplet_loss)))
 
             # Use the gradient tape to automatically retrieve the gradients of the trainable variables with respect
             # to the loss.
@@ -96,17 +113,25 @@ if __name__ == "__main__":
             # add loss to the metric
             train_triplet_loss(triplet_loss)
 
+            # Add one step to checkpoint
+            ckpt.step.assign_add(1)
+
             # write loss to summary writer
             with train_summary_writer.as_default():
-                tf.summary.scalar("triplet_loss", train_triplet_loss.result(), step=step)
+                tf.summary.scalar("triplet_loss", train_triplet_loss.result(), step=int(ckpt.step))
 
             # Log every 200 batches.
-            if step % 200 == 0:
-                template = "Epoch {0}, Batch: {1}, Samples Seen: {2}, Triplet Loss: {3}"
+            if int(ckpt.step) % 200 == 0:
+                template = "Epoch {0}, Batch: {1}, Samples Seen: {2}, Triplet Loss: {3:1.2f}"
                 logger.info(template.format(epoch + 1,
-                                            step + 1,
-                                            (step + 1) * params.batch_size,
+                                            int(ckpt.step) + 1,
+                                            (int(ckpt.step) + 1) * params.batch_size,
                                             train_triplet_loss.result()))
+
+            # save the model every 10 steps
+            if int(ckpt.step) % 10 == 0 and bool(params.save_model):
+                save_path = manager.save()
+                logger.info("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
 
         # reset metrics every epoch
         train_triplet_loss.reset_states()
