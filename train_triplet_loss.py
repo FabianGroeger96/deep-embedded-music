@@ -4,9 +4,11 @@ import os
 from datetime import datetime
 
 import tensorflow as tf
+from tensorboard.plugins import projector
 from tqdm import tqdm
 
 from feature_extractor.log_mel_extractor import LogMelExtractor
+from input_pipeline.dcase_data_frame import DCASEDataFrame
 from input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from model.Dense_Encoder import DenseEncoder
 from model.loss.triplet_loss import TripletLoss
@@ -16,6 +18,21 @@ from utils.utils import set_logger
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments/DCASE",
                     help="Experiment directory containing params.json")
+
+
+def save_labels_tsv(labels, filepath, log_dir):
+    with open(os.path.join(log_dir, filepath), 'w') as f:
+        for label in labels.numpy():
+            f.write('{}\n'.format(DCASEDataFrame.LABELS[int(label)]))
+
+
+def save_embeddings_tsv(embeddings, filepath, log_dir):
+    with open(os.path.join(log_dir, filepath), 'w') as f:
+        for embedding in embeddings.numpy():
+            for vec in embedding:
+                f.write('{}\t'.format(vec))
+            f.write('\n')
+
 
 if __name__ == "__main__":
     # load the parameters from json file
@@ -49,11 +66,16 @@ if __name__ == "__main__":
     # define checkpoint and checkpoint manager
     ckpt_path = os.path.join(experiment_path, "saved_model")
     ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
-    manager = tf.train.CheckpointManager(ckpt, ckpt_path, max_to_keep=5)
+    manager = tf.train.CheckpointManager(ckpt, ckpt_path, max_to_keep=3)
 
     # set the folder for the summary writer
     train_log_dir = os.path.join(experiment_path, "train")
     train_summary_writer = tf.summary.create_file_writer(train_log_dir)
+
+    # create folder for projector, visualise embeddings
+    projector_path = os.path.join(experiment_path, "projector")
+    if not os.path.exists(projector_path):
+        os.mkdir(projector_path)
 
     # define triplet loss metric
     train_triplet_loss = tf.keras.metrics.Mean("train_triplet_loss", dtype=tf.float32)
@@ -90,7 +112,7 @@ if __name__ == "__main__":
         logger.info("Starting epoch {0} from {1}".format(epoch, params.epochs))
         dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset, calc_dist=params.calc_dist)
         # Iterate over the batches of the dataset.
-        for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
+        for anchor, neighbour, opposite, triplet_labels in tqdm(dataset_iterator, desc="Batches"):
             # Open a GradientTape to record the operations run
             # during the forward pass, which enables auto differentiation.
             with tf.GradientTape() as tape:
@@ -132,6 +154,22 @@ if __name__ == "__main__":
             if int(ckpt.step) % 10 == 0 and bool(params.save_model):
                 save_path = manager.save()
                 logger.info("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
+
+                emb = tf.reshape(emb_opposite, [emb_opposite.shape[0], -1])
+                tensor_embeddings = tf.Variable(emb, name='embeddings')
+
+                save_labels_tsv(triplet_labels[:, 2], 'labels.tsv', projector_path)
+                save_embeddings_tsv(emb, 'embeddings.tsv', projector_path)
+
+                saver = tf.compat.v1.train.Saver([tensor_embeddings])  # Must pass list or dict
+                saver.save(sess=None, global_step=0, save_path=os.path.join(projector_path, "embeddings.ckpt"))
+
+                # register projector
+                config = projector.ProjectorConfig()
+                embedding = config.embeddings.add()
+                embedding.tensor_name = "embeddings"
+                embedding.metadata_path = "labels.tsv"
+                projector.visualize_embeddings(projector_path, config)
 
         # reset metrics every epoch
         train_triplet_loss.reset_states()
