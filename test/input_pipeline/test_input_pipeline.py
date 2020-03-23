@@ -1,15 +1,15 @@
 import tensorflow as tf
 
-from feature_extractor.log_mel_extractor import LogMelExtractor
-from feature_extractor.mfcc_extractor import MFCCExtractor
-from input_pipeline.dcase_data_frame import DCASEDataFrame
-from input_pipeline.triplet_input_pipeline import TripletsInputPipeline
+from src.feature_extractor.log_mel_extractor import LogMelExtractor
+from src.feature_extractor.mfcc_extractor import MFCCExtractor
+from src.input_pipeline.dcase_data_frame import DCASEDataFrame
+from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 
 
 class TestInputPipeline(tf.test.TestCase):
 
     def setUp(self):
-        self.dataset_path = "/opt/project/tests/test_environment/"
+        self.dataset_path = "/opt/project/test/test_environment/"
         self.fold = 1
         self.sample_rate = 16000
         self.sample_size = 10
@@ -105,7 +105,7 @@ class TestInputPipeline(tf.test.TestCase):
                 self.assertTrue(a_label != o_label)
 
     def test_dataset_generator_mfcc_extractor(self):
-        feature_extractor = MFCCExtractor(sample_rate=16000, sample_size=10, frame_length=480,
+        feature_extractor = MFCCExtractor(sample_rate=self.sample_rate, sample_size=self.sample_size, frame_length=480,
                                           frame_step=160, fft_size=512, n_mel_bin=128, n_mfcc_bin=13)
 
         frame_size, n_mfcc_bin = feature_extractor.get_output_shape()
@@ -123,7 +123,8 @@ class TestInputPipeline(tf.test.TestCase):
                              opposite.shape)
 
     def test_dataset_generator_log_mel_extractor(self):
-        feature_extractor = LogMelExtractor(sample_rate=16000, sample_size=10, frame_length=480,
+        feature_extractor = LogMelExtractor(sample_rate=self.sample_rate, sample_size=self.sample_size,
+                                            frame_length=480,
                                             frame_step=160, fft_size=512, n_mel_bin=128)
 
         frame_size, n_mel_bin = feature_extractor.get_output_shape()

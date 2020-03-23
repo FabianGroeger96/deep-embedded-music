@@ -7,13 +7,13 @@ import tensorflow as tf
 from tensorboard.plugins import projector
 from tqdm import tqdm
 
-from feature_extractor.log_mel_extractor import LogMelExtractor
-from input_pipeline.dcase_data_frame import DCASEDataFrame
-from input_pipeline.triplet_input_pipeline import TripletsInputPipeline
-from model.Dense_Encoder import DenseEncoder
-from model.loss.triplet_loss import TripletLoss
-from utils.params import Params
-from utils.utils import set_logger
+from src.feature_extractor.log_mel_extractor import LogMelExtractor
+from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
+from src.input_pipeline.dcase_data_frame import DCASEDataFrame
+from src.models.Dense_Encoder import DenseEncoder
+from src.models.loss.triplet_loss import TripletLoss
+from src.utils.params import Params
+from src.utils.utils import Utils
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments/DCASE",
@@ -38,8 +38,7 @@ if __name__ == "__main__":
     # load the parameters from json file
     args = parser.parse_args()
     json_path = os.path.join(args.experiment_dir, "config", "params.json")
-    assert os.path.isfile(
-        json_path), "No json configuration file found at {}".format(json_path)
+    assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
     params = Params(json_path)
 
     # create experiment name folder
@@ -47,38 +46,42 @@ if __name__ == "__main__":
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
 
-    # Instantiate model, optimizer, triplet loss function
+    # Instantiate models, optimizer, triplet loss function
     model = DenseEncoder(embedding_dim=params.embedding_size)
     optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
     triplet_loss_fn = TripletLoss(margin=params.margin)
 
-    # create experiment time folder
+    # create experiment folder
     current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
     experiment_folder_name = "{0}-{1}".format(model.model_name, current_time)
     experiment_path = os.path.join(experiment_path, experiment_folder_name)
     if not os.path.exists(experiment_path):
         os.mkdir(experiment_path)
 
+    # create folder for logging
+    logs_path = os.path.join(experiment_path, "logs")
+    if not os.path.exists(logs_path):
+        os.mkdir(logs_path)
+
+    # create folder for tensorboard
+    tensorboard_path = os.path.join(experiment_path, "tensorboard")
+    if not os.path.exists(tensorboard_path):
+        os.mkdir(tensorboard_path)
+
     # set logger
-    set_logger(experiment_path, params.log_level)
+    Utils.set_logger(logs_path, params.log_level)
     logger = logging.getLogger("Main ({})".format(params.experiment_name))
+
+    # set the folder for the summary writer
+    train_summary_writer = tf.summary.create_file_writer(tensorboard_path)
+
+    # define triplet loss metric
+    train_triplet_loss = tf.keras.metrics.Mean("train_triplet_loss", dtype=tf.float32)
 
     # define checkpoint and checkpoint manager
     ckpt_path = os.path.join(experiment_path, "saved_model")
     ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
     manager = tf.train.CheckpointManager(ckpt, ckpt_path, max_to_keep=3)
-
-    # set the folder for the summary writer
-    train_log_dir = os.path.join(experiment_path, "train")
-    train_summary_writer = tf.summary.create_file_writer(train_log_dir)
-
-    # create folder for projector, visualise embeddings
-    projector_path = os.path.join(experiment_path, "projector")
-    if not os.path.exists(projector_path):
-        os.mkdir(projector_path)
-
-    # define triplet loss metric
-    train_triplet_loss = tf.keras.metrics.Mean("train_triplet_loss", dtype=tf.float32)
 
     # define triplet input pipeline
     pipeline = TripletsInputPipeline(
@@ -100,12 +103,12 @@ if __name__ == "__main__":
                                 fft_size=params.fft_size,
                                 n_mel_bin=params.n_mel_bin)
 
-    # check if model has been trained before
+    # check if models has been trained before
     ckpt.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
-        logger.info("Restored model from {}".format(manager.latest_checkpoint))
+        logger.info("Restored models from {}".format(manager.latest_checkpoint))
     else:
-        logger.info("Initializing model from scratch.")
+        logger.info("Initializing models from scratch.")
 
     # start of the training loop
     for epoch in tqdm(range(params.epochs), desc="Epochs"):
@@ -150,7 +153,7 @@ if __name__ == "__main__":
                                             (int(ckpt.step) + 1) * params.batch_size,
                                             train_triplet_loss.result()))
 
-            # save the model every 10 steps
+            # save the models every 10 steps
             if int(ckpt.step) % 10 == 0 and bool(params.save_model):
                 save_path = manager.save()
                 logger.info("Saved checkpoint for step {}: {}".format(int(ckpt.step), save_path))
@@ -158,18 +161,18 @@ if __name__ == "__main__":
                 emb = tf.reshape(emb_opposite, [emb_opposite.shape[0], -1])
                 tensor_embeddings = tf.Variable(emb, name='embeddings')
 
-                save_labels_tsv(triplet_labels[:, 2], 'labels.tsv', projector_path)
-                save_embeddings_tsv(emb, 'embeddings.tsv', projector_path)
+                save_labels_tsv(triplet_labels[:, 2], 'labels.tsv', tensorboard_path)
+                save_embeddings_tsv(emb, 'embeddings.tsv', tensorboard_path)
 
-                saver = tf.compat.v1.train.Saver([tensor_embeddings])  # Must pass list or dict
-                saver.save(sess=None, global_step=0, save_path=os.path.join(projector_path, "embeddings.ckpt"))
+                saver = tf.compat.v1.train.Saver([tensor_embeddings])
+                saver.save(sess=None, global_step=0, save_path=os.path.join(tensorboard_path, "embeddings.ckpt"))
 
                 # register projector
                 config = projector.ProjectorConfig()
                 embedding = config.embeddings.add()
                 embedding.tensor_name = "embeddings"
                 embedding.metadata_path = "labels.tsv"
-                projector.visualize_embeddings(projector_path, config)
+                projector.visualize_embeddings(tensorboard_path, config)
 
         # reset metrics every epoch
         train_triplet_loss.reset_states()

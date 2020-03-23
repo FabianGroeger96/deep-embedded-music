@@ -10,7 +10,7 @@ import pandas as pd
 from dtw import dtw
 from numpy.linalg import norm
 
-from utils.utils import Utils
+from src.utils.utils import Utils
 
 
 class DCASEDataFrame:

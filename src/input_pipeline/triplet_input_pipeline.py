@@ -6,9 +6,9 @@ from typing import Union
 import numpy as np
 import tensorflow as tf
 
-from feature_extractor.extractor import Extractor
-from input_pipeline.dcase_data_frame import DCASEDataFrame
-from utils.utils import Utils
+from src.feature_extractor.extractor import Extractor
+from src.input_pipeline.dcase_data_frame import DCASEDataFrame
+from src.utils.utils import Utils
 
 
 class TripletsInputPipeline:
