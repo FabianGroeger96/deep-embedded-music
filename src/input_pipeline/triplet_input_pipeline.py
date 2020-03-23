@@ -25,7 +25,8 @@ class TripletsInputPipeline:
                  random_selection_buffer_size: int,
                  input_processing_n_threads: int = 16,
                  stereo_channels: int = 4,
-                 to_mono: bool = True):
+                 to_mono: bool = True,
+                 log: bool = False):
         """
         Initialises the audio pipeline.
         :param dataset_path: Path to the dataset.
@@ -47,22 +48,24 @@ class TripletsInputPipeline:
 
         self.stereo_channels = stereo_channels
         self.to_mono = to_mono
+        self.log = log
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
         # check if audio path contains *.wav files
         files = Utils.get_files_in_path(self.dataset_path, ".wav")
         if len(files) <= 0:
-            raise ValueError("No audio files found in '{}'.".format(self.dataset_path))
+            raise ValueError("No audio files found in '{}'".format(self.dataset_path))
         else:
-            self.logger.debug("Found {} audio files.".format(len(files)))
+            self.logger.info("Found {} audio files".format(len(files)))
+
+        self.audio_info_df = DCASEDataFrame(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate)
 
     def generate_samples(self, calc_dist: bool = False) -> [np.ndarray, np.ndarray, np.ndarray]:
-        audio_info_data_frame = DCASEDataFrame(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate)
-        for index, anchor in enumerate(audio_info_data_frame):
+        for index, anchor in enumerate(self.audio_info_df):
             try:
-                neighbour, neighbour_dist = audio_info_data_frame.get_neighbour(index, calc_dist=calc_dist)
-                opposite, opposite_dist = audio_info_data_frame.get_opposite(index, calc_dist=calc_dist)
+                neighbour, neighbour_dist = self.audio_info_df.get_neighbour(index, calc_dist=calc_dist)
+                opposite, opposite_dist = self.audio_info_df.get_opposite(index, calc_dist=calc_dist)
 
                 # distance to differ between hard / easy triplet
                 if calc_dist:
@@ -98,7 +101,7 @@ class TripletsInputPipeline:
 
             # create tuple of triplet labels
             triplet_labels = np.stack((anchor.label, neighbour.label, opposite.label), axis=0)
-            if index % 1000 == 0:
+            if index % 1000 == 0 and self.log:
                 self.logger.debug("Triplet labels, index: {0}, a: {1}, n: {2}, o: {3}".format(index,
                                                                                               anchor.label,
                                                                                               neighbour.label,
@@ -138,3 +141,24 @@ class TripletsInputPipeline:
         dataset = dataset.prefetch(self.prefetch_batches)
 
         return dataset
+
+    def get_test_dataset(self, extractor):
+        test_set = self.audio_info_df.get_test_set(self.stereo_channels, self.to_mono)
+        test_set = test_set.to_numpy()
+
+        audio = test_set[:, 0]
+        audio = np.transpose(audio)
+        audio = tf.convert_to_tensor([audio], dtype=tf.float32)
+        audio = tf.squeeze(audio, 0)
+
+        extracted = []
+        for a in audio:
+            ex = extractor.extract(a)
+            extracted.append(ex)
+
+        extracted_tensor = tf.convert_to_tensor(extracted, dtype=tf.float32)
+
+        labels = test_set[:, -1]
+        labels = tf.convert_to_tensor([labels], dtype=tf.int32)
+
+        return extracted_tensor, labels

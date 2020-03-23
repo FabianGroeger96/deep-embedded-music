@@ -10,7 +10,9 @@ import pandas as pd
 from dtw import dtw
 from numpy.linalg import norm
 
+from src.utils.audio_utils import AudioUtils
 from src.utils.utils import Utils
+from sklearn.model_selection import train_test_split
 
 
 class DCASEDataFrame:
@@ -22,31 +24,38 @@ class DCASEDataFrame:
     def __init__(self,
                  dataset_path: Union[str, pathlib.Path],
                  fold: int,
-                 sample_rate: int):
+                 sample_rate: int,
+                 log: bool = False):
 
         self.dataset_path = Utils.check_if_path_exists(dataset_path)
         self.fold = fold
         self.sample_rate = sample_rate
+        self.log = log
 
         # defines the current index of the iterator
         self.current_index = 0
 
-        self.data_frame = self.load_data_frame()
+        self.df = self.load_data_frame()
+        self.df_train, self.df_test = train_test_split(self.df, test_size=0.01)
 
         self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.debug(self.data_frame.head())
+        if self.log:
+            self.logger.debug(self.df.head())
+
+        self.count_classes()
+        self.logger.info("Total audio samples: {}".format(self.df["file_name"].count()))
 
     def __iter__(self):
         return self
 
     def __next__(self):
         while True:
-            if self.current_index >= len(self.data_frame):
+            if self.current_index >= len(self.df):
                 raise StopIteration
             else:
-                audio_entry = self.data_frame.iloc[self.current_index]
+                audio_entry = self.df.iloc[self.current_index]
 
-                if self.current_index % 1000 == 0:
+                if self.current_index % 1000 == 0 and self.log:
                     self.logger.debug(
                         "Entry {0}: audio file: {1}, label: {2}, session: {3}, node id: {4}, segment: {5}".format(
                             self.current_index,
@@ -72,6 +81,13 @@ class DCASEDataFrame:
         audio_segment = re.findall(r"\d+", audio_name_split[2])[0]
 
         return audio_node_id, audio_session, audio_segment
+
+    @staticmethod
+    def extract_audio_from_filename(file_name, dataset_path, sample_rate, stereo_channels, to_mono):
+        audio_path = os.path.join(dataset_path, file_name)
+        audio_data = AudioUtils.load_audio_from_file(audio_path, sample_rate, stereo_channels, to_mono)
+
+        return audio_data
 
     def load_data_frame(self):
         train_df = self.load_train_data_frame()
@@ -113,16 +129,33 @@ class DCASEDataFrame:
             lambda row: DCASEDataFrame.extract_info_from_filename(row["file_name"]), axis=1))
         return train_df
 
-    def get_neighbour(self, anchor_id, calc_dist: bool = False, log_detail: bool = False):
-        anchor = self.data_frame.iloc[anchor_id]
+    def count_classes(self):
+        for i, label in enumerate(self.LABELS):
+            self.logger.info("Audio samples in {0}: {1}".format(label, self.df["label"].value_counts()[i]))
+        pass
 
-        filtered_items = self.data_frame
+    def get_test_set(self, stereo_channels, to_mono):
+        self.df_test = self.df_test.drop(["node_id", "segment", "session"], axis=1)
+        self.df_test["audio"] = ""
+
+        self.df_test["audio"] = self.df_test.apply(lambda row: DCASEDataFrame.extract_audio_from_filename(
+            row["file_name"], self.dataset_path, self.sample_rate, stereo_channels, to_mono), axis=1)
+        self.df_test = self.df_test.drop(["file_name"], axis=1)
+
+        self.df_test = self.df_test[["audio", "label"]]
+
+        return self.df_test
+
+    def get_neighbour(self, anchor_id, calc_dist: bool = False):
+        anchor = self.df.iloc[anchor_id]
+
+        filtered_items = self.df
         filtered_items = filtered_items[filtered_items.label == anchor.label]
         filtered_items = filtered_items[filtered_items.session != anchor.session]
         filtered_items = filtered_items[filtered_items.node_id != anchor.node_id]
 
         if len(filtered_items) > 0:
-            if log_detail:
+            if self.log:
                 self.logger.debug("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
         else:
             raise ValueError("No valid neighbour found")
@@ -131,21 +164,21 @@ class DCASEDataFrame:
 
         if calc_dist:
             dist = self.compare_audio(anchor, neighbour)
-            if log_detail:
+            if self.log:
                 self.logger.debug("Normalized distance between anchor and neighbour: {}".format(math.ceil(dist)))
         else:
             dist = None
 
         return neighbour, dist
 
-    def get_opposite(self, anchor_id, calc_dist: bool = False, log_detail: bool = False):
-        anchor = self.data_frame.iloc[anchor_id]
+    def get_opposite(self, anchor_id, calc_dist: bool = False):
+        anchor = self.df.iloc[anchor_id]
 
-        filtered_items = self.data_frame
+        filtered_items = self.df
         filtered_items = filtered_items[filtered_items.label != anchor.label]
 
         if len(filtered_items) > 0:
-            if log_detail:
+            if self.log:
                 self.logger.debug("Selecting opposite randomly from {} samples".format(len(filtered_items)))
         else:
             raise ValueError("No valid opposite found")
@@ -154,7 +187,7 @@ class DCASEDataFrame:
 
         if calc_dist:
             dist = self.compare_audio(anchor, opposite)
-            if log_detail:
+            if self.log:
                 self.logger.debug("Normalized distance between anchor and opposite: {}".format(math.ceil(dist)))
         else:
             dist = None
