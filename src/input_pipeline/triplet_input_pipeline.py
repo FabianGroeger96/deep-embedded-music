@@ -8,6 +8,7 @@ import tensorflow as tf
 
 from src.feature_extractor.extractor import Extractor
 from src.input_pipeline.dcase_data_frame import DCASEDataFrame
+from src.utils.audio_utils import AudioUtils
 from src.utils.utils import Utils
 
 
@@ -78,15 +79,16 @@ class TripletsInputPipeline:
 
             # load audio files from anchor
             anchor_path = os.path.join(self.dataset_path, anchor.file_name)
-            anchor_audio = Utils.load_audio_from_file(anchor_path, self.sample_rate, self.stereo_channels, self.to_mono)
+            anchor_audio = AudioUtils.load_audio_from_file(anchor_path, self.sample_rate, self.stereo_channels,
+                                                           self.to_mono)
             # load audio files from neighbour
             neighbour_path = os.path.join(self.dataset_path, neighbour.file_name)
-            neighbour_audio = Utils.load_audio_from_file(neighbour_path, self.sample_rate, self.stereo_channels,
-                                                         self.to_mono)
+            neighbour_audio = AudioUtils.load_audio_from_file(neighbour_path, self.sample_rate, self.stereo_channels,
+                                                              self.to_mono)
             # load audio files from opposite
             opposite_path = os.path.join(self.dataset_path, opposite.file_name)
-            opposite_audio = Utils.load_audio_from_file(opposite_path, self.sample_rate, self.stereo_channels,
-                                                        self.to_mono)
+            opposite_audio = AudioUtils.load_audio_from_file(opposite_path, self.sample_rate, self.stereo_channels,
+                                                             self.to_mono)
 
             # make sure audios have the same size
             audio_length = self.sample_size * self.sample_rate
