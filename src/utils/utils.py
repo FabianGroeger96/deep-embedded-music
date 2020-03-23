@@ -1,6 +1,7 @@
 import logging
 import os
 import pathlib
+import shutil
 from typing import Union
 from datetime import datetime
 
@@ -26,7 +27,7 @@ class Utils:
         path = pathlib.Path(path)
         if not path.exists():
             raise ValueError(
-                "Path {} is not valid. Please provide an existing path.".format(path))
+                "Path {} is not valid. Please provide an existing path".format(path))
 
         return path
 
@@ -76,6 +77,9 @@ class Utils:
         tensorboard_path = Utils.create_folder(os.path.join(experiment_path, "tensorboard"))
         # create folder for saving model
         saved_model_path = Utils.create_folder(os.path.join(experiment_path, "saved_model"))
+        # copy current param file to log directory
+        params_path = os.path.join(args.experiment_dir, "config", "params.json")
+        shutil.copyfile(params_path, os.path.join(logs_path, "params.json"))
 
         return experiment_path, logs_path, tensorboard_path, saved_model_path
 

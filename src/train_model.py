@@ -21,3 +21,10 @@ def train_step(batch, model, loss_fn, optimizer):
     optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
     return triplet_loss
+
+
+@tf.function
+def evaluation_step(audio, model):
+    embedding = model(audio, training=False)
+
+    return embedding

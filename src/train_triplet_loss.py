@@ -8,7 +8,7 @@ from tqdm import tqdm
 from src.feature_extractor.log_mel_extractor import LogMelExtractor
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.models.Dense_Encoder import DenseEncoder
-from src.models.loss.triplet_loss import TripletLoss
+from src.loss.triplet_loss import TripletLoss
 from src.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
@@ -67,6 +67,9 @@ if __name__ == "__main__":
                                 fft_size=params.fft_size,
                                 n_mel_bin=params.n_mel_bin)
 
+    # get test set for embedding visualisation
+    test_features, test_labels = pipeline.get_test_dataset(extractor)
+
     # check if models has been trained before
     ckpt.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
@@ -81,7 +84,7 @@ if __name__ == "__main__":
         # iterate over the batches of the dataset
         for anchor, neighbour, opposite, triplet_labels in tqdm(dataset_iterator, desc="Batches"):
             # trace the current graph
-            tf.summary.trace_on(graph=True, profiler=True)
+            tf.summary.trace_on(graph=True, profiler=False)
 
             # run one training step
             triplet_loss = train_step((anchor, neighbour, opposite, triplet_labels),
@@ -99,11 +102,15 @@ if __name__ == "__main__":
                 # write summary of the graph
                 tf.summary.trace_export(name="model_trace", step=int(ckpt.step), profiler_outdir=tensorb_path)
 
-            # save the models every 10 steps
-            if int(ckpt.step) % 20 == 0 and bool(params.save_model):
-                logger.info("Saved checkpoint for step {}: {}".format(int(ckpt.step), manager.save()))
+            if int(ckpt.step) % 10 == 0 and bool(params.save_model):
+                # save the model
+                manager_save_path = manager.save()
+                logger.info("Saved checkpoint for step {}: {}".format(int(ckpt.step), manager_save_path))
 
-                # visualise_embeddings(emb_opposite, triplet_labels, tensorb_path, int(ckpt.step))
+                # run test features through model
+                embedding = model(test_features, training=False)
+                # visualise test embeddings
+                visualise_embeddings(embedding, test_labels, tensorb_path, int(ckpt.step))
 
             # log every 200 batches
             if int(ckpt.step) % 200 == 0:

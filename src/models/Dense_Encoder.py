@@ -6,7 +6,8 @@ import tensorflow as tf
 class DenseEncoder(tf.keras.Model):
     def __init__(self, embedding_dim, model_name="DenseEncoder"):
         super(DenseEncoder, self).__init__()
-        self.dense = tf.keras.layers.Dense(embedding_dim, activation="relu")
+        self.dense = tf.keras.layers.Dense(embedding_dim, input_shape=(None, None, None), activation="relu")
+        self.flatten = tf.keras.layers.Flatten()
 
         self.model_name = model_name
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -17,6 +18,7 @@ class DenseEncoder(tf.keras.Model):
         if len(inputs.shape) == 3:
             self.logger.debug("Model used to predict single channel input.")
             embedding = self.dense(inputs)
+            embedding = self.flatten(embedding)
             self.logger.debug("Output features shape: {}".format(embedding.shape))
             return embedding
 
@@ -28,6 +30,7 @@ class DenseEncoder(tf.keras.Model):
                 # extract one audio channel
                 audio_channel = tf.squeeze(inputs[:, i])
                 embedding_channel = self.dense(audio_channel)
+                embedding_channel = self.flatten(embedding_channel)
                 outputs.append(embedding_channel)
             # merge audio channels together
             merged = tf.keras.layers.concatenate(outputs)

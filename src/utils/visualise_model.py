@@ -22,12 +22,12 @@ def save_embeddings_tsv(embeddings, filepath, log_dir):
 
 def visualise_embeddings(embeddings, triplet_labels, tensorboard_path, step):
     # reshape the embedding to a flat tensor (batch_size, ?)
-    emb = tf.reshape(embeddings, [embeddings.shape[0], -1])
-    tensor_embeddings = tf.Variable(emb, name='embeddings')
+    # emb = tf.reshape(embeddings, [embeddings.shape[0], -1])
+    tensor_embeddings = tf.Variable(embeddings, name='embeddings')
 
     # save labels and embeddings to .tsv, to assign each embedding a label
     save_labels_tsv(triplet_labels[:, 2], 'labels.tsv', tensorboard_path)
-    save_embeddings_tsv(emb, 'embeddings.tsv', tensorboard_path)
+    save_embeddings_tsv(embeddings, 'embeddings.tsv', tensorboard_path)
 
     # save the embeddings to a checkpoint file, which will then be loaded by the projector
     saver = tf.compat.v1.train.Saver([tensor_embeddings])
