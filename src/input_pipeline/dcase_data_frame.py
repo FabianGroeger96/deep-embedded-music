@@ -36,6 +36,9 @@ class DCASEDataFrame:
         self.current_index = 0
 
         self.df = self.load_data_frame()
+        # shuffle dataset
+        self.df = self.df.sample(frac=1).reset_index(drop=True)
+        # split dataset into train and test, test will be used for visualising
         self.df_train, self.df_test = train_test_split(self.df, test_size=0.01)
 
         self.logger = logging.getLogger(self.__class__.__name__)
