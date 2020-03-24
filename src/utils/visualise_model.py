@@ -26,7 +26,7 @@ def visualise_embeddings(embeddings, triplet_labels, tensorboard_path, step):
     tensor_embeddings = tf.Variable(embeddings, name='embeddings')
 
     # save labels and embeddings to .tsv, to assign each embedding a label
-    save_labels_tsv(triplet_labels[:, 2], 'labels.tsv', tensorboard_path)
+    save_labels_tsv(triplet_labels[0], 'labels.tsv', tensorboard_path)
     save_embeddings_tsv(embeddings, 'embeddings.tsv', tensorboard_path)
 
     # save the embeddings to a checkpoint file, which will then be loaded by the projector

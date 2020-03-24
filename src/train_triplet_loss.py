@@ -3,12 +3,11 @@ import logging
 import os
 
 import tensorflow as tf
-from tqdm import tqdm
 
 from src.feature_extractor.log_mel_extractor import LogMelExtractor
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
-from src.models.Dense_Encoder import DenseEncoder
 from src.loss.triplet_loss import TripletLoss
+from src.models.Dense_Encoder import DenseEncoder
 from src.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
@@ -78,11 +77,11 @@ if __name__ == "__main__":
         logger.info("Initializing models from scratch.")
 
     # start of the training loop
-    for epoch in tqdm(range(params.epochs), desc="Epochs"):
+    for epoch in range(params.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch, params.epochs))
         dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset, calc_dist=params.calc_dist)
         # iterate over the batches of the dataset
-        for anchor, neighbour, opposite, triplet_labels in tqdm(dataset_iterator, desc="Batches"):
+        for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # trace the current graph
             tf.summary.trace_on(graph=True, profiler=False)
 
@@ -102,7 +101,7 @@ if __name__ == "__main__":
                 # write summary of the graph
                 tf.summary.trace_export(name="model_trace", step=int(ckpt.step), profiler_outdir=tensorb_path)
 
-            if int(ckpt.step) % 10 == 0 and bool(params.save_model):
+            if int(ckpt.step) % 20 == 0 and bool(params.save_model):
                 # save the model
                 manager_save_path = manager.save()
                 logger.info("Saved checkpoint for step {}: {}".format(int(ckpt.step), manager_save_path))
