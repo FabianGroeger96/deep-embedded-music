@@ -1,7 +1,7 @@
 {
   "experiment_name": "triplet_loss",
-  "audio_files_path": "/opt/project/data/DCASE18-Task5-development/",
-  "info_file_path": "/opt/project/data/DCASE18-Task5-development/evaluation_setup/fold1_train.txt",
+  "audio_files_path": "/tf/data/DCASE18-Task5-development/",
+  "info_file_path": "/tf/data/DCASE18-Task5-development/evaluation_setup/fold1_train.txt",
   "fold": 1,
 
   "log_level": "DEBUG",

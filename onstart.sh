@@ -1,8 +1,10 @@
-sudo apt-get update && sudo apt-get -y upgrade
-apt-get install git
-apt-get install zip
-apt-get install unzip
-apt-get install libsndfile1
-apt install git
+sudo apt-get -y update && sudo apt-get -y upgrade
+apt-get -y install git
+apt-get -y install zip
+apt-get -y install unzip
+apt-get -y install libsndfile1
+apt -y install git
 pip install --upgrade pip
 pip install -r requirements.txt
+
+python -m src.train_triplet_loss

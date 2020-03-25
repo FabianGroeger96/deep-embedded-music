@@ -109,7 +109,7 @@ if __name__ == "__main__":
                 # run test features through model
                 embedding = model(test_features, training=False)
                 # visualise test embeddings
-                visualise_embeddings(embedding, test_labels, tensorb_path, int(ckpt.step))
+                visualise_embeddings(embedding, test_labels, tensorb_path)
 
             # log every 200 batches
             if int(ckpt.step) % 200 == 0:
