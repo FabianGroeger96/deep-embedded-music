@@ -12,7 +12,7 @@ class ConvNet1D(tf.keras.Model):
 
         self.max_pooling = tf.keras.layers.MaxPool1D(2)
 
-        self.dense = tf.keras.layers.Dense(embedding_dim, input_shape=(None, None, None), activation="relu")
+        self.dense = tf.keras.layers.Dense(embedding_dim, activation="relu")
         self.flatten = tf.keras.layers.Flatten()
 
         self.model_name = model_name
