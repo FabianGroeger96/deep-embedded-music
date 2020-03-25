@@ -87,9 +87,8 @@ if __name__ == "__main__":
         # iterate over the batches of the dataset
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # run one training step
-            triplet_loss = train_step((anchor, neighbour, opposite, triplet_labels),
-                                      model=model, loss_fn=triplet_loss_fn, optimizer=optimizer,
-                                      tensorboard_path=tensorb_path, step=int(ckpt.step))
+            batch = (anchor, neighbour, opposite, triplet_labels)
+            triplet_loss = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
 
             # add loss to the metric
             train_triplet_loss(triplet_loss)

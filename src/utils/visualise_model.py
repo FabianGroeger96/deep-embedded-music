@@ -41,7 +41,7 @@ def visualise_embeddings(embeddings, triplet_labels, tensorboard_path):
     projector.visualize_embeddings(tensorboard_path, config)
 
 
-def save_graph(tensorboard_path, step, execute_callback, **args):
+def save_graph(tensorboard_path, execute_callback, **args):
     writer = tf.summary.create_file_writer(tensorboard_path)
 
     # Bracket the function call with

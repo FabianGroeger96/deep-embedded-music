@@ -21,7 +21,7 @@ tensorflow/tensorflow:2.1.0-gpu-py3 /bin/bash ./onstart.sh
 
 Personal:
 ```shell script
-docker run it -p 6006:6006 --rm -v $(PWD):/tf/ --name deep-embedded-music-tensorboard \
+docker run -it -p 6006:6006 --rm -v $(PWD):/tf/ --name deep-embedded-music-tensorboard \
 tensorflow/tensorflow:2.1.0-py3 \
 tensorboard --bind_all --logdir tf/experiments/DCASE/results/
 ```
