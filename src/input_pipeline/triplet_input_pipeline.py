@@ -49,6 +49,7 @@ class TripletsInputPipeline:
 
         self.stereo_channels = stereo_channels
         self.to_mono = to_mono
+        self.train_test_split_distribution = train_test_split_distribution
         self.log = log
 
         self.logger = logging.getLogger(self.__class__.__name__)
@@ -61,12 +62,12 @@ class TripletsInputPipeline:
             self.logger.info("Found {} audio files".format(len(files)))
 
         self.audio_info_df = DCASEDataFrame(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate,
-                                            train_test_split_distribution=train_test_split_distribution)
+                                            train_test_split_distribution=self.train_test_split_distribution)
 
     def reinitialise(self):
-        self.logger.info("Renitialising the input pipeline")
+        self.logger.info("Reinitialising the input pipeline")
         self.audio_info_df = DCASEDataFrame(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate,
-                                            train_test_split_distribution=train_test_split_distribution)
+                                            train_test_split_distribution=self.train_test_split_distribution)
 
     def generate_samples(self, calc_dist: bool = False) -> [np.ndarray, np.ndarray, np.ndarray]:
         for index, anchor in enumerate(self.audio_info_df):
