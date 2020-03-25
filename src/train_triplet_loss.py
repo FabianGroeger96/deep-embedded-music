@@ -86,12 +86,11 @@ if __name__ == "__main__":
         dataset_iterator = iter(dataset_iterator)
         # iterate over the batches of the dataset
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
-            # trace the current graph
-            tf.summary.trace_on(graph=True, profiler=False)
-
             # run one training step
             triplet_loss = train_step((anchor, neighbour, opposite, triplet_labels),
-                                      model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
+                                      model=model, loss_fn=triplet_loss_fn, optimizer=optimizer,
+                                      tensorboard_path=tensorb_path, step=int(ckpt.step))
+
             # add loss to the metric
             train_triplet_loss(triplet_loss)
 
@@ -102,8 +101,6 @@ if __name__ == "__main__":
             with train_summary_writer.as_default():
                 # write summary of loss
                 tf.summary.scalar("triplet_loss", train_triplet_loss.result(), step=int(ckpt.step))
-                # write summary of the graph
-                tf.summary.trace_export(name="model_trace", step=int(ckpt.step), profiler_outdir=tensorb_path)
 
             if int(ckpt.step) % params.save_frequency == 0 and bool(params.save_model):
                 # save the model

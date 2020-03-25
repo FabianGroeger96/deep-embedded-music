@@ -39,3 +39,21 @@ def visualise_embeddings(embeddings, triplet_labels, tensorboard_path):
     embedding.tensor_name = "embeddings"
     embedding.metadata_path = "labels.tsv"
     projector.visualize_embeddings(tensorboard_path, config)
+
+
+def save_graph(tensorboard_path, step, execute_callback, **args):
+    writer = tf.summary.create_file_writer(tensorboard_path)
+
+    # Bracket the function call with
+    # tf.summary.trace_on() and tf.summary.trace_export().
+    tf.summary.trace_on(graph=True, profiler=True)
+    # Call only one tf.function when tracing.
+    r = execute_callback(**args)
+
+    with writer.as_default():
+        tf.summary.trace_export(
+            name="model_graph",
+            step=0,
+            profiler_outdir=tensorboard_path)
+
+    return r
