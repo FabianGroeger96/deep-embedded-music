@@ -9,12 +9,14 @@
   "save_model": 1,
 
   "epochs": 10,
-  "batch_size": 128,
-  "prefetch_batches": 256,
+  "batch_size": 512,
+  "prefetch_batches": 1024,
   "random_selection_buffer_size": 64,
   "learning_rate": 1e-3,
 
   "shuffle_dataset": 1,
+  "train_test_split": 0.1,
+  "save_frequency": 50,
 
   "calc_dist": 0,
 
@@ -28,7 +30,7 @@
   "frame_step": 160,
   "fft_size": 1024,
   "n_mel_bin": 128,
-  "n_mfcc_bin": 128,
+  "n_mfcc_bin": 13,
 
   "margin": 0.5,
   "embedding_size": 512

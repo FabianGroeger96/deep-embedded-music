@@ -7,6 +7,7 @@ import tensorflow as tf
 from src.feature_extractor.log_mel_extractor import LogMelExtractor
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
+from src.models.ConvNet_1D import ConvNet1D
 from src.models.Dense_Encoder import DenseEncoder
 from src.train_model import train_step
 from src.utils.params import Params
@@ -25,7 +26,8 @@ if __name__ == "__main__":
     params = Params(json_path)
 
     # instantiate models, optimizer, triplet loss function
-    model = DenseEncoder(embedding_dim=params.embedding_size)
+    # model = DenseEncoder(embedding_dim=params.embedding_size)
+    model = ConvNet1D(embedding_dim=params.embedding_size)
     optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
     triplet_loss_fn = TripletLoss(margin=params.margin)
 
@@ -56,7 +58,8 @@ if __name__ == "__main__":
         prefetch_batches=tf.data.experimental.AUTOTUNE,
         random_selection_buffer_size=params.random_selection_buffer_size,
         stereo_channels=params.stereo_channels,
-        to_mono=params.to_mono)
+        to_mono=params.to_mono,
+        train_test_split_distribution=params.train_test_split)
 
     # define feature extractor
     extractor = LogMelExtractor(sample_rate=params.sample_rate,
@@ -77,9 +80,10 @@ if __name__ == "__main__":
         logger.info("Initializing models from scratch.")
 
     # start of the training loop
-    for epoch in range(params.epochs):
+    for epoch in range(1, params.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch, params.epochs))
         dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset, calc_dist=params.calc_dist)
+        dataset_iterator = iter(dataset_iterator)
         # iterate over the batches of the dataset
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # trace the current graph
@@ -101,7 +105,7 @@ if __name__ == "__main__":
                 # write summary of the graph
                 tf.summary.trace_export(name="model_trace", step=int(ckpt.step), profiler_outdir=tensorb_path)
 
-            if int(ckpt.step) % 20 == 0 and bool(params.save_model):
+            if int(ckpt.step) % params.save_frequency == 0 and bool(params.save_model):
                 # save the model
                 manager_save_path = manager.save()
                 logger.info("Saved checkpoint for step {}: {}".format(int(ckpt.step), manager_save_path))
@@ -121,6 +125,9 @@ if __name__ == "__main__":
 
             # add one step to checkpoint
             ckpt.step.assign_add(1)
+
+        # reinitialise pipeline after epoch
+        pipeline.reinitialise()
 
         # reset metrics every epoch
         train_triplet_loss.reset_states()
