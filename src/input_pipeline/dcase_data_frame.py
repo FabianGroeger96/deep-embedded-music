@@ -25,6 +25,7 @@ class DCASEDataFrame:
                  dataset_path: Union[str, pathlib.Path],
                  fold: int,
                  sample_rate: int,
+                 train_test_split_distribution: int = 0.05,
                  log: bool = False):
 
         self.dataset_path = Utils.check_if_path_exists(dataset_path)
@@ -39,7 +40,7 @@ class DCASEDataFrame:
         # shuffle dataset
         self.df = self.df.sample(frac=1).reset_index(drop=True)
         # split dataset into train and test, test will be used for visualising
-        self.df_train, self.df_test = train_test_split(self.df, test_size=0.01)
+        self.df_train, self.df_test = train_test_split(self.df, test_size=train_test_split_distribution)
 
         self.logger = logging.getLogger(self.__class__.__name__)
         if self.log:

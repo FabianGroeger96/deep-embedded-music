@@ -26,6 +26,7 @@ class TripletsInputPipeline:
                  input_processing_n_threads: int = 16,
                  stereo_channels: int = 4,
                  to_mono: bool = True,
+                 train_test_split_distribution: int = 0.05,
                  log: bool = False):
         """
         Initialises the audio pipeline.
@@ -59,7 +60,13 @@ class TripletsInputPipeline:
         else:
             self.logger.info("Found {} audio files".format(len(files)))
 
-        self.audio_info_df = DCASEDataFrame(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate)
+        self.audio_info_df = DCASEDataFrame(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate,
+                                            train_test_split_distribution=train_test_split_distribution)
+
+    def reinitialise(self):
+        self.logger.info("Renitialising the input pipeline")
+        self.audio_info_df = DCASEDataFrame(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate,
+                                            train_test_split_distribution=train_test_split_distribution)
 
     def generate_samples(self, calc_dist: bool = False) -> [np.ndarray, np.ndarray, np.ndarray]:
         for index, anchor in enumerate(self.audio_info_df):
@@ -138,7 +145,7 @@ class TripletsInputPipeline:
             dataset = dataset.shuffle(buffer_size=self.random_selection_buffer_size)
 
         dataset = dataset.batch(self.batch_size)
-        dataset = dataset.prefetch(self.prefetch_batches)
+        dataset = dataset.prefetch(self.prefetch_batches).repeat()
 
         return dataset
 
