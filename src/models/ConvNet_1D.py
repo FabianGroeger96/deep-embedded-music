@@ -8,15 +8,23 @@ class ConvNet1D(tf.keras.Model):
         super(ConvNet1D, self).__init__()
 
         self.conv_1 = tf.keras.layers.Conv1D(64, 2, input_shape=(None, None, None), padding="same", activation="relu")
-        self.conv_2 = tf.keras.layers.Conv1D(128, 3, padding="same", activation="relu")
+        self.conv_2 = tf.keras.layers.Conv1D(64, 2, padding="same", activation="relu")
+        self.conv_3 = tf.keras.layers.Conv1D(128, 3, padding="same", activation="relu")
+        self.conv_4 = tf.keras.layers.Conv1D(128, 3, padding="same", activation="relu")
 
         self.max_pooling = tf.keras.layers.MaxPool1D(2)
 
-        self.dense = tf.keras.layers.Dense(embedding_dim, activation="relu")
+        self.dropout = tf.keras.layers.Dropout(0.3)
+
+        self.dense = tf.keras.layers.Dense(embedding_dim, activation=None)
         self.flatten = tf.keras.layers.Flatten()
+
+        self.l2_normalisation = tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1))
 
         self.model_name = model_name
         self.logger = logging.getLogger(self.__class__.__name__)
+
+        tf.print(self.conv_1)
 
     @tf.function
     def call(self, inputs, training=None, mask=None):
@@ -50,8 +58,18 @@ class ConvNet1D(tf.keras.Model):
         # 2. Conv layer
         features = self.conv_2(features)
         features = self.max_pooling(features)
+        features = self.dropout(features)
+        # 3. Conv layer
+        features = self.conv_3(features)
+        features = self.max_pooling(features)
+        # 4. Conv layer
+        features = self.conv_4(features)
+        features = self.max_pooling(features)
+        features = self.dropout(features)
         # Embedding layer
-        features = self.dense(features)
         features = self.flatten(features)
+        features = self.dense(features)
+        # normalisation
+        features = self.l2_normalisation(features)
 
         return features

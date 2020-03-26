@@ -28,8 +28,8 @@ if __name__ == "__main__":
 
     # instantiate models, optimizer, triplet loss function
     # model = DenseEncoder(embedding_dim=params.embedding_size)
-    # model = ConvNet1D(embedding_dim=params.embedding_size)
-    model = ConvNet2D(embedding_dim=params.embedding_size)
+    model = ConvNet1D(embedding_dim=params.embedding_size)
+    # model = ConvNet2D(embedding_dim=params.embedding_size)
     optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
     triplet_loss_fn = TripletLoss(margin=params.margin)
 
@@ -81,6 +81,8 @@ if __name__ == "__main__":
     else:
         logger.info("Initializing models from scratch.")
 
+    print_model = True
+
     # start of the training loop
     for epoch in range(1, params.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch, params.epochs))
@@ -88,6 +90,11 @@ if __name__ == "__main__":
         dataset_iterator = iter(dataset_iterator)
         # iterate over the batches of the dataset
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
+            if print_model:
+                model.build(anchor.shape)
+                model.summary(print_fn=logger.info)
+                print_model = False
+
             # run one training step
             batch = (anchor, neighbour, opposite, triplet_labels)
             triplet_loss = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
@@ -101,7 +108,8 @@ if __name__ == "__main__":
             # write loss to summary writer
             with train_summary_writer.as_default():
                 # write summary of loss
-                tf.summary.scalar("triplet_loss", train_triplet_loss.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/steps", train_triplet_loss.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/epochs", train_triplet_loss.result(), step=(epoch - 1))
 
             if int(ckpt.step) % params.save_frequency == 0 and bool(params.save_model):
                 # save the model
