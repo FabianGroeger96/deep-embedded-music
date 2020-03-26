@@ -1,4 +1,5 @@
 tensorboard
+tensorflow-addons
 dtw
 pandas
 tensorflow

@@ -1,40 +1,22 @@
-import logging
-
 import tensorflow as tf
 
+from src.models.BaseModel import BaseModel
+from src.models.ModelFactory import ModelFactory
 
-class DenseEncoder(tf.keras.Model):
+
+@ModelFactory.register("DenseEncoder")
+class DenseEncoder(BaseModel):
     def __init__(self, embedding_dim, model_name="DenseEncoder"):
-        super(DenseEncoder, self).__init__()
-        self.dense = tf.keras.layers.Dense(embedding_dim, input_shape=(None, None, None), activation="relu")
-        self.flatten = tf.keras.layers.Flatten()
+        super(DenseEncoder, self).__init__(embedding_dim=embedding_dim, model_name=model_name)
 
-        self.model_name = model_name
-        self.logger = logging.getLogger(self.__class__.__name__)
+        self.dense = tf.keras.layers.Dense(embedding_dim, input_shape=(None, None, None), activation="relu")
 
     @tf.function
-    def call(self, inputs, training=None, mask=None):
-        self.logger.debug("Input features shape: {}".format(inputs.shape))
-        if len(inputs.shape) == 3:
-            self.logger.debug("Model used to predict single channel input.")
-            embedding = self.dense(inputs)
-            embedding = self.flatten(embedding)
-            self.logger.debug("Output features shape: {}".format(embedding.shape))
-            return embedding
+    def forward_pass(self, inputs):
+        # Embedding layer
+        features = self.flatten(inputs)
+        features = self.dense(features)
+        # L2 normalisation
+        features = self.l2_normalisation(features)
 
-        elif len(inputs.shape) == 4:
-            self.logger.debug("Model used to predict multi channel input.")
-            # list of outputs from the different channels
-            outputs = []
-            for i in range(inputs.shape[-1]):
-                # extract one audio channel
-                audio_channel = tf.squeeze(inputs[:, i])
-                embedding_channel = self.dense(audio_channel)
-                embedding_channel = self.flatten(embedding_channel)
-                outputs.append(embedding_channel)
-            # merge audio channels together
-            merged = tf.keras.layers.concatenate(outputs)
-            self.logger.debug("Output features shape: {}".format(merged.shape))
-            return merged
-        else:
-            raise ValueError("Input has wrong shape.")
+        return features
