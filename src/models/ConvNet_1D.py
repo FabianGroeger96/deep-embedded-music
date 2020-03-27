@@ -7,7 +7,7 @@ from src.models.ModelFactory import ModelFactory
 @ModelFactory.register("ConvNet1D")
 class ConvNet1D(BaseModel):
     def __init__(self, embedding_dim, model_name="ConvNet1D"):
-        super(ConvNet1D, self).__init__(embedding_dim=embedding_dim, model_name=model_name)
+        super(ConvNet1D, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=False)
 
         input_shape = (None, None, None)
         self.conv_1 = tf.keras.layers.Conv1D(64, 2, input_shape=input_shape, padding="same", activation="relu")
