@@ -1,23 +1,42 @@
 import argparse
 import logging
 import os
+from enum import Enum
 
 import tensorflow as tf
 
 from src.feature_extractor.log_mel_extractor import LogMelExtractor
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
-from src.models.ConvNet_1D import ConvNet1D
-from src.models.ConvNet_2D import ConvNet2D
-from src.models.Dense_Encoder import DenseEncoder
+from src.models.ModelFactory import ModelFactory
 from src.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
-from src.utils.visualise_model import visualise_embeddings
+from src.utils.visualise_model import visualise_model_on_epoch_end
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments/DCASE",
                     help="Experiment directory containing params.json")
+
+
+class LogLevel(Enum):
+    DEBUG = 0
+    INFO = 1
+
+
+def log_step(epoch, batch_index, batch_size, result, log_level: LogLevel):
+    template = "Epoch {0}, Batch: {1}, Samples Seen: {2}, Triplet Loss: {3:1.2f}"
+    if log_level == LogLevel.INFO:
+        logger.info(template.format(epoch + 1,
+                                    batch_index + 1,
+                                    (batch_index + 1) * batch_size,
+                                    result))
+    elif log_level == LogLevel.DEBUG:
+        logger.debug(template.format(epoch + 1,
+                                     batch_index + 1,
+                                     (batch_index + 1) * batch_size,
+                                     result))
+
 
 if __name__ == "__main__":
     # load the parameters from json file
@@ -26,11 +45,11 @@ if __name__ == "__main__":
     assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
     params = Params(json_path)
 
-    # instantiate models, optimizer, triplet loss function
-    # model = DenseEncoder(embedding_dim=params.embedding_size)
-    model = ConvNet1D(embedding_dim=params.embedding_size)
-    # model = ConvNet2D(embedding_dim=params.embedding_size)
+    # create model from factory and specified name within the params
+    model = ModelFactory.create_model("ConvNet2D", embedding_dim=params.embedding_size)
+    # create the optimizer for the model
     optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
+    # create the loss function for the model
     triplet_loss_fn = TripletLoss(margin=params.margin)
 
     # create folders for experiment results
@@ -43,8 +62,10 @@ if __name__ == "__main__":
     # set the folder for the summary writer
     train_summary_writer = tf.summary.create_file_writer(tensorb_path)
 
-    # define triplet loss metric
-    train_triplet_loss = tf.keras.metrics.Mean("train_triplet_loss", dtype=tf.float32)
+    # define triplet loss metrics
+    train_loss_triplet = tf.keras.metrics.Mean("train_loss_triplet", dtype=tf.float32)
+    train_loss_neighbour = tf.keras.metrics.Mean("train_loss_neighbour", dtype=tf.float32)
+    train_loss_opposite = tf.keras.metrics.Mean("train_loss_opposite", dtype=tf.float32)
 
     # define checkpoint and checkpoint manager
     ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
@@ -84,12 +105,12 @@ if __name__ == "__main__":
     print_model = True
 
     # start of the training loop
-    for epoch in range(1, params.epochs):
-        logger.info("Starting epoch {0} from {1}".format(epoch, params.epochs))
+    for epoch in range(params.epochs):
+        logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
         dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset, calc_dist=params.calc_dist)
         dataset_iterator = iter(dataset_iterator)
         # iterate over the batches of the dataset
-        for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
+        for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
             if print_model:
                 model.build(anchor.shape)
                 model.summary(print_fn=logger.info)
@@ -97,43 +118,43 @@ if __name__ == "__main__":
 
             # run one training step
             batch = (anchor, neighbour, opposite, triplet_labels)
-            triplet_loss = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
+            losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
+            loss_triplet, loss_neighbour, loss_opposite = losses
 
-            # add loss to the metric
-            train_triplet_loss(triplet_loss)
-
-            # log the current loss value of the batch
-            logger.debug("Triplet loss at batch {0}: {1:1.2f}".format(int(ckpt.step), float(triplet_loss)))
+            # add losses to the metrics
+            train_loss_triplet(loss_triplet)
+            train_loss_neighbour(loss_neighbour)
+            train_loss_opposite(loss_opposite)
 
             # write loss to summary writer
             with train_summary_writer.as_default():
-                # write summary of loss
-                tf.summary.scalar("triplet_loss/steps", train_triplet_loss.result(), step=int(ckpt.step))
-                tf.summary.scalar("triplet_loss/epochs", train_triplet_loss.result(), step=(epoch - 1))
+                # write summary of losses
+                tf.summary.scalar("triplet_loss/loss_triplet", train_loss_triplet.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/loss_neighbour", train_loss_neighbour.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/loss_opposite", train_loss_opposite.result(), step=int(ckpt.step))
 
+            # save the current model after a certain amount of steps
             if int(ckpt.step) % params.save_frequency == 0 and bool(params.save_model):
-                # save the model
                 manager_save_path = manager.save()
-                logger.info("Saved checkpoint for step {}: {}".format(int(ckpt.step), manager_save_path))
+                logger.info("Saved checkpoint for step {0}: {1}".format(int(ckpt.step), manager_save_path))
 
-                # run test features through model
-                embedding = model(test_features, training=False)
-                # visualise test embeddings
-                visualise_embeddings(embedding, test_labels, tensorb_path)
-
-            # log every 200 batches
+            # log the current loss value of the batch
             if int(ckpt.step) % 200 == 0:
-                template = "Epoch {0}, Batch: {1}, Samples Seen: {2}, Triplet Loss: {3:1.2f}"
-                logger.info(template.format(epoch + 1,
-                                            int(ckpt.step) + 1,
-                                            (int(ckpt.step) + 1) * params.batch_size,
-                                            train_triplet_loss.result()))
+                log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
+                         result=train_loss_triplet.result(), log_level=LogLevel.INFO)
+            else:
+                log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
+                         result=train_loss_triplet.result(), log_level=LogLevel.DEBUG)
 
             # add one step to checkpoint
             ckpt.step.assign_add(1)
 
+        # reset metrics every epoch
+        train_loss_triplet.reset_states()
+
+        # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
+        visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
+                                     summary_writer=train_summary_writer, tensorboard_path=tensorb_path)
+
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
-
-        # reset metrics every epoch
-        train_triplet_loss.reset_states()
