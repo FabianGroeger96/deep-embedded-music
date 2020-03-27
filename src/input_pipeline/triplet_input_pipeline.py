@@ -1,6 +1,5 @@
 import logging
 import os
-import pathlib
 from typing import Union
 
 import numpy as np
@@ -9,6 +8,7 @@ import tensorflow as tf
 from src.feature_extractor.extractor import Extractor
 from src.input_pipeline.dcase_data_frame import DCASEDataFrame
 from src.utils.audio_utils import AudioUtils
+from src.utils.params import Params
 from src.utils.utils import Utils
 
 
@@ -16,40 +16,30 @@ class TripletsInputPipeline:
     """Input pipeline to generate triplets."""
 
     def __init__(self,
-                 dataset_path: Union[str, pathlib.Path],
-                 fold: int,
-                 sample_rate: int,
-                 sample_size: int,
-                 batch_size: int,
-                 prefetch_batches: int,
-                 random_selection_buffer_size: int,
-                 input_processing_n_threads: int = 16,
-                 stereo_channels: int = 4,
-                 to_mono: bool = True,
-                 train_test_split_distribution: int = 0.05,
+                 params: Params,
                  log: bool = False):
         """
         Initialises the audio pipeline.
-        :param dataset_path: Path to the dataset.
-        :param sample_rate: Sample rate with which the audio files are loaded.
-        :param batch_size: Batch size of the dataset.
-        :param prefetch_batches: Prefetch size of the dataset pipeline.
+        :param params: parameters of the current experiment.
+        :param log: if the pipeline should log details about the data.
         """
-        self.dataset_path = Utils.check_if_path_exists(dataset_path)
 
-        self.fold = fold
+        self.dataset_path = Utils.check_if_path_exists(params.audio_files_path)
 
-        self.sample_rate = sample_rate
-        self.sample_size = sample_size
+        self.fold = params.fold
 
-        self.batch_size = batch_size
-        self.prefetch_batches = prefetch_batches
-        self.random_selection_buffer_size = random_selection_buffer_size
-        self.input_processing_n_threads = input_processing_n_threads
+        self.sample_rate = params.sample_rate
+        self.sample_size = params.sample_size
 
-        self.stereo_channels = stereo_channels
-        self.to_mono = to_mono
-        self.train_test_split_distribution = train_test_split_distribution
+        self.batch_size = params.batch_size
+        self.prefetch_batches = tf.data.experimental.AUTOTUNE  # params.prefetch_batches
+        self.random_selection_buffer_size = params.random_selection_buffer_size
+
+        self.stereo_channels = params.stereo_channels
+        self.to_mono = params.to_mono
+
+        self.train_test_split_distribution = params.train_test_split
+
         self.log = log
 
         self.logger = logging.getLogger(self.__class__.__name__)

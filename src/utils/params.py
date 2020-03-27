@@ -13,6 +13,42 @@ class Params:
     """
 
     def __init__(self, json_path):
+        self.experiment_name = None
+        self.audio_files_path = None
+        self.info_file_path = None
+        self.fold = None
+
+        self.log_level = None
+
+        self.save_model = None
+        self.save_frequency = None
+
+        self.epochs = None
+        self.batch_size = None
+        self.prefetch_batches = None
+        self.random_selection_buffer_size = None
+        self.learning_rate = None
+
+        self.shuffle_dataset = None
+        self.train_test_split = None
+
+        self.calc_dist = None
+
+        self.sample_rate = None
+        self.sample_size = None
+
+        self.stereo_channels = None
+        self.to_mono = None
+
+        self.frame_length = None
+        self.frame_step = None
+        self.fft_size = None
+        self.n_mel_bin = None
+        self.n_mfcc_bin = None
+
+        self.margin = None
+        self.embedding_size = None
+
         self.update(json_path)
 
     def save(self, json_path):

@@ -2,11 +2,13 @@ from abc import ABC, abstractmethod
 
 import tensorflow as tf
 
+from src.utils.params import Params
+
 
 class Extractor(ABC):
-    def __init__(self, sample_rate: int, sample_size: int):
-        self.sample_rate = sample_rate
-        self.sample_size = sample_size
+    def __init__(self, params: Params):
+        self.sample_rate = params.sample_rate
+        self.sample_size = params.sample_size
 
         self.lower_edge_hertz = 50
         self.upper_edge_hertz = self.get_nyquist_frequency()

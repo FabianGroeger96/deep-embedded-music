@@ -72,25 +72,10 @@ if __name__ == "__main__":
     manager = tf.train.CheckpointManager(ckpt, save_path, max_to_keep=3)
 
     # define triplet input pipeline
-    pipeline = TripletsInputPipeline(
-        dataset_path=params.audio_files_path,
-        fold=params.fold,
-        sample_rate=params.sample_rate,
-        sample_size=params.sample_size,
-        batch_size=params.batch_size,
-        prefetch_batches=tf.data.experimental.AUTOTUNE,
-        random_selection_buffer_size=params.random_selection_buffer_size,
-        stereo_channels=params.stereo_channels,
-        to_mono=params.to_mono,
-        train_test_split_distribution=params.train_test_split)
+    pipeline = TripletsInputPipeline(params=params)
 
     # define feature extractor
-    extractor = LogMelExtractor(sample_rate=params.sample_rate,
-                                sample_size=params.sample_size,
-                                frame_length=params.frame_length,
-                                frame_step=params.frame_step,
-                                fft_size=params.fft_size,
-                                n_mel_bin=params.n_mel_bin)
+    extractor = LogMelExtractor(params=params)
 
     # get test set for embedding visualisation
     test_features, test_labels = pipeline.get_test_dataset(extractor)

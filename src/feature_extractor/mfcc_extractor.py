@@ -2,17 +2,18 @@ import numpy as np
 import tensorflow as tf
 
 from src.feature_extractor.extractor import Extractor
+from src.utils.params import Params
 
 
 class MFCCExtractor(Extractor):
-    def __init__(self, sample_rate, sample_size, frame_length, frame_step, fft_size, n_mel_bin, n_mfcc_bin):
-        super().__init__(sample_rate=sample_rate, sample_size=sample_size)
+    def __init__(self, params: Params):
+        super().__init__(params=params)
 
-        self.frame_length = frame_length
-        self.frame_step = frame_step
-        self.fft_size = fft_size
-        self.n_mel_bin = n_mel_bin
-        self.n_mfcc_bin = n_mfcc_bin
+        self.frame_length = params.frame_length
+        self.frame_step = params.frame_step
+        self.fft_size = params.fft_size
+        self.n_mel_bin = params.n_mel_bin
+        self.n_mfcc_bin = params.n_mfcc_bin
 
     # OUTPUT: (frame_size, n_mfcc_bin, ?channels)
     def extract(self, audio):

@@ -134,8 +134,10 @@ class DCASEDataFrame:
         return train_df
 
     def count_classes(self):
+        label_counts = self.df["label"].value_counts()
         for i, label in enumerate(self.LABELS):
-            self.logger.info("Audio samples in {0}: {1}".format(label, self.df["label"].value_counts()[i]))
+            if i < len(label_counts):
+                self.logger.info("Audio samples in {0}: {1}".format(label, label_counts[i]))
         pass
 
     def get_test_set(self, stereo_channels, to_mono):
