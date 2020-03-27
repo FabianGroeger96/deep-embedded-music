@@ -6,6 +6,7 @@
 
   "log_level": "DEBUG",
 
+  "model": "ConvNet2D",
   "save_model": 1,
   "save_frequency": 50,
 

@@ -13,4 +13,4 @@ for mod in module_files:
         # extract module name from file name and import it
         mod_name = os.path.basename(os.path.splitext(mod)[0])
         # import the module
-        mod = importlib.import_module(name="input_pipeline.{}".format(mod_name))
+        mod = importlib.import_module(name="src.input_pipeline.{}".format(mod_name))

@@ -20,6 +20,7 @@ class Params:
 
         self.log_level = None
 
+        self.model = None
         self.save_model = None
         self.save_frequency = None
 
