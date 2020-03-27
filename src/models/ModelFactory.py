@@ -9,7 +9,7 @@ class ModelFactory:
 
     # internal registry for available models
     registry = {}
-    # logger for status informations
+    # logger for status information
     logger = logging.getLogger(__name__)
 
     @classmethod
