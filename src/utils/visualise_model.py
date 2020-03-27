@@ -100,6 +100,10 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
     # visualise embeddings from the entire dataset
     visualise_embeddings(embeddings, labels, tensorboard_path)
 
+    # delete unused lists of entire dataset
+    del embeddings
+    del labels
+
 
 def visualise_distance_matrix(embeddings, labels, epoch, summary_writer):
     emb_np = embeddings.numpy()
@@ -123,6 +127,10 @@ def visualise_distance_matrix(embeddings, labels, epoch, summary_writer):
     visualise_distance_graphs(distance_matrix, epoch, summary_writer)
     # visualise the distance matrix as an image
     visualise_distance_matrix_image(distance_matrix, epoch, summary_writer)
+
+    # delete unused big lists
+    del emb_np
+    del labels_np
 
 
 def visualise_distance_graphs(distance_matrix, epoch, summary_writer):

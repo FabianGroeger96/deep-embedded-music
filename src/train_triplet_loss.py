@@ -1,28 +1,42 @@
 import argparse
-import io
 import logging
 import os
+from enum import Enum
 
 import tensorflow as tf
-import tensorflow_addons as tfa
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 from src.feature_extractor.log_mel_extractor import LogMelExtractor
-from src.input_pipeline.dcase_data_frame import DCASEDataFrame
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
 from src.models.ModelFactory import ModelFactory
 from src.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
-from src.utils.visualise_model import visualise_embeddings, visualise_model_on_epoch_end
+from src.utils.visualise_model import visualise_model_on_epoch_end
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments/DCASE",
                     help="Experiment directory containing params.json")
+
+
+class LogLevel(Enum):
+    DEBUG = 0
+    INFO = 1
+
+
+def log_step(epoch, batch_index, batch_size, result, log_level: LogLevel):
+    template = "Epoch {0}, Batch: {1}, Samples Seen: {2}, Triplet Loss: {3:1.2f}"
+    if log_level == LogLevel.INFO:
+        logger.info(template.format(epoch + 1,
+                                    batch_index + 1,
+                                    (batch_index + 1) * batch_size,
+                                    result))
+    elif log_level == LogLevel.DEBUG:
+        logger.debug(template.format(epoch + 1,
+                                     batch_index + 1,
+                                     (batch_index + 1) * batch_size,
+                                     result))
+
 
 if __name__ == "__main__":
     # load the parameters from json file
@@ -91,57 +105,49 @@ if __name__ == "__main__":
     print_model = True
 
     # start of the training loop
-    for epoch in range(1, params.epochs):
-        logger.info("Starting epoch {0} from {1}".format(epoch, params.epochs))
+    for epoch in range(params.epochs):
+        logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
         dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset, calc_dist=params.calc_dist)
         dataset_iterator = iter(dataset_iterator)
         # iterate over the batches of the dataset
-        # for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
-        #     if print_model:
-        #         model.build(anchor.shape)
-        #         model.summary(print_fn=logger.info)
-        #         print_model = False
-        #
-        #     # run one training step
-        #     batch = (anchor, neighbour, opposite, triplet_labels)
-        #     losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
-        #     loss_triplet, loss_neighbour, loss_opposite = losses
-        #
-        #     # add losses to the metrics
-        #     train_loss_triplet(loss_triplet)
-        #     train_loss_neighbour(loss_neighbour)
-        #     train_loss_opposite(loss_opposite)
-        #
-        #     # log the current loss value of the batch
-        #     logger.debug("Triplet loss at batch {0}: {1:1.2f}".format(batch_index + 1, float(loss_triplet)))
-        #
-        #     # write loss to summary writer
-        #     with train_summary_writer.as_default():
-        #         # write summary of losses
-        #         tf.summary.scalar("triplet_loss/loss_triplet", train_loss_triplet.result(), step=int(ckpt.step))
-        #         tf.summary.scalar("triplet_loss/loss_neighbour", train_loss_neighbour.result(), step=int(ckpt.step))
-        #         tf.summary.scalar("triplet_loss/loss_opposite", train_loss_opposite.result(), step=int(ckpt.step))
-        #
-        #     if int(ckpt.step) % params.save_frequency == 0 and bool(params.save_model):
-        #         # save the model
-        #         manager_save_path = manager.save()
-        #         logger.info("Saved checkpoint for step {}: {}".format(int(ckpt.step), manager_save_path))
-        #
-        #         # run test features through model
-        #         embedding = model(test_features, training=False)
-        #         # visualise test embeddings
-        #         visualise_embeddings(embedding, test_labels, tensorb_path)
-        #
-        #     # log every 200 batches
-        #     if int(ckpt.step) % 200 == 0:
-        #         template = "Epoch {0}, Batch: {1}, Samples Seen: {2}, Triplet Loss: {3:1.2f}"
-        #         logger.info(template.format(epoch,
-        #                                     batch_index + 1,
-        #                                     (batch_index + 1) * params.batch_size,
-        #                                     train_loss_triplet.result()))
-        #
-        #     # add one step to checkpoint
-        #     ckpt.step.assign_add(1)
+        for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
+            if print_model:
+                model.build(anchor.shape)
+                model.summary(print_fn=logger.info)
+                print_model = False
+
+            # run one training step
+            batch = (anchor, neighbour, opposite, triplet_labels)
+            losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
+            loss_triplet, loss_neighbour, loss_opposite = losses
+
+            # add losses to the metrics
+            train_loss_triplet(loss_triplet)
+            train_loss_neighbour(loss_neighbour)
+            train_loss_opposite(loss_opposite)
+
+            # write loss to summary writer
+            with train_summary_writer.as_default():
+                # write summary of losses
+                tf.summary.scalar("triplet_loss/loss_triplet", train_loss_triplet.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/loss_neighbour", train_loss_neighbour.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/loss_opposite", train_loss_opposite.result(), step=int(ckpt.step))
+
+            # save the current model after a certain amount of steps
+            if int(ckpt.step) % params.save_frequency == 0 and bool(params.save_model):
+                manager_save_path = manager.save()
+                logger.info("Saved checkpoint for step {0}: {1}".format(int(ckpt.step), manager_save_path))
+
+            # log the current loss value of the batch
+            if int(ckpt.step) % 200 == 0:
+                log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
+                         result=train_loss_triplet.result(), log_level=LogLevel.INFO)
+            else:
+                log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
+                         result=train_loss_triplet.result(), log_level=LogLevel.DEBUG)
+
+            # add one step to checkpoint
+            ckpt.step.assign_add(1)
 
         # reset metrics every epoch
         train_loss_triplet.reset_states()
