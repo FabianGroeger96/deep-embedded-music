@@ -8,19 +8,17 @@ import tensorflow_addons as tfa
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 from src.feature_extractor.log_mel_extractor import LogMelExtractor
 from src.input_pipeline.dcase_data_frame import DCASEDataFrame
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
-from src.models.ConvNet_1D import ConvNet1D
-from src.models.ConvNet_2D import ConvNet2D
-from src.models.Dense_Encoder import DenseEncoder
 from src.models.ModelFactory import ModelFactory
 from src.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
-from src.utils.visualise_model import visualise_embeddings
+from src.utils.visualise_model import visualise_embeddings, visualise_model_on_epoch_end
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments/DCASE",
@@ -148,69 +146,9 @@ if __name__ == "__main__":
         # reset metrics every epoch
         train_loss_triplet.reset_states()
 
+        # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
+        visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
+                                     summary_writer=train_summary_writer, tensorboard_path=tensorb_path)
+
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
-
-        #########
-        # start visualisation
-        #########
-        # dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, calc_dist=False)
-        # dataset_iterator = iter(dataset_iterator)
-        # lists for visualisation
-        embeddings = []
-        labels = []
-        # iterate over the batches of the dataset
-        for i, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
-            emb_anchor = model(anchor, training=False)
-            emb_neighbour = model(neighbour, training=False)
-            emb_opposite = model(opposite, training=False)
-
-            embeddings.append(emb_anchor)
-            embeddings.append(emb_neighbour)
-            embeddings.append(emb_opposite)
-
-            labels.append(triplet_labels[:, 0])
-            labels.append(triplet_labels[:, 1])
-            labels.append(triplet_labels[:, 2])
-
-            if i > 3:
-                break
-
-        embeddings = tf.stack(embeddings)
-        labels = tf.stack(labels)
-
-        emb_np = embeddings.numpy()
-        labels_np = labels.numpy()
-
-        embeddings_by_lables = []
-        for i, label in enumerate(DCASEDataFrame.LABELS):
-            embeddings_class = tf.math.reduce_mean(emb_np[np.nonzero(labels_np == i)], 0)
-            embeddings_by_lables.append(embeddings_class)
-        embeddings_by_lables = tf.stack(embeddings_by_lables)
-
-        pair_dist = tfa.losses.triplet.metric_learning.pairwise_distance(embeddings_by_lables)
-        con_mat_df = pd.DataFrame(pair_dist.numpy(),
-                                  index=DCASEDataFrame.LABELS,
-                                  columns=DCASEDataFrame.LABELS)
-
-        figure = plt.figure(figsize=(8, 8))
-        plt.imshow(con_mat_df)
-        plt.tight_layout()
-        plt.ylabel('True label')
-        plt.xlabel('Predicted label')
-
-        buf = io.BytesIO()
-        plt.savefig(buf, format='png')
-
-        plt.close(figure)
-        buf.seek(0)
-        image = tf.image.decode_png(buf.getvalue(), channels=4)
-
-        image = tf.expand_dims(image, 0)
-
-        # Log the confusion matrix as an image summary.
-        with train_summary_writer.as_default():
-            tf.summary.image("Confusion Matrix", image, step=epoch)
-
-        # visualise test embeddings
-        visualise_embeddings(embeddings, labels, tensorb_path)
