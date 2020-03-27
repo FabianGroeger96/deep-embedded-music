@@ -9,13 +9,13 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 from tensorboard.plugins import projector
 
-from src.input_pipeline.dcase_data_frame import DCASEDataFrame
+from src.input_pipeline.dcase_dataset import DCASEDataset
 
 
 def save_labels_tsv(labels, filepath, log_dir):
     with open(os.path.join(log_dir, filepath), 'w') as f:
         for label in labels.numpy():
-            f.write('{}\n'.format(DCASEDataFrame.LABELS[int(label)]))
+            f.write('{}\n'.format(DCASEDataset.LABELS[int(label)]))
 
 
 def save_embeddings_tsv(embeddings, filepath, log_dir):
@@ -111,7 +111,7 @@ def visualise_distance_matrix(embeddings, labels, epoch, summary_writer):
 
     # group the computed embeddings by labels
     embeddings_by_lables = []
-    for i, label in enumerate(DCASEDataFrame.LABELS):
+    for i, label in enumerate(DCASEDataset.LABELS):
         embeddings_class = tf.math.reduce_mean(emb_np[np.nonzero(labels_np == i)], 0)
         embeddings_by_lables.append(embeddings_class)
     embeddings_by_lables = tf.stack(embeddings_by_lables)
@@ -120,8 +120,8 @@ def visualise_distance_matrix(embeddings, labels, epoch, summary_writer):
     pair_dist = tfa.losses.triplet.metric_learning.pairwise_distance(embeddings_by_lables)
     # compute the confusion matrix from the distances between clusters
     distance_matrix = pd.DataFrame(pair_dist.numpy(),
-                                   index=DCASEDataFrame.LABELS,
-                                   columns=DCASEDataFrame.LABELS)
+                                   index=DCASEDataset.LABELS,
+                                   columns=DCASEDataset.LABELS)
 
     # visualise the distance graphs
     visualise_distance_graphs(distance_matrix, epoch, summary_writer)
@@ -147,7 +147,7 @@ def visualise_distance_graphs(distance_matrix, epoch, summary_writer):
 
 def visualise_distance_matrix_image(distance_matrix, epoch, summary_writer):
     figure = plt.figure(figsize=(8, 8))
-    sns.heatmap(distance_matrix, annot=True, xticklabels=DCASEDataFrame.LABELS, yticklabels=DCASEDataFrame.LABELS)
+    sns.heatmap(distance_matrix, annot=True, xticklabels=DCASEDataset.LABELS, yticklabels=DCASEDataset.LABELS)
     plt.tight_layout()
     plt.ylabel("Distance from label center")
     plt.xlabel("Distance to label center")

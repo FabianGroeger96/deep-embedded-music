@@ -8,7 +8,7 @@ import tensorflow as tf
 from src.feature_extractor.log_mel_extractor import LogMelExtractor
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
-from src.models.ModelFactory import ModelFactory
+from src.models.model_factory import ModelFactory
 from src.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils

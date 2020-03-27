@@ -5,7 +5,7 @@ import tensorflow as tf
 
 from src.feature_extractor.log_mel_extractor import LogMelExtractor
 from src.feature_extractor.mfcc_extractor import MFCCExtractor
-from src.input_pipeline.dcase_data_frame import DCASEDataFrame
+from src.input_pipeline.dcase_dataset import DCASEDataset
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.utils.params import Params
 
@@ -26,7 +26,7 @@ class TestInputPipeline(tf.test.TestCase):
         return audio_pipeline
 
     def test_data_frame_iterator(self):
-        audio_iterator = DCASEDataFrame(
+        audio_iterator = DCASEDataset(
             dataset_path=self.params.audio_files_path,
             fold=self.params.fold,
             sample_rate=self.params.sample_rate)

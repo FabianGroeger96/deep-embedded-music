@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 
 from src.feature_extractor.extractor import Extractor
-from src.input_pipeline.dcase_data_frame import DCASEDataFrame
+from src.input_pipeline.dcase_dataset import DCASEDataset
 from src.utils.audio_utils import AudioUtils
 from src.utils.params import Params
 from src.utils.utils import Utils
@@ -51,13 +51,13 @@ class TripletsInputPipeline:
         else:
             self.logger.info("Found {} audio files".format(len(files)))
 
-        self.audio_info_df = DCASEDataFrame(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate,
-                                            train_test_split_distribution=self.train_test_split_distribution)
+        self.audio_info_df = DCASEDataset(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate,
+                                          train_test_split_distribution=self.train_test_split_distribution)
 
     def reinitialise(self):
         self.logger.info("Reinitialising the input pipeline")
-        self.audio_info_df = DCASEDataFrame(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate,
-                                            train_test_split_distribution=self.train_test_split_distribution)
+        self.audio_info_df = DCASEDataset(self.dataset_path, fold=self.fold, sample_rate=self.sample_rate,
+                                          train_test_split_distribution=self.train_test_split_distribution)
 
     def generate_samples(self, calc_dist: bool = False) -> [np.ndarray, np.ndarray, np.ndarray]:
         for index, anchor in enumerate(self.audio_info_df):

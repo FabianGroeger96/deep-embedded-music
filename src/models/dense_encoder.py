@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from src.models.BaseModel import BaseModel
-from src.models.ModelFactory import ModelFactory
+from src.models.base_model import BaseModel
+from src.models.model_factory import ModelFactory
 
 
 @ModelFactory.register("DenseEncoder")
