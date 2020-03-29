@@ -63,7 +63,8 @@ if __name__ == "__main__":
     train_summary_writer = tf.summary.create_file_writer(tensorb_path)
 
     # define triplet loss metrics
-    train_loss_triplet = tf.keras.metrics.Mean("train_loss_triplet", dtype=tf.float32)
+    train_loss_triplet_batches = tf.keras.metrics.Mean("train_loss_triplet_batches", dtype=tf.float32)
+    train_loss_triplet_epochs = tf.keras.metrics.Mean("train_loss_triplet_epochs", dtype=tf.float32)
     train_loss_neighbour = tf.keras.metrics.Mean("train_loss_neighbour", dtype=tf.float32)
     train_loss_opposite = tf.keras.metrics.Mean("train_loss_opposite", dtype=tf.float32)
 
@@ -107,35 +108,45 @@ if __name__ == "__main__":
             loss_triplet, loss_neighbour, loss_opposite = losses
 
             # add losses to the metrics
-            train_loss_triplet(loss_triplet)
+            train_loss_triplet_batches(loss_triplet)
+            train_loss_triplet_epochs(loss_triplet)
             train_loss_neighbour(loss_neighbour)
             train_loss_opposite(loss_opposite)
 
-            # write loss to summary writer
+            # write batch losses to summary writer
             with train_summary_writer.as_default():
-                # write summary of losses
-                tf.summary.scalar("triplet_loss/loss_triplet", train_loss_triplet.result(), step=int(ckpt.step))
+                # write summary of batch losses
+                tf.summary.scalar("triplet_loss/loss_triplet_batches", train_loss_triplet_batches.result(),
+                                  step=int(ckpt.step))
                 tf.summary.scalar("triplet_loss/loss_neighbour", train_loss_neighbour.result(), step=int(ckpt.step))
                 tf.summary.scalar("triplet_loss/loss_opposite", train_loss_opposite.result(), step=int(ckpt.step))
 
-            # save the current model after a certain amount of steps
-            if int(ckpt.step) % params.save_frequency == 0 and bool(params.save_model):
-                manager_save_path = manager.save()
-                logger.info("Saved checkpoint for step {0}: {1}".format(int(ckpt.step), manager_save_path))
-
             # log the current loss value of the batch
-            if int(ckpt.step) % 200 == 0:
+            if int(ckpt.step) % 500 == 0:
                 log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
-                         result=train_loss_triplet.result(), log_level=LogLevel.INFO)
+                         result=train_loss_triplet_batches.result(), log_level=LogLevel.INFO)
             else:
                 log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
-                         result=train_loss_triplet.result(), log_level=LogLevel.DEBUG)
+                         result=train_loss_triplet_batches.result(), log_level=LogLevel.DEBUG)
 
             # add one step to checkpoint
             ckpt.step.assign_add(1)
 
+        # save the current model after a specified amount of epochs
+        if epoch % params.save_frequency == 0 and bool(params.save_model):
+            manager_save_path = manager.save()
+            logger.info("Saved checkpoint for epoch {0}: {1}".format(epoch, manager_save_path))
+
+        # write epoch loss to summary writer
+        with train_summary_writer.as_default():
+            # write summary of epoch loss
+            tf.summary.scalar("triplet_loss/loss_triplet_epochs", train_loss_triplet_epochs.result(), step=epoch)
+
         # reset metrics every epoch
-        train_loss_triplet.reset_states()
+        train_loss_triplet_batches.reset_states()
+        train_loss_triplet_epochs.reset_states()
+        train_loss_neighbour.reset_states()
+        train_loss_opposite.reset_states()
 
         # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
         visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,

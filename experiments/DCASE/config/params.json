@@ -8,7 +8,7 @@
 
   "model": "ConvNet2D",
   "save_model": 1,
-  "save_frequency": 50,
+  "save_frequency": 1,
 
   "epochs": 10,
   "batch_size": 32,
