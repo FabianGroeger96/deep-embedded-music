@@ -148,7 +148,7 @@ if __name__ == "__main__":
 
         # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
         visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
-                                     summary_writer=train_summary_writer, tensorboard_path=tensorb_path)
+                                     summary_writer=train_summary_writer, tensorb_path=tensorb_path)
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()

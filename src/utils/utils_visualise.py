@@ -65,8 +65,7 @@ def save_graph(tensorboard_path, execute_callback, **args):
     return r
 
 
-def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writer, tensorboard_path,
-                                 reinitialise=True):
+def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writer, tensorb_path, reinitialise=True):
     # reinitialise pipeline for visualisation
     if reinitialise:
         pipeline.reinitialise()
@@ -90,6 +89,10 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
         labels.append(triplet_labels[:, 1])
         labels.append(triplet_labels[:, 2])
 
+    # remove last item from list, so that all items have the same shape to stack
+    embeddings = embeddings[:-1]
+    labels = labels[:-1]
+
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
     embeddings = tf.stack(embeddings)
     labels = tf.stack(labels)
@@ -97,7 +100,7 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
     # visualise the distance matrix with graph and confusion matrix
     visualise_distance_matrix(embeddings, labels, epoch, summary_writer)
     # visualise embeddings from the entire dataset
-    visualise_embeddings(embeddings, labels, tensorboard_path)
+    visualise_embeddings(embeddings, labels, tensorb_path)
 
     # delete unused lists of entire dataset
     del embeddings
