@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 
 from src.input_pipeline.base_dataset import BaseDataset
 from src.input_pipeline.dataset_factory import DatasetFactory
-from src.utils.audio_utils import AudioUtils
+from src.utils.utils_audio import AudioUtils
 from src.utils.utils import Utils
 
 

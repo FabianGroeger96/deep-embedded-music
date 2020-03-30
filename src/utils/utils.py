@@ -64,13 +64,18 @@ class Utils:
         return logger
 
     @staticmethod
-    def create_folders_for_experiment(args, model_name):
-        # create experiment name folder
-        experiment_path = Utils.create_folder(os.path.join(args.experiment_dir, "results"))
-        # create current experiment folder
-        current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
-        experiment_folder_name = "{0}-{1}".format(model_name, current_time)
-        experiment_path = Utils.create_folder(os.path.join(experiment_path, experiment_folder_name))
+    def create_folders_for_experiment(args, model_name, saved_model_path=None):
+        if saved_model_path is None:
+            # create experiment name folder
+            experiment_path = Utils.create_folder(os.path.join(args.experiment_dir, "results"))
+            # create current experiment folder
+            current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+            experiment_folder_name = "{0}-{1}".format(model_name, current_time)
+            experiment_path = Utils.create_folder(os.path.join(experiment_path, experiment_folder_name))
+        else:
+            # set the existing model to the experiment path
+            experiment_path = os.path.join(args.experiment_dir, saved_model_path)
+
         # create folder for logging
         logs_path = Utils.create_folder(os.path.join(experiment_path, "logs"))
         # create folder for tensorboard

@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from src.feature_extractor.extractor import Extractor
 from src.input_pipeline.dcase_dataset import DCASEDataset
-from src.utils.audio_utils import AudioUtils
+from src.utils.utils_audio import AudioUtils
 from src.utils.params import Params
 from src.utils.utils import Utils
 

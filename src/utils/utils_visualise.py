@@ -88,9 +88,6 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
         labels.append(triplet_labels[:, 1])
         labels.append(triplet_labels[:, 2])
 
-        if i > 3:
-            break
-
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
     embeddings = tf.stack(embeddings)
     labels = tf.stack(labels)

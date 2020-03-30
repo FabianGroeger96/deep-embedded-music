@@ -12,7 +12,7 @@ from src.models.model_factory import ModelFactory
 from src.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
-from src.utils.visualise_model import visualise_model_on_epoch_end
+from src.utils.utils_visualise import visualise_model_on_epoch_end
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments/DCASE",

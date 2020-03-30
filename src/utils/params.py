@@ -22,6 +22,7 @@ class Params:
 
         self.model = None
         self.save_model = None
+        self.saved_model_path = None
         self.save_frequency = None
 
         self.epochs = None

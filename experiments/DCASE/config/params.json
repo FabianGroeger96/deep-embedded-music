@@ -7,6 +7,7 @@
   "log_level": "DEBUG",
 
   "model": "ConvNet2D",
+  "saved_model_path": "results/ConvNet1D-20200326-065709",
   "save_model": 1,
   "save_frequency": 1,
 
