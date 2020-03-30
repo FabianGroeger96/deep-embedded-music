@@ -89,6 +89,10 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
         labels.append(triplet_labels[:, 1])
         labels.append(triplet_labels[:, 2])
 
+        if i > 50:
+            print("BREAKING VISUALISATION LOOP")
+            break
+
     # remove last item from list, so that all items have the same shape to stack
     embeddings = embeddings[:-1]
     labels = labels[:-1]

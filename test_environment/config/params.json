@@ -1,7 +1,7 @@
 {
   "experiment_name": "triplet_loss",
-  "audio_files_path": "/opt/project/test/test_environment/",
-  "info_file_path": "/opt/project/test/test_environment/evaluation_setup/fold1_train.txt",
+  "audio_files_path": "/opt/project/test_environment/",
+  "info_file_path": "/opt/project/test_environment/evaluation_setup/fold1_train.txt",
   "fold": 1,
 
   "log_level": "DEBUG",

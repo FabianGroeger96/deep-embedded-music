@@ -66,8 +66,8 @@ if __name__ == "__main__":
     # define triplet loss metrics
     train_loss_triplet_batches = tf.keras.metrics.Mean("train_loss_triplet_batches", dtype=tf.float32)
     train_loss_triplet_epochs = tf.keras.metrics.Mean("train_loss_triplet_epochs", dtype=tf.float32)
-    train_loss_neighbour = tf.keras.metrics.Mean("train_loss_neighbour", dtype=tf.float32)
-    train_loss_opposite = tf.keras.metrics.Mean("train_loss_opposite", dtype=tf.float32)
+    train_dist_neighbour = tf.keras.metrics.Mean("train_loss_neighbour", dtype=tf.float32)
+    train_dist_opposite = tf.keras.metrics.Mean("train_loss_opposite", dtype=tf.float32)
 
     # define checkpoint and checkpoint manager
     ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
@@ -103,21 +103,21 @@ if __name__ == "__main__":
             # run one training step
             batch = (anchor, neighbour, opposite, triplet_labels)
             losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
-            loss_triplet, loss_neighbour, loss_opposite = losses
+            loss_triplet, dist_neighbour, dist_opposite = losses
 
             # add losses to the metrics
             train_loss_triplet_batches(loss_triplet)
             train_loss_triplet_epochs(loss_triplet)
-            train_loss_neighbour(loss_neighbour)
-            train_loss_opposite(loss_opposite)
+            train_dist_neighbour(dist_neighbour)
+            train_dist_opposite(dist_opposite)
 
             # write batch losses to summary writer
             with train_summary_writer.as_default():
                 # write summary of batch losses
                 tf.summary.scalar("triplet_loss/loss_triplet_batches", train_loss_triplet_batches.result(),
                                   step=int(ckpt.step))
-                tf.summary.scalar("triplet_loss/loss_neighbour", train_loss_neighbour.result(), step=int(ckpt.step))
-                tf.summary.scalar("triplet_loss/loss_opposite", train_loss_opposite.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/dist_sq_neighbour", train_dist_neighbour.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/dist_sq_opposite", train_dist_opposite.result(), step=int(ckpt.step))
 
             # log the current loss value of the batch
             if int(ckpt.step) % 500 == 0:
@@ -143,8 +143,8 @@ if __name__ == "__main__":
         # reset metrics every epoch
         train_loss_triplet_batches.reset_states()
         train_loss_triplet_epochs.reset_states()
-        train_loss_neighbour.reset_states()
-        train_loss_opposite.reset_states()
+        train_dist_neighbour.reset_states()
+        train_dist_opposite.reset_states()
 
         # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
         visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,

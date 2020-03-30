@@ -10,9 +10,9 @@ class TripletLoss(tf.keras.losses.Loss):
     @tf.function
     def calculate_distance(self, anchor, embedding):
         distance = tf.reduce_sum(tf.square(tf.subtract(anchor, embedding)), axis=-1)
-        loss = tf.reduce_sum(distance)
+        distance_sum = tf.reduce_sum(distance)
 
-        return loss
+        return distance_sum
 
     @tf.function
     def call(self, y_true, y_pred):
