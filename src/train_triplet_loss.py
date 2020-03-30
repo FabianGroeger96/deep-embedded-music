@@ -52,8 +52,9 @@ if __name__ == "__main__":
     triplet_loss_fn = TripletLoss(margin=params.margin)
 
     # create folders for experiment results
+    experiment_name = "{0}-{1}".format(model.model_name, params.experiment_name)
     experiment_path, log_path, tensorb_path, save_path = Utils.create_load_folders_for_experiment(args,
-                                                                                                  model.model_name,
+                                                                                                  experiment_name,
                                                                                                   saved_model_path=params.saved_model_path)
 
     # set logger
