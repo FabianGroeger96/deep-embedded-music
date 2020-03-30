@@ -64,8 +64,8 @@ class Utils:
         return logger
 
     @staticmethod
-    def create_folders_for_experiment(args, model_name, saved_model_path=None):
-        if saved_model_path is None:
+    def create_load_folders_for_experiment(args, model_name, saved_model_path="", copy_json_file=True):
+        if saved_model_path is "":
             # create experiment name folder
             experiment_path = Utils.create_folder(os.path.join(args.experiment_dir, "results"))
             # create current experiment folder
@@ -83,8 +83,9 @@ class Utils:
         # create folder for saving model
         saved_model_path = Utils.create_folder(os.path.join(experiment_path, "saved_model"))
         # copy current param file to log directory
-        params_path = os.path.join(args.experiment_dir, "config", "params.json")
-        shutil.copyfile(params_path, os.path.join(logs_path, "params.json"))
+        if copy_json_file:
+            params_path = os.path.join(args.experiment_dir, "config", "params.json")
+            shutil.copyfile(params_path, os.path.join(logs_path, "params.json"))
 
         return experiment_path, logs_path, tensorboard_path, saved_model_path
 

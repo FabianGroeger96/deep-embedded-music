@@ -1,4 +1,5 @@
 import json
+import os
 
 
 class Params:
@@ -50,6 +51,8 @@ class Params:
 
         self.margin = None
         self.embedding_size = None
+
+        assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
 
         self.update(json_path)
 

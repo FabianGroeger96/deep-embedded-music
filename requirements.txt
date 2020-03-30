@@ -1,8 +1,8 @@
+tensorflow
 tensorboard
 tensorflow-addons
 dtw
 pandas
-tensorflow
 numpy
 scipy
 jupyter

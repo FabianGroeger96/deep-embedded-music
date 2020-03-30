@@ -42,7 +42,6 @@ if __name__ == "__main__":
     # load the parameters from json file
     args = parser.parse_args()
     json_path = os.path.join(args.experiment_dir, "config", "params.json")
-    assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
     params = Params(json_path)
 
     # create model from factory and specified name within the params
@@ -53,7 +52,8 @@ if __name__ == "__main__":
     triplet_loss_fn = TripletLoss(margin=params.margin)
 
     # create folders for experiment results
-    experiment_path, log_path, tensorb_path, save_path = Utils.create_folders_for_experiment(args, model.model_name)
+    experiment_path, log_path, tensorb_path, save_path = Utils.create_load_folders_for_experiment(args, model.model_name,
+                                                                                                  saved_model_path=params.saved_model_path)
 
     # set logger
     Utils.set_logger(log_path, params.log_level)

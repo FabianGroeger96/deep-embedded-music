@@ -65,9 +65,11 @@ def save_graph(tensorboard_path, execute_callback, **args):
     return r
 
 
-def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writer, tensorboard_path):
+def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writer, tensorboard_path,
+                                 reinitialise=True):
     # reinitialise pipeline for visualisation
-    pipeline.reinitialise()
+    if reinitialise:
+        pipeline.reinitialise()
     dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, calc_dist=False)
     dataset_iterator = iter(dataset_iterator)
 

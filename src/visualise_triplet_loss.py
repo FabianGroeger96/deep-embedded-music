@@ -15,12 +15,20 @@ from src.utils.utils_visualise import visualise_model_on_epoch_end
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments/DCASE",
                     help="Experiment directory containing params.json")
+parser.add_argument("--model_to_load", default="results/ConvNet1D-20200326-065709",
+                    help="Model to load")
 
 if __name__ == "__main__":
-    # load the parameters from json file
+    # load the arguments
     args = parser.parse_args()
-    json_path = os.path.join(args.experiment_dir, "config", "params.json")
-    assert os.path.isfile(json_path), "No json configuration file found at {}".format(json_path)
+
+    # create folders for experiment results
+    experiment_path, log_path, tensorb_path, save_path = Utils.create_load_folders_for_experiment(args, model_name=None,
+                                                                                                  saved_model_path=args.model_to_load,
+                                                                                                  copy_json_file=False)
+
+    # load the params.json file from the existing model
+    json_path = os.path.join(experiment_path, "logs", "params.json")
     params = Params(json_path)
 
     # create model from factory and specified name within the params
@@ -29,10 +37,6 @@ if __name__ == "__main__":
     optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
     # create the loss function for the model
     triplet_loss_fn = TripletLoss(margin=params.margin)
-
-    # create folders for experiment results
-    experiment_path, log_path, tensorb_path, save_path = Utils.create_folders_for_experiment(args, model.model_name,
-                                                                                             saved_model_path=params.saved_model_path)
 
     # set logger
     Utils.set_logger(log_path, params.log_level)
@@ -60,4 +64,4 @@ if __name__ == "__main__":
 
     # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
     visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=99999,
-                                 summary_writer=train_summary_writer, tensorboard_path=tensorb_path)
+                                 summary_writer=train_summary_writer, tensorboard_path=tensorb_path, reinitialise=False)

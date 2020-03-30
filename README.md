@@ -13,7 +13,7 @@ tensorflow/tensorflow:2.1.0-py3 /bin/bash ./onstart.sh
 
 GPU:
 ```shell script
-docker run -it -v ${PWD}:/tf/ -w /tf -d --rm --name deep-embedded-music \
+docker run -it -v ${PWD}:/tf/ -w /tf -d --rm --name deep-embedded-music -e NVIDIA_VISIBLE_DEVICES=0 \
 tensorflow/tensorflow:2.1.0-gpu-py3 /bin/bash ./onstart.sh
 ```
 
