@@ -2,8 +2,8 @@ import os
 
 import tensorflow as tf
 
-from src.feature_extractor.log_mel_extractor import LogMelExtractor
-from src.feature_extractor.mfcc_extractor import MFCCExtractor
+from src.feature_extractor.log_mel_extractor import LogMelBaseExtractor
+from src.feature_extractor.mfcc_extractor import MFCCBaseExtractor
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.utils.params import Params
 from src.utils.utils_audio import AudioUtils

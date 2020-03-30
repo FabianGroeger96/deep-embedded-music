@@ -5,7 +5,7 @@ from typing import Union
 import numpy as np
 import tensorflow as tf
 
-from src.feature_extractor.extractor import Extractor
+from src.feature_extractor.base_extractor import BaseExtractor
 from src.input_pipeline.dcase_dataset import DCASEDataset
 from src.utils.utils_audio import AudioUtils
 from src.utils.params import Params
@@ -107,7 +107,7 @@ class TripletsInputPipeline:
 
             yield anchor_audio, neighbour_audio, opposite_audio, triplet_labels
 
-    def get_dataset(self, feature_extractor: Union[Extractor, None], shuffle: bool = True, calc_dist: bool = False):
+    def get_dataset(self, feature_extractor: Union[BaseExtractor, None], shuffle: bool = True, calc_dist: bool = False):
         # why not sample rate * sample_size?
         if self.to_mono:
             audio_shape = [self.sample_rate]

@@ -4,7 +4,7 @@ import os
 
 import tensorflow as tf
 
-from src.feature_extractor.log_mel_extractor import LogMelExtractor
+from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
 from src.models.model_factory import ModelFactory
@@ -48,8 +48,8 @@ if __name__ == "__main__":
     # define triplet input pipeline
     pipeline = TripletsInputPipeline(params=params)
 
-    # define feature extractor
-    extractor = LogMelExtractor(params=params)
+    # get the feature extractor from the factory
+    extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
 
     # define checkpoint and checkpoint manager
     ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)

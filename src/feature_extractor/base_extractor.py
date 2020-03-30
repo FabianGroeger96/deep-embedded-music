@@ -5,7 +5,7 @@ import tensorflow as tf
 from src.utils.params import Params
 
 
-class Extractor(ABC):
+class BaseExtractor(ABC):
     def __init__(self, params: Params):
         self.sample_rate = params.sample_rate
         self.sample_size = params.sample_size

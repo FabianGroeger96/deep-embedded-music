@@ -43,6 +43,7 @@ class Params:
         self.stereo_channels = None
         self.to_mono = None
 
+        self.feature_extractor = None
         self.frame_length = None
         self.frame_step = None
         self.fft_size = None

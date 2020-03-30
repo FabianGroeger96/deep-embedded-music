@@ -7,7 +7,7 @@
   "log_level": "DEBUG",
 
   "model": "ConvNet2D",
-  "saved_model_path": "results/ConvNet1D-20200326-065709",
+  "saved_model_path": "",
   "save_model": 1,
   "save_frequency": 1,
 
@@ -28,6 +28,7 @@
   "stereo_channels": 4,
   "to_mono": 1,
 
+  "feature_extractor": "LogMelExtractor",
   "frame_length": 480,
   "frame_step": 160,
   "fft_size": 1024,

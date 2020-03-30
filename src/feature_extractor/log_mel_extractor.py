@@ -1,11 +1,13 @@
 import numpy as np
 import tensorflow as tf
 
-from src.feature_extractor.extractor import Extractor
+from src.feature_extractor.base_extractor import BaseExtractor
+from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.utils.params import Params
 
 
-class LogMelExtractor(Extractor):
+@ExtractorFactory.register("LogMelExtractor")
+class LogMelBaseExtractor(BaseExtractor):
     def __init__(self, params: Params):
         super().__init__(params=params)
 

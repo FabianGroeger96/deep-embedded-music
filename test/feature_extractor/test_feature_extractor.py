@@ -2,8 +2,8 @@ import os
 
 import tensorflow as tf
 
-from src.feature_extractor.log_mel_extractor import LogMelExtractor
-from src.feature_extractor.mfcc_extractor import MFCCExtractor
+from src.feature_extractor.log_mel_extractor import LogMelBaseExtractor
+from src.feature_extractor.mfcc_extractor import MFCCBaseExtractor
 from src.utils.params import Params
 from src.utils.utils_audio import AudioUtils
 
@@ -27,7 +27,7 @@ class TestFeatureExtractor(tf.test.TestCase):
         self.params = Params(json_path)
 
     def test_mfcc_extractor_mono(self):
-        feature_extractor = MFCCExtractor(params=self.params)
+        feature_extractor = MFCCBaseExtractor(params=self.params)
         # get the output shape of the extractor to check the sizes
         frame_size, n_mfcc_bin = feature_extractor.get_output_shape()
         expected_shape = [frame_size, n_mfcc_bin]
@@ -38,7 +38,7 @@ class TestFeatureExtractor(tf.test.TestCase):
         self.assertEqual(expected_shape, extracted_features.shape)
 
     def test_mfcc_extractor_multi(self):
-        feature_extractor = MFCCExtractor(params=self.params)
+        feature_extractor = MFCCBaseExtractor(params=self.params)
         # get the output shape of the extractor to check the sizes
         frame_size, n_mfcc_bin = feature_extractor.get_output_shape()
         expected_shape = [frame_size, n_mfcc_bin, 4]
@@ -49,7 +49,7 @@ class TestFeatureExtractor(tf.test.TestCase):
         self.assertEqual(expected_shape, extracted_features.shape)
 
     def test_log_mel_extractor_mono(self):
-        feature_extractor = LogMelExtractor(params=self.params)
+        feature_extractor = LogMelBaseExtractor(params=self.params)
         # get the output shape of the extractor to check the sizes
         frame_size, n_mfcc_bin = feature_extractor.get_output_shape()
         expected_shape = [frame_size, n_mfcc_bin]
@@ -60,7 +60,7 @@ class TestFeatureExtractor(tf.test.TestCase):
         self.assertEqual(expected_shape, extracted_features.shape)
 
     def test_log_mel_extractor_multi(self):
-        feature_extractor = LogMelExtractor(params=self.params)
+        feature_extractor = LogMelBaseExtractor(params=self.params)
         # get the output shape of the extractor to check the sizes
         frame_size, n_mfcc_bin = feature_extractor.get_output_shape()
         expected_shape = [frame_size, n_mfcc_bin, 4]
