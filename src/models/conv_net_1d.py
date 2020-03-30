@@ -44,3 +44,28 @@ class ConvNet1D(BaseModel):
         features = self.l2_normalisation(features)
 
         return features
+
+    def log_model_specific_layers(self):
+        # 1. Conv layer
+        self.log_cnn_layer(self.conv_1, 1)
+        self.log_max_pooling_layer(self.max_pooling, 1)
+        self.log_dropout_layer(self.dropout, 1)
+        self.logger.info("---")
+
+        # 2. Conv layer
+        self.log_cnn_layer(self.conv_2, 2)
+        self.log_max_pooling_layer(self.max_pooling, 2)
+        self.log_dropout_layer(self.dropout, 2)
+        self.logger.info("---")
+
+        # 3. Conv layer
+        self.log_cnn_layer(self.conv_3, 3)
+        self.log_max_pooling_layer(self.max_pooling, 3)
+        self.log_dropout_layer(self.dropout, 3)
+        self.logger.info("---")
+
+        # 4. Conv layer
+        self.log_cnn_layer(self.conv_4, 4)
+        self.log_max_pooling_layer(self.max_pooling, 4)
+        self.log_dropout_layer(self.dropout, 4)
+        self.logger.info("---")

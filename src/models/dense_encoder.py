@@ -20,3 +20,6 @@ class DenseEncoder(BaseModel):
         features = self.l2_normalisation(features)
 
         return features
+
+    def log_model_specific_layers(self):
+        pass

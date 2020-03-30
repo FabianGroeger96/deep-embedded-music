@@ -25,3 +25,12 @@ class GRUNet(BaseModel):
         features = self.l2_normalisation(features)
 
         return features
+
+    def log_model_specific_layers(self):
+        # 1. GRU layer
+        self.log_gru_layer(self.gru_1, layer_number=1)
+        self.logger.info("---")
+
+        # 2. GRU layer
+        self.log_gru_layer(self.gru_2, layer_number=2)
+        self.logger.info("---")

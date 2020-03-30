@@ -52,7 +52,8 @@ if __name__ == "__main__":
     triplet_loss_fn = TripletLoss(margin=params.margin)
 
     # create folders for experiment results
-    experiment_path, log_path, tensorb_path, save_path = Utils.create_load_folders_for_experiment(args, model.model_name,
+    experiment_path, log_path, tensorb_path, save_path = Utils.create_load_folders_for_experiment(args,
+                                                                                                  model.model_name,
                                                                                                   saved_model_path=params.saved_model_path)
 
     # set logger
@@ -88,7 +89,9 @@ if __name__ == "__main__":
     else:
         logger.info("Initializing models from scratch.")
 
+    # log the current models architecture
     print_model = True
+    model.log_model()
 
     # start of the training loop
     for epoch in range(params.epochs):
@@ -97,11 +100,6 @@ if __name__ == "__main__":
         dataset_iterator = iter(dataset_iterator)
         # iterate over the batches of the dataset
         for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
-            if print_model:
-                model.build(anchor.shape)
-                model.summary(print_fn=logger.info)
-                print_model = False
-
             # run one training step
             batch = (anchor, neighbour, opposite, triplet_labels)
             losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
