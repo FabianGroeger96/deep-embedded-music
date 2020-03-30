@@ -64,4 +64,5 @@ if __name__ == "__main__":
 
     # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
     visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=99999,
-                                 summary_writer=train_summary_writer, tensorb_path=tensorb_path, reinitialise=False)
+                                 summary_writer=train_summary_writer, tensorb_path=tensorb_path, reinitialise=False,
+                                 visualise_graphs=False, save_checkpoint=False)

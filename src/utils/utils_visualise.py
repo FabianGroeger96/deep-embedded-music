@@ -26,25 +26,26 @@ def save_embeddings_tsv(embeddings, filepath, log_dir):
             f.write('\n')
 
 
-def visualise_embeddings(embeddings, triplet_labels, tensorboard_path):
+def visualise_embeddings(embeddings, triplet_labels, tensorboard_path, save_checkpoint=True):
     # reshape the embedding to a flat tensor (batch_size, ?)
     # emb = tf.reshape(embeddings, [embeddings.shape[0], -1])
     tensor_embeddings = tf.Variable(embeddings, name='embeddings')
 
     # save labels and embeddings to .tsv, to assign each embedding a label
-    save_labels_tsv(triplet_labels[0], 'labels.tsv', tensorboard_path)
+    save_labels_tsv(triplet_labels, 'labels.tsv', tensorboard_path)
     save_embeddings_tsv(embeddings, 'embeddings.tsv', tensorboard_path)
 
     # save the embeddings to a checkpoint file, which will then be loaded by the projector
-    saver = tf.compat.v1.train.Saver([tensor_embeddings])
-    saver.save(sess=None, global_step=0, save_path=os.path.join(tensorboard_path, "embeddings.ckpt"))
+    if save_checkpoint:
+        saver = tf.compat.v1.train.Saver([tensor_embeddings])
+        saver.save(sess=None, global_step=0, save_path=os.path.join(tensorboard_path, "embeddings.ckpt"))
 
-    # register projector
-    config = projector.ProjectorConfig()
-    embedding = config.embeddings.add()
-    embedding.tensor_name = "embeddings"
-    embedding.metadata_path = "labels.tsv"
-    projector.visualize_embeddings(tensorboard_path, config)
+        # register projector
+        config = projector.ProjectorConfig()
+        embedding = config.embeddings.add()
+        embedding.tensor_name = "embeddings"
+        embedding.metadata_path = "labels.tsv"
+        projector.visualize_embeddings(tensorboard_path, config)
 
 
 def save_graph(tensorboard_path, execute_callback, **args):
@@ -65,7 +66,8 @@ def save_graph(tensorboard_path, execute_callback, **args):
     return r
 
 
-def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writer, tensorb_path, reinitialise=True):
+def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writer, tensorb_path, reinitialise=True,
+                                 visualise_graphs=True, save_checkpoint=True):
     # reinitialise pipeline for visualisation
     if reinitialise:
         pipeline.reinitialise()
@@ -89,48 +91,41 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
         labels.append(triplet_labels[:, 1])
         labels.append(triplet_labels[:, 2])
 
-        if i > 50:
-            print("BREAKING VISUALISATION LOOP")
-            break
-
-    # remove last item from list, so that all items have the same shape to stack
-    embeddings = embeddings[:-1]
-    labels = labels[:-1]
-
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
-    embeddings = tf.stack(embeddings)
-    labels = tf.stack(labels)
+    embeddings = tf.concat(embeddings, axis=0)
+    labels = tf.concat(labels, axis=0)
 
     # visualise the distance matrix with graph and confusion matrix
-    visualise_distance_matrix(embeddings, labels, epoch, summary_writer)
+    visualise_distance_matrix(embeddings, labels, epoch, summary_writer, visualise_graphs)
     # visualise embeddings from the entire dataset
-    visualise_embeddings(embeddings, labels, tensorb_path)
+    visualise_embeddings(embeddings, labels, tensorb_path, save_checkpoint)
 
     # delete unused lists of entire dataset
     del embeddings
     del labels
 
 
-def visualise_distance_matrix(embeddings, labels, epoch, summary_writer):
+def visualise_distance_matrix(embeddings, labels, epoch, summary_writer, visualise_graphs=True):
     emb_np = embeddings.numpy()
     labels_np = labels.numpy()
 
     # group the computed embeddings by labels
-    embeddings_by_lables = []
+    embeddings_by_labels = []
     for i, label in enumerate(DCASEDataset.LABELS):
         embeddings_class = tf.math.reduce_mean(emb_np[np.nonzero(labels_np == i)], 0)
-        embeddings_by_lables.append(embeddings_class)
-    embeddings_by_lables = tf.stack(embeddings_by_lables)
+        embeddings_by_labels.append(embeddings_class)
+    embeddings_by_labels = tf.stack(embeddings_by_labels)
 
     # compute the pairwise distance between the embeddings
-    pair_dist = tfa.losses.triplet.metric_learning.pairwise_distance(embeddings_by_lables)
+    pair_dist = tfa.losses.triplet.metric_learning.pairwise_distance(embeddings_by_labels)
     # compute the confusion matrix from the distances between clusters
     distance_matrix = pd.DataFrame(pair_dist.numpy(),
                                    index=DCASEDataset.LABELS,
                                    columns=DCASEDataset.LABELS)
 
     # visualise the distance graphs
-    visualise_distance_graphs(distance_matrix, epoch, summary_writer)
+    if visualise_graphs:
+        visualise_distance_graphs(distance_matrix, epoch, summary_writer)
     # visualise the distance matrix as an image
     visualise_distance_matrix_image(distance_matrix, epoch, summary_writer)
 
