@@ -81,7 +81,7 @@ if __name__ == "__main__":
     extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
 
     # get test set for embedding visualisation
-    test_features, test_labels = pipeline.get_test_dataset(extractor)
+    # test_features, test_labels = pipeline.get_test_dataset(extractor)
 
     # check if models has been trained before
     ckpt.restore(manager.latest_checkpoint)

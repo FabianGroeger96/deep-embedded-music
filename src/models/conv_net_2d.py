@@ -23,7 +23,6 @@ class ConvNet2D(BaseModel):
     def forward_pass(self, inputs):
         # 1. Conv layer
         features = self.conv_1(inputs)
-        features = self.max_pooling(features)
         features = self.dropout(features)
         # 2. Conv layer
         features = self.conv_2(features)
@@ -31,7 +30,6 @@ class ConvNet2D(BaseModel):
         features = self.dropout(features)
         # 3. Conv layer
         features = self.conv_3(features)
-        features = self.max_pooling(features)
         features = self.dropout(features)
         # 4. Conv layer
         features = self.conv_4(features)
@@ -48,7 +46,6 @@ class ConvNet2D(BaseModel):
     def log_model_specific_layers(self):
         # 1. Conv layer
         self.log_cnn_layer(self.conv_1, 1)
-        self.log_max_pooling_layer(self.max_pooling, 1)
         self.log_dropout_layer(self.dropout, 1)
         self.logger.info("---")
 
@@ -60,7 +57,6 @@ class ConvNet2D(BaseModel):
 
         # 3. Conv layer
         self.log_cnn_layer(self.conv_3, 3)
-        self.log_max_pooling_layer(self.max_pooling, 3)
         self.log_dropout_layer(self.dropout, 3)
         self.logger.info("---")
 
