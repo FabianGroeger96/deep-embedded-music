@@ -6,7 +6,15 @@ from src.models.model_factory import ModelFactory
 
 @ModelFactory.register("ConvNet2D")
 class ConvNet2D(BaseModel):
+    """ A simple 2-dimensional CNN model. """
+
     def __init__(self, embedding_dim, model_name="ConvNet2D"):
+        """
+       Initialises the model.
+       Calls the initialise method of the super class.
+       :param embedding_dim: the dimension for the embedding space.
+       :param model_name: the name of the model.
+       """
         super(ConvNet2D, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=True)
 
         input_shape = (None, None, None, None)
@@ -21,6 +29,11 @@ class ConvNet2D(BaseModel):
 
     @tf.function
     def forward_pass(self, inputs):
+        """
+        The forward pass through the network.
+        :param inputs: the input that will be passed through the model.
+        :return: the output of the forward pass.
+        """
         # 1. Conv layer
         features = self.conv_1(inputs)
         features = self.dropout(features)
@@ -44,6 +57,11 @@ class ConvNet2D(BaseModel):
         return features
 
     def log_model_specific_layers(self):
+        """
+        Logs the specific layers of the model.
+        Is used to log the architecture of the model.
+        :return: None.
+        """
         # 1. Conv layer
         self.log_cnn_layer(self.conv_1, 1)
         self.log_dropout_layer(self.dropout, 1)
