@@ -1,4 +1,3 @@
-apt-get -y update && apt-get -y upgrade
 apt-get -y install git
 apt-get -y install zip
 apt-get -y install unzip
