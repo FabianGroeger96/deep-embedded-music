@@ -3,6 +3,15 @@ import tensorflow as tf
 
 # TODO fix bug "Check failed: IsAligned() ptr = 0x7f29de1276d0" when adding it as a tf.function
 def train_step(batch, model, loss_fn, optimizer):
+    """
+    Runs one training step to train the model for one batch.
+
+    :param batch: the batch to train the model on.
+    :param model: the model to train.
+    :param loss_fn: the loss function.
+    :param optimizer: the optimizer for the training.
+    :return: the value of the loss, distance to the neighbour and distance to the opposite.
+    """
     anchor, neighbour, opposite, triplet_labels = batch
 
     # record the operations run during the forward pass, which enables auto differentiation
@@ -28,6 +37,15 @@ def train_step(batch, model, loss_fn, optimizer):
 
 @tf.function
 def predict_triplets(model, anchor, neighbour, opposite):
+    """
+    Predicts a triplet of features.
+
+    :param model: the model used for predicting.
+    :param anchor: the feature used as anchor.
+    :param neighbour: the feature used as neighbour.
+    :param opposite: the feature used as opposite.
+    :return: the predicted embeddings of the anchor, neighbour and opposite feature.
+    """
     emb_anchor = model(anchor, training=True)
     emb_neighbour = model(neighbour, training=True)
     emb_opposite = model(opposite, training=True)
@@ -36,7 +54,14 @@ def predict_triplets(model, anchor, neighbour, opposite):
 
 
 @tf.function
-def evaluation_step(audio, model):
-    embedding = model(audio, training=False)
+def evaluation_step(feature, model):
+    """
+    Runs one evaluation step.
+
+    :param feature: the feature to feed to the model.
+    :param model: the model used for predicting.
+    :return: the predicted embedding.
+    """
+    embedding = model(feature, training=False)
 
     return embedding

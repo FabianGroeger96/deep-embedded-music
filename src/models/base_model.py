@@ -10,6 +10,7 @@ class BaseModel(tf.keras.Model, ABC):
     def __init__(self, embedding_dim, model_name, expand_dims):
         """
         Initialises the model.
+
         :param embedding_dim: the dimension for the embedding space.
         :param model_name: the name of the model.
         :param expand_dims: if the model should expand its dimension.
@@ -33,6 +34,7 @@ class BaseModel(tf.keras.Model, ABC):
         Executes a forward pass through the model.
         Based on the input, it will execute the forward pass for a single channel or for multiple channels.
         Will be executed as a graph (@tf.function).
+
         :param inputs: the input that will be passed through the model.
         :param training: if the model is training.
         :return: returns the output of the model.
@@ -70,6 +72,7 @@ class BaseModel(tf.keras.Model, ABC):
     def log_model(self):
         """
         Logs the architecture of the model.
+
         :return: None.
         """
         # log start sequence
@@ -90,6 +93,7 @@ class BaseModel(tf.keras.Model, ABC):
         Abstract method.
         The forward pass through the network.
         Needs to be implemented in models which inherit the BaseModel.
+
         :param inputs: the input that will be passed through the model.
         :return: the output of the forward pass.
         """
@@ -102,6 +106,7 @@ class BaseModel(tf.keras.Model, ABC):
         Logs the specific layers of the inherited model.
         Is used to log the architecture of the model.
         Needs to be implemented in models which inherit the BaseModel.
+
         :return: None.
         """
         pass
@@ -109,6 +114,7 @@ class BaseModel(tf.keras.Model, ABC):
     def log_feature_shape(self, name, feature):
         """
         Logs the shape a feature.
+
         :param name: the name of the feature.
         :param feature: the feature to log its shape.
         :return: None.
@@ -118,6 +124,7 @@ class BaseModel(tf.keras.Model, ABC):
     def log_cnn_layer(self, cnn_layer, layer_number):
         """
         Logs the important attributes of a CNN layer.
+
         :param cnn_layer: the cnn layer to log.
         :param layer_number: the layer number within the entire model.
         :return: None.
@@ -129,6 +136,7 @@ class BaseModel(tf.keras.Model, ABC):
     def log_max_pooling_layer(self, max_pooling_layer, layer_number):
         """
         Logs the important attributes of a Max pooling layer.
+
         :param max_pooling_layer: the max pooling layer to log.
         :param layer_number: the layer number within the entire model.
         :return: None.
@@ -140,6 +148,7 @@ class BaseModel(tf.keras.Model, ABC):
     def log_dropout_layer(self, dropout_layer, layer_number):
         """
         Logs the important attributes of a Dropout layer.
+
         :param dropout_layer: the dropout layer to log.
         :param layer_number: the layer number within the entire model.
         :return: None.
@@ -151,6 +160,7 @@ class BaseModel(tf.keras.Model, ABC):
     def log_gru_layer(self, gru_layer, layer_number):
         """
         Logs the important attributes of a GRU layer.
+
         :param gru_layer: the GRU layer to log.
         :param layer_number: the layer number within the entire model.
         :return: None.
@@ -162,6 +172,7 @@ class BaseModel(tf.keras.Model, ABC):
     def log_dense_layer(self, dense_layer):
         """
         Logs the important attributes of a Dense layer.
+
         :param dense_layer: the dense layer to log.
         :return: None.
         """

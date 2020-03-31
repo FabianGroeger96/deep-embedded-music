@@ -16,6 +16,7 @@ class ModelFactory:
     def register(cls, name: str) -> Callable:
         """
         Class method to register model classes to the internal registry.
+
         :param name: the name of the model.
         :return: the model itself.
         """
@@ -35,9 +36,11 @@ class ModelFactory:
         This method gets the appropriate model class from the registry
         and creates an instance of it, while passing in the parameters
         given in ``kwargs``.
+
         :param name: the name of the model to create.
         :param kwargs: the parameters to instantiate the model.
         :return: an instance of the model which is created.
+        :raises: ValueError: when the model does not exist in the registry.
         """
 
         if name not in cls.registry:

@@ -12,6 +12,7 @@ class ConvNet1D(BaseModel):
         """
         Initialises the model.
         Calls the initialise method of the super class.
+
         :param embedding_dim: the dimension for the embedding space.
         :param model_name: the name of the model.
         """
@@ -31,6 +32,7 @@ class ConvNet1D(BaseModel):
     def forward_pass(self, inputs):
         """
         The forward pass through the network.
+
         :param inputs: the input that will be passed through the model.
         :return: the output of the forward pass.
         """
@@ -62,6 +64,7 @@ class ConvNet1D(BaseModel):
         """
         Logs the specific layers of the model.
         Is used to log the architecture of the model.
+
         :return: None.
         """
         # 1. Conv layer

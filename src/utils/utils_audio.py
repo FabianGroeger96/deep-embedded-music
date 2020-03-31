@@ -11,6 +11,8 @@ from tensorflow.python.ops import io_ops
 
 
 class AudioUtils:
+    """ Contains various util functions for handling audio data. """
+
     @staticmethod
     def load_audio_from_file(path: Union[str, pathlib.Path], sample_rate: int, stereo_channels: int,
                              to_mono: bool = True):
@@ -37,6 +39,14 @@ class AudioUtils:
 
     @staticmethod
     def visualise_log_mel(anchor, neighbour, opposite):
+        """
+        Visualises the log mel spectrogram of a triplet of audio files.
+
+        :param anchor: the anchor to visualise.
+        :param neighbour: the neighbour to visualise.
+        :param opposite: the opposite to visualise.
+        :return: None.
+        """
         anchor_db = librosa.amplitude_to_db(np.abs(librosa.stft(anchor)), ref=np.max)
         plt.subplot(3, 1, 1)
         plt.title("anchor")
@@ -56,6 +66,15 @@ class AudioUtils:
 
     @staticmethod
     def visualise_mfcc(anchor, neighbour, opposite, sample_rate):
+        """
+        Visualises the mfcc of a triplet of audio files.
+
+        :param anchor: the anchor to visualise.
+        :param neighbour: the neighbour to visualise.
+        :param opposite: the opposite to visualise.
+        :param sample_rate: the sampling rate of the audios.
+        :return: None.
+        """
         mfccs_anchor = librosa.feature.mfcc(y=anchor, sr=sample_rate, n_mfcc=13)
         plt.subplot(3, 1, 1)
         librosa.display.specshow(mfccs_anchor, x_axis="time")
