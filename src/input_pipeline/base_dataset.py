@@ -24,16 +24,18 @@ class BaseDataset(ABC):
         pass
 
     @abstractmethod
-    def count_classes(self):
-        pass
-
-    @abstractmethod
     def get_neighbour(self, anchor_id, calc_dist: bool = False):
         pass
 
     @abstractmethod
     def get_opposite(self, anchor_id, calc_dist: bool = False):
         pass
+
+    def count_classes(self):
+        label_counts = self.df["label"].value_counts()
+        for i, label in enumerate(self.LABELS):
+            if i < len(label_counts):
+                self.logger.info("Audio samples in {0}: {1}".format(label, label_counts[i]))
 
     def compare_audio(self, audio_1, audio_2):
         # compute MFCC from audio1

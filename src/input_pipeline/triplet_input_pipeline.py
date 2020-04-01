@@ -75,8 +75,6 @@ class TripletsInputPipeline:
             except ValueError as err:
                 self.logger.debug("Error during triplet computation: {}".format(err))
                 continue
-            except:
-                break
 
             # load audio files from anchor
             anchor_path = os.path.join(self.dataset_path, anchor.file_name)

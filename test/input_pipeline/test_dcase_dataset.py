@@ -16,11 +16,6 @@ class TestDCASEDataset(tf.test.TestCase):
         json_path = os.path.join(experiment_dir, "config", "params.json")
         self.params = Params(json_path)
 
-    def get_input_pipeline(self):
-        audio_pipeline = TripletsInputPipeline(params=self.params)
-
-        return audio_pipeline
-
     def test_data_frame_iterator(self):
         audio_iterator = DCASEDataset(
             dataset_path=self.params.audio_files_path,
@@ -33,6 +28,30 @@ class TestDCASEDataset(tf.test.TestCase):
             self.assertNotEqual(audio_entry.session, "")
             self.assertNotEqual(audio_entry.node_id, "")
             self.assertNotEqual(audio_entry.segment, "")
+
+    def test_data_frame_neighbour(self):
+        audio_iterator = DCASEDataset(
+            dataset_path=self.params.audio_files_path,
+            fold=self.params.fold,
+            sample_rate=self.params.sample_rate)
+
+        for index, audio_entry in enumerate(audio_iterator):
+            neighbour, _ = audio_iterator.get_neighbour(index)
+
+            self.assertEqual(audio_entry.label, neighbour.label)
+            self.assertNotEqual(audio_entry.session, neighbour.session)
+            self.assertNotEqual(audio_entry.node_id, neighbour.node_id)
+
+    def test_data_frame_opposite(self):
+        audio_iterator = DCASEDataset(
+            dataset_path=self.params.audio_files_path,
+            fold=self.params.fold,
+            sample_rate=self.params.sample_rate)
+
+        for index, audio_entry in enumerate(audio_iterator):
+            opposite, _ = audio_iterator.get_opposite(index)
+
+            self.assertNotEqual(audio_entry.label, opposite.label)
 
 
 if __name__ == '__main__':
