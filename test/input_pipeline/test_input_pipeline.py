@@ -4,6 +4,7 @@ import tensorflow as tf
 
 from src.feature_extractor.log_mel_extractor import LogMelBaseExtractor
 from src.feature_extractor.mfcc_extractor import MFCCBaseExtractor
+from src.input_pipeline.dcase_dataset import DCASEDataset
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.utils.params import Params
 
@@ -13,14 +14,28 @@ class TestInputPipeline(tf.test.TestCase):
     def setUp(self):
         experiment_dir = "/opt/project/test_environment/"
 
+        self.dataset_dir = "/opt/project/data/dj-set/MusicDataset/"
+
         # load the parameters from json file
         json_path = os.path.join(experiment_dir, "config", "params.json")
         self.params = Params(json_path)
 
     def get_input_pipeline(self):
-        audio_pipeline = TripletsInputPipeline(params=self.params)
+        dataset = self.get_dataset()
+        audio_pipeline = TripletsInputPipeline(params=self.params, dataset=dataset)
 
         return audio_pipeline
+
+    def get_dataset(self):
+        dataset = DCASEDataset(
+            dataset_path=self.params.audio_files_path,
+            fold=self.params.fold,
+            sample_rate=self.params.sample_rate,
+            sample_size=self.params.sample_size,
+            stereo_channels=self.params.stereo_channels,
+            to_mono=self.params.to_mono)
+
+        return dataset
 
     def test_dataset_generator_channels(self):
         # change pipeline to single channel
@@ -30,10 +45,12 @@ class TestInputPipeline(tf.test.TestCase):
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True, calc_dist=False)
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # check if triplets have a third dimension (channel)
-            expected_shape = [self.params.batch_size, self.params.sample_rate]
+            expected_shape = [self.params.batch_size, self.params.sample_rate * self.params.sample_size]
             self.assertEqual(expected_shape, anchor.shape)
             self.assertEqual(expected_shape, neighbour.shape)
             self.assertEqual(expected_shape, opposite.shape)
+
+            break
 
         # change pipeline to multiple channels
         self.params.stereo_channels = 4
@@ -42,10 +59,13 @@ class TestInputPipeline(tf.test.TestCase):
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True, calc_dist=False)
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # check if triplets have a third dimension (channel)
-            expected_shape = [self.params.batch_size, self.params.sample_rate, self.params.stereo_channels]
+            expected_shape = [self.params.batch_size, self.params.sample_rate * self.params.sample_size,
+                              self.params.stereo_channels]
             self.assertEqual(expected_shape, anchor.shape)
             self.assertEqual(expected_shape, neighbour.shape)
             self.assertEqual(expected_shape, opposite.shape)
+
+            break
 
     def test_dataset_generator_batch_size(self):
         audio_pipeline = self.get_input_pipeline()
@@ -62,9 +82,9 @@ class TestInputPipeline(tf.test.TestCase):
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True, calc_dist=False)
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # check if triplets have the correct audio size (sample_rate)
-            self.assertEqual(self.params.sample_rate, anchor.shape[1])
-            self.assertEqual(self.params.sample_rate, neighbour.shape[1])
-            self.assertEqual(self.params.sample_rate, opposite.shape[1])
+            self.assertEqual(self.params.sample_rate * self.params.sample_size, anchor.shape[1])
+            self.assertEqual(self.params.sample_rate * self.params.sample_size, neighbour.shape[1])
+            self.assertEqual(self.params.sample_rate * self.params.sample_size, opposite.shape[1])
 
     def test_dataset_generator_triplets_valid(self):
         audio_pipeline = self.get_input_pipeline()

@@ -15,10 +15,12 @@ class TestFeatureExtractor(tf.test.TestCase):
         self.audio_file_path = "/opt/project/test_environment/audio/DevNode1_ex1_1.wav"
         self.audio_mono = AudioUtils.load_audio_from_file(self.audio_file_path,
                                                           sample_rate=16000,
+                                                          sample_size=10,
                                                           stereo_channels=4,
                                                           to_mono=True)
         self.audio_multi = AudioUtils.load_audio_from_file(self.audio_file_path,
                                                            sample_rate=16000,
+                                                           sample_size=10,
                                                            stereo_channels=4,
                                                            to_mono=False)
 
