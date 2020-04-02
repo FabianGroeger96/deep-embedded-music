@@ -1,6 +1,8 @@
 from abc import ABC, abstractmethod
+from typing import Tuple
 
 import librosa
+import numpy as np
 from dtw import dtw
 from numpy.linalg import norm
 
@@ -24,6 +26,10 @@ class BaseDataset(ABC):
         pass
 
     @abstractmethod
+    def get_triplets(self, anchor_id, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+        pass
+
+    @abstractmethod
     def get_neighbour(self, anchor_id, calc_dist: bool = False):
         pass
 
@@ -31,11 +37,22 @@ class BaseDataset(ABC):
     def get_opposite(self, anchor_id, calc_dist: bool = False):
         pass
 
+    @abstractmethod
+    def initialise(self):
+        pass
+
     def count_classes(self):
         label_counts = self.df["label"].value_counts()
         for i, label in enumerate(self.LABELS):
             if i < len(label_counts):
                 self.logger.info("Audio samples in {0}: {1}".format(label, label_counts[i]))
+
+    def check_if_easy_or_hard_triplet(self, neighbour_dist, opposite_dist):
+        # distance to differ between hard / easy triplet
+        if neighbour_dist > opposite_dist:
+            self.logger.debug("Dist opposite smaller than dist neighbour --> hard triplet")
+        else:
+            self.logger.debug("Dist opposite bigger than dist neighbour --> easy triplet")
 
     def compare_audio(self, audio_1, audio_2):
         # compute MFCC from audio1

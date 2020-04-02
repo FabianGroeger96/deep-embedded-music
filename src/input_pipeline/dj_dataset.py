@@ -2,10 +2,11 @@ import logging
 import math
 import pathlib
 import random
-from typing import Union
+from typing import Union, Tuple
 
 import librosa
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 
 from src.input_pipeline.base_dataset import BaseDataset
@@ -27,14 +28,10 @@ class DJDataset(BaseDataset):
 
         self.dataset_path = Utils.check_if_path_exists(dataset_path)
         self.sample_rate = sample_rate
+        self.train_test_split_distribution = train_test_split_distribution
         self.log = log
 
-        # load the data frame
-        self.df = self.load_data_frame()
-        # shuffle dataset
-        self.df = self.df.sample(frac=1).reset_index(drop=True)
-        # split dataset into train and test, test will be used for visualising
-        self.df_train, self.df_test = train_test_split(self.df, test_size=train_test_split_distribution)
+        self.initialise()
 
         self.logger = logging.getLogger(self.__class__.__name__)
         if self.log:
@@ -65,6 +62,14 @@ class DJDataset(BaseDataset):
 
                 return audio_entry
 
+    def initialise(self):
+        # load the data frame
+        self.df = self.load_data_frame()
+        # shuffle dataset
+        self.df = self.df.sample(frac=1).reset_index(drop=True)
+        # split dataset into train and test, test will be used for visualising
+        self.df_train, self.df_test = train_test_split(self.df, test_size=self.train_test_split_distribution)
+
     def load_data_frame(self):
         audio_names = []
         audio_paths = []
@@ -85,6 +90,55 @@ class DJDataset(BaseDataset):
         data["label"] = data["label"].apply(self.LABELS.index)
 
         return data
+
+    def get_triplets(self, anchor_id, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+        try:
+            anchor = self.df.iloc[anchor_id]
+            neighbour, neighbour_dist = self.get_neighbour(anchor_id, calc_dist=calc_dist)
+            opposite, opposite_dist = self.get_opposite(anchor_id, calc_dist=calc_dist)
+
+            if calc_dist:
+                self.check_if_easy_or_hard_triplet(neighbour_dist, opposite_dist)
+
+            audio_anchor, _ = librosa.load(anchor["path"], self.sample_rate)
+            audio_neighbour, _ = librosa.load(neighbour["path"], self.sample_rate)
+            audio_opposite, _ = librosa.load(opposite["path"], self.sample_rate)
+
+            if trim:
+                # remove leading and trailing silence
+                audio_anchor, _ = librosa.effects.trim(audio_anchor)
+                audio_neighbour, _ = librosa.effects.trim(audio_neighbour)
+                audio_opposite, _ = librosa.effects.trim(audio_opposite)
+
+            # get audio length in seconds
+            audio_anchor_length = librosa.get_duration(audio_anchor, self.sample_rate)
+            audio_neighbour_length = librosa.get_duration(audio_neighbour, self.sample_rate)
+            audio_opposite_length = librosa.get_duration(audio_opposite, self.sample_rate)
+
+            # get the possible count of segments
+            anchor_segments_count = math.floor(audio_anchor_length / 10)
+            neighbour_segments_count = math.floor(audio_neighbour_length / 10)
+            opposite_segments_count = math.floor(audio_opposite_length / 10)
+
+            triplets = []
+            labels = []
+
+            for seg_id in range(anchor_segments_count):
+                anchor_seg = audio_anchor[seg_id * 10 * self.sample_rate: (seg_id + 1) * 10 * self.sample_rate]
+
+                neighbour_seg_id = random.randint(0, neighbour_segments_count - 1)
+                neighbour_seg = self.split_audio_in_segment(audio_neighbour, neighbour_seg_id, 10)
+
+                opposite_seg_id = random.randint(0, opposite_segments_count - 1)
+                opposite_seg = self.split_audio_in_segment(audio_opposite, opposite_seg_id, 10)
+
+                triplets.append([anchor_seg, neighbour_seg, opposite_seg])
+                labels.append([anchor.label, neighbour.label, opposite.label])
+
+            return np.asarray(triplets), np.asarray(labels)
+
+        except ValueError as err:
+            self.logger.debug("Error during triplet computation: {}".format(err))
 
     def get_neighbour(self, anchor_id, calc_dist: bool = False):
         anchor = self.df.iloc[anchor_id]
@@ -118,42 +172,6 @@ class DJDataset(BaseDataset):
         opposite = filtered_items.sample().iloc[0]
 
         return opposite, None
-
-    def get_triplets(self, anchor, neighbour, opposite, trim=True):
-        audio_anchor, _ = librosa.load(anchor["path"], self.sample_rate)
-        audio_neighbour, _ = librosa.load(neighbour["path"], self.sample_rate)
-        audio_opposite, _ = librosa.load(opposite["path"], self.sample_rate)
-
-        if trim:
-            # remove leading and trailing silence
-            audio_anchor, _ = librosa.effects.trim(audio_anchor)
-            audio_neighbour, _ = librosa.effects.trim(audio_neighbour)
-            audio_opposite, _ = librosa.effects.trim(audio_opposite)
-
-        # get audio length in seconds
-        audio_anchor_length = librosa.get_duration(audio_anchor, self.sample_rate)
-        audio_neighbour_length = librosa.get_duration(audio_neighbour, self.sample_rate)
-        audio_opposite_length = librosa.get_duration(audio_opposite, self.sample_rate)
-
-        # get the possible count of segments
-        anchor_segments_count = math.floor(audio_anchor_length / 10)
-        neighbour_segments_count = math.floor(audio_neighbour_length / 10)
-        opposite_segments_count = math.floor(audio_opposite_length / 10)
-
-        triplets = []
-
-        for seg_id in range(anchor_segments_count):
-            anchor_seg = audio_anchor[seg_id * 10 * self.sample_rate: (seg_id + 1) * 10 * self.sample_rate]
-
-            neighbour_seg_id = random.randint(0, neighbour_segments_count - 1)
-            neighbour_seg = self.split_audio_in_segment(audio_neighbour, neighbour_seg_id, 10)
-
-            opposite_seg_id = random.randint(0, opposite_segments_count - 1)
-            opposite_seg = self.split_audio_in_segment(audio_opposite, opposite_seg_id, 10)
-
-            triplets.append([anchor_seg, neighbour_seg, opposite_seg])
-
-        return triplets
 
     def split_audio_in_segment(self, audio, segment_id, sample_size):
         segment = audio[segment_id * sample_size * self.sample_rate: (segment_id + 1) * sample_size * self.sample_rate]
