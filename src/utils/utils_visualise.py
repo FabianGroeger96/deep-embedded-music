@@ -123,7 +123,7 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
 
     # reinitialise pipeline for visualisation
     if reinitialise:
-        pipeline.reinitialise()
+        pipeline.initialise()
     dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, calc_dist=False)
     dataset_iterator = iter(dataset_iterator)
 
