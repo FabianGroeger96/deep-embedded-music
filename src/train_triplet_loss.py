@@ -6,6 +6,7 @@ from enum import Enum
 import tensorflow as tf
 
 from src.feature_extractor.extractor_factory import ExtractorFactory
+from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
 from src.models.model_factory import ModelFactory
@@ -15,7 +16,7 @@ from src.utils.utils import Utils
 from src.utils.utils_visualise import visualise_model_on_epoch_end
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--experiment_dir", default="experiments/DCASE",
+parser.add_argument("--experiment_dir", default="experiments",
                     help="Experiment directory containing params.json")
 
 
@@ -44,6 +45,13 @@ if __name__ == "__main__":
     json_path = os.path.join(args.experiment_dir, "config", "params.json")
     params = Params(json_path)
 
+    # define dataset
+    dataset = DatasetFactory.create_dataset(name=params.dataset, params=params)
+    # get the feature extractor from the factory
+    extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
+    # define triplet input pipeline
+    pipeline = TripletsInputPipeline(params=params, dataset=dataset)
+
     # create model from factory and specified name within the params
     model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
     # create the optimizer for the model
@@ -54,7 +62,8 @@ if __name__ == "__main__":
     # create folders for experiment results
     experiment_name = "{0}-{1}".format(model.model_name, params.experiment_name)
     experiment_path, log_path, tensorb_path, save_path = Utils.create_load_folders_for_experiment(args,
-                                                                                                  experiment_name,
+                                                                                                  dataset_folder=dataset.EXPERIMENT_FOLDER,
+                                                                                                  model_name=experiment_name,
                                                                                                   saved_model_path=params.saved_model_path)
 
     # set logger
@@ -73,15 +82,6 @@ if __name__ == "__main__":
     # define checkpoint and checkpoint manager
     ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
     manager = tf.train.CheckpointManager(ckpt, save_path, max_to_keep=3)
-
-    # define triplet input pipeline
-    pipeline = TripletsInputPipeline(params=params)
-
-    # get the feature extractor from the factory
-    extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
-
-    # get test set for embedding visualisation
-    # test_features, test_labels = pipeline.get_test_dataset(extractor)
 
     # check if models has been trained before
     ckpt.restore(manager.latest_checkpoint)

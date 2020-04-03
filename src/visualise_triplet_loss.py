@@ -5,6 +5,7 @@ import os
 import tensorflow as tf
 
 from src.feature_extractor.extractor_factory import ExtractorFactory
+from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
 from src.models.model_factory import ModelFactory
@@ -13,8 +14,10 @@ from src.utils.utils import Utils
 from src.utils.utils_visualise import visualise_model_on_epoch_end
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--experiment_dir", default="experiments/DCASE",
+parser.add_argument("--experiment_dir", default="experiments",
                     help="Experiment directory containing params.json")
+parser.add_argument("--dataset_dir", default="DCASE",
+                    help="Dataset directory containing the model")
 parser.add_argument("--model_to_load", default="results/ConvNet1D-20200326-065709",
                     help="Model to load")
 
@@ -23,7 +26,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # create folders for experiment results
-    experiment_path, log_path, tensorb_path, save_path = Utils.create_load_folders_for_experiment(args, model_name=None,
+    experiment_path, log_path, tensorb_path, save_path = Utils.create_load_folders_for_experiment(args,
+                                                                                                  dataset_folder=args.dataset_dir,
+                                                                                                  model_name=None,
                                                                                                   saved_model_path=args.model_to_load,
                                                                                                   copy_json_file=False)
 
@@ -45,8 +50,10 @@ if __name__ == "__main__":
     # set the folder for the summary writer
     train_summary_writer = tf.summary.create_file_writer(tensorb_path)
 
+    # define dataset
+    dataset = DatasetFactory.create_dataset(name=params.dataset, params=params)
     # define triplet input pipeline
-    pipeline = TripletsInputPipeline(params=params)
+    pipeline = TripletsInputPipeline(params=params, dataset=dataset)
 
     # get the feature extractor from the factory
     extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)

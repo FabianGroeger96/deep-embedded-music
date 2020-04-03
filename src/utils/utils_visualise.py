@@ -9,10 +9,8 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 from tensorboard.plugins import projector
 
-from src.input_pipeline.dcase_dataset import DCASEDataset
 
-
-def save_labels_tsv(labels, filename, log_dir):
+def save_labels_tsv(labels, filename, log_dir, dataset):
     """
     Saves the labels of the features to a given path as a *.tsv file.
     The file can be used to visualise the embeddings within the projector.
@@ -20,11 +18,12 @@ def save_labels_tsv(labels, filename, log_dir):
     :param labels: the labels to save.
     :param filename: the name of the file.
     :param log_dir: the path of the file.
+    :param dataset: the dataset of the input pipeline.
     :return: None.
     """
     with open(os.path.join(log_dir, filename), 'w') as f:
         for label in labels.numpy():
-            f.write('{}\n'.format(DCASEDataset.LABELS[int(label)]))
+            f.write('{}\n'.format(dataset.LABELS[int(label)]))
 
 
 def save_embeddings_tsv(embeddings, filename, log_dir):
@@ -44,12 +43,13 @@ def save_embeddings_tsv(embeddings, filename, log_dir):
             f.write('\n')
 
 
-def visualise_embeddings(embeddings, labels, tensorboard_path, save_checkpoint=True):
+def visualise_embeddings(embeddings, labels, dataset, tensorboard_path, save_checkpoint=True):
     """
     Visualises the embeddings with its corresponding labels with the projector of the tensorboard.
 
     :param embeddings: the embeddings to visualise.
     :param labels: the labels to visualise.
+    :param dataset: the dataset of the input pipeline.
     :param tensorboard_path: the path of the tensorboard files from the current experiment.
     :param save_checkpoint: if the embedding checkpoint should be saved or only the *.tsv files.
     :return: None.
@@ -59,7 +59,7 @@ def visualise_embeddings(embeddings, labels, tensorboard_path, save_checkpoint=T
     tensor_embeddings = tf.Variable(embeddings, name='embeddings')
 
     # save labels and embeddings to .tsv, to assign each embedding a label
-    save_labels_tsv(labels, 'labels.tsv', tensorboard_path)
+    save_labels_tsv(labels, 'labels.tsv', tensorboard_path, dataset=dataset)
     save_embeddings_tsv(embeddings, 'embeddings.tsv', tensorboard_path)
 
     # save the embeddings to a checkpoint file, which will then be loaded by the projector
@@ -123,7 +123,7 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
 
     # reinitialise pipeline for visualisation
     if reinitialise:
-        pipeline.initialise()
+        pipeline.reinitialise()
     dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, calc_dist=False)
     dataset_iterator = iter(dataset_iterator)
 
@@ -144,21 +144,29 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
         labels.append(triplet_labels[:, 1])
         labels.append(triplet_labels[:, 2])
 
+        if i > 3:
+            break
+
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
     embeddings = tf.concat(embeddings, axis=0)
     labels = tf.concat(labels, axis=0)
 
+    # get used dataset from pipline
+    dataset = pipeline.dataset
+
     # visualise the distance matrix with graph and confusion matrix
-    visualise_distance_matrix(embeddings, labels, epoch, summary_writer, visualise_graphs)
+    visualise_distance_matrix(embeddings, labels=labels, dataset=dataset, epoch=epoch, summary_writer=summary_writer,
+                              visualise_graphs=visualise_graphs)
     # visualise embeddings from the entire dataset
-    visualise_embeddings(embeddings, labels, tensorb_path, save_checkpoint)
+    visualise_embeddings(embeddings, labels=labels, dataset=dataset, tensorboard_path=tensorb_path,
+                         save_checkpoint=save_checkpoint)
 
     # delete unused lists of entire dataset
     del embeddings
     del labels
 
 
-def visualise_distance_matrix(embeddings, labels, epoch, summary_writer, visualise_graphs=True):
+def visualise_distance_matrix(embeddings, labels, dataset, epoch, summary_writer, visualise_graphs=True):
     """
     Visualise the distance matrix of given embeddings.
 
@@ -166,6 +174,7 @@ def visualise_distance_matrix(embeddings, labels, epoch, summary_writer, visuali
 
     :param embeddings: the embeddings to visualise.
     :param labels: the labels to visualise.
+    :param dataset: the dataset of the input pipeline.
     :param epoch: the current epoch.
     :param summary_writer: the summary writer of the tensorboard.
     :param visualise_graphs: if the graphs of the distances between clusters should be visualised.
@@ -176,7 +185,7 @@ def visualise_distance_matrix(embeddings, labels, epoch, summary_writer, visuali
 
     # group the computed embeddings by labels
     embeddings_by_labels = []
-    for i, label in enumerate(DCASEDataset.LABELS):
+    for i, label in enumerate(dataset.LABELS):
         embeddings_class = tf.math.reduce_mean(emb_np[np.nonzero(labels_np == i)], 0)
         embeddings_by_labels.append(embeddings_class)
     embeddings_by_labels = tf.stack(embeddings_by_labels)
@@ -185,14 +194,14 @@ def visualise_distance_matrix(embeddings, labels, epoch, summary_writer, visuali
     pair_dist = tfa.losses.triplet.metric_learning.pairwise_distance(embeddings_by_labels)
     # compute the confusion matrix from the distances between clusters
     distance_matrix = pd.DataFrame(pair_dist.numpy(),
-                                   index=DCASEDataset.LABELS,
-                                   columns=DCASEDataset.LABELS)
+                                   index=dataset.LABELS,
+                                   columns=dataset.LABELS)
 
     # visualise the distance graphs
     if visualise_graphs:
-        visualise_distance_graphs(distance_matrix, epoch, summary_writer)
+        visualise_distance_graphs(distance_matrix, epoch=epoch, summary_writer=summary_writer)
     # visualise the distance matrix as an image
-    visualise_distance_matrix_image(distance_matrix, epoch, summary_writer)
+    visualise_distance_matrix_image(distance_matrix, dataset=dataset, epoch=epoch, summary_writer=summary_writer)
 
     # delete unused big lists
     del emb_np
@@ -219,17 +228,18 @@ def visualise_distance_graphs(distance_matrix, epoch, summary_writer):
             tf.summary.scalar(summary_name, row[0], step=epoch)
 
 
-def visualise_distance_matrix_image(distance_matrix, epoch, summary_writer):
+def visualise_distance_matrix_image(distance_matrix, dataset, epoch, summary_writer):
     """
     Visualise the distances between each label centroid as an image.
 
     :param distance_matrix: the distance matrix of the label centroids.
+    :param dataset: the dataset of the input pipeline.
     :param epoch: the current epoch.
     :param summary_writer: the summary writer of the tensorboard .
     :return: None.
     """
     figure = plt.figure(figsize=(8, 8))
-    sns.heatmap(distance_matrix, annot=True, xticklabels=DCASEDataset.LABELS, yticklabels=DCASEDataset.LABELS)
+    sns.heatmap(distance_matrix, annot=True, xticklabels=dataset.LABELS, yticklabels=dataset.LABELS)
     plt.tight_layout()
     plt.ylabel("Distance from label center")
     plt.xlabel("Distance to label center")

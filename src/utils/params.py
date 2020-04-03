@@ -15,13 +15,17 @@ class Params:
 
     def __init__(self, json_path):
         self.experiment_name = None
-        self.audio_files_path = None
-        self.info_file_path = None
-        self.fold = None
+
+        self.dcase_dataset_path = None
+        self.dcase_dataset_fold = None
+
+        self.music_dataset_path = None
 
         self.log_level = None
 
         self.model = None
+        self.dataset = None
+
         self.save_model = None
         self.saved_model_path = None
         self.save_frequency = None
@@ -40,8 +44,8 @@ class Params:
         self.sample_rate = None
         self.sample_size = None
 
-        self.stereo_channels = None
-        self.to_mono = None
+        self.stereo_channels = None  # only for DCASE dataset
+        self.to_mono = None  # leave at TRUE for MusicDataset
 
         self.feature_extractor = None
         self.frame_length = None
