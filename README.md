@@ -13,7 +13,7 @@ tensorflow/tensorflow:2.1.0-py3 /bin/bash ./onstart.sh
 
 GPU:
 ```shell script
-docker run -it -v ${PWD}:/tf/ -w /tf -d --rm --name deep-embedded-music -e NVIDIA_VISIBLE_DEVICES=0 \
+docker run -it -v ${PWD}:/tf/ -w /tf -d --rm --name deep-embedded-music-1 -e NVIDIA_VISIBLE_DEVICES=1 \
 tensorflow/tensorflow:2.1.0-gpu-py3 /bin/bash ./onstart.sh
 ```
 
@@ -43,4 +43,11 @@ http://gpu04:6006
 ```shell script
 cd deep-embedded-music
 python -m src.train_triplet_loss
+```
+
+### Delete folders
+
+```shell script
+docker run -v $(pwd):/app -it ubuntu /bin/bash
+rm -R to_be_deleted/
 ```
