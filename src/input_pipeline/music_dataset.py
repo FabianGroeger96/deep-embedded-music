@@ -2,33 +2,34 @@ import logging
 import math
 import pathlib
 import random
-from typing import Union, Tuple
+from typing import Tuple
 
 import librosa
-import pandas as pd
 import numpy as np
+import pandas as pd
 from sklearn.model_selection import train_test_split
 
 from src.input_pipeline.base_dataset import BaseDataset
 from src.input_pipeline.dataset_factory import DatasetFactory
+from src.utils.params import Params
 from src.utils.utils import Utils
 
 
-@DatasetFactory.register("DJ")
-class DJDataset(BaseDataset):
-    AUDIO_FILES_DIR = "audio"
-    INFO_FILES_DIR = "evaluation_setup"
+@DatasetFactory.register("MusicDataset")
+class MusicDataset(BaseDataset):
+    EXPERIMENT_FOLDER = "DJ"
     LABELS = ["DeepHouse", "Electronica_Downtempo", "IndieDance", "MelodicHouseAndTechno",
               "Techno_PeakTime_Driving_Hard", "Techno_Raw_Deep_Hypnotic", "Trance"]
 
-    def __init__(self, dataset_path: Union[str, pathlib.Path], sample_rate: int,
-                 train_test_split_distribution: int = 0.05, log: bool = False):
+    def __init__(self, params: Params, log: bool = False):
 
         super().__init__()
 
-        self.dataset_path = Utils.check_if_path_exists(dataset_path)
-        self.sample_rate = sample_rate
-        self.train_test_split_distribution = train_test_split_distribution
+        self.params = params
+
+        self.dataset_path = Utils.check_if_path_exists(params.music_dataset_path)
+        self.sample_rate = params.sample_rate
+        self.train_test_split = params.train_test_split
         self.log = log
 
         self.initialise()
@@ -68,7 +69,7 @@ class DJDataset(BaseDataset):
         # shuffle dataset
         self.df = self.df.sample(frac=1).reset_index(drop=True)
         # split dataset into train and test, test will be used for visualising
-        self.df_train, self.df_test = train_test_split(self.df, test_size=self.train_test_split_distribution)
+        self.df_train, self.df_test = train_test_split(self.df, test_size=self.train_test_split)
 
     def load_data_frame(self):
         audio_names = []

@@ -9,20 +9,12 @@ from src.utils.params import Params
 class TestDCASEDataset(tf.test.TestCase):
 
     def setUp(self):
-        experiment_dir = "/opt/project/test_environment/"
-
         # load the parameters from json file
-        json_path = os.path.join(experiment_dir, "config", "params.json")
+        json_path = os.path.join("/opt/project/test_environment/", "config", "params.json")
         self.params = Params(json_path)
 
     def get_dataset(self):
-        dataset = DCASEDataset(
-            dataset_path=self.params.audio_files_path,
-            fold=self.params.fold,
-            sample_rate=self.params.sample_rate,
-            sample_size=self.params.sample_size,
-            stereo_channels=self.params.stereo_channels,
-            to_mono=self.params.to_mono)
+        dataset = DCASEDataset(params=self.params)
 
         return dataset
 

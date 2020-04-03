@@ -2,57 +2,52 @@ import os
 
 import tensorflow as tf
 
-from src.input_pipeline.dj_dataset import DJDataset
+from src.input_pipeline.music_dataset import MusicDataset
 from src.utils.params import Params
 
 
-class TestDJDataset(tf.test.TestCase):
+class TestMusicDataset(tf.test.TestCase):
 
     def setUp(self):
-        self.dataset_dir = "/opt/project/data/dj-set/MusicDataset/"
-
         # load the parameters from json file
         json_path = os.path.join("/opt/project/test_environment/", "config", "params.json")
         self.params = Params(json_path)
 
-    def test_data_frame_iterator(self):
-        audio_iterator = DJDataset(
-            dataset_path=self.dataset_dir,
-            sample_rate=self.params.sample_rate)
+    def get_dataset(self):
+        dataset = MusicDataset(params=self.params)
 
-        for audio_entry in audio_iterator:
+        return dataset
+
+    def test_data_frame_iterator(self):
+        dataset = self.get_dataset()
+
+        for audio_entry in dataset:
             self.assertNotEqual(audio_entry.name, "")
             self.assertNotEqual(audio_entry.path, "")
             self.assertNotEqual(audio_entry.label, "")
 
     def test_data_frame_neighbour(self):
-        audio_iterator = DJDataset(
-            dataset_path=self.dataset_dir,
-            sample_rate=self.params.sample_rate)
+        dataset = self.get_dataset()
 
-        for index, audio_entry in enumerate(audio_iterator):
-            neighbour, _ = audio_iterator.get_neighbour(index)
+        for index, audio_entry in enumerate(dataset):
+            neighbour, _ = dataset.get_neighbour(index)
 
             self.assertNotEqual(audio_entry.name, neighbour.name)
             self.assertEqual(audio_entry.label, neighbour.label)
 
     def test_data_frame_opposite(self):
-        audio_iterator = DJDataset(
-            dataset_path=self.dataset_dir,
-            sample_rate=self.params.sample_rate)
+        dataset = self.get_dataset()
 
-        for index, audio_entry in enumerate(audio_iterator):
-            opposite, _ = audio_iterator.get_opposite(index)
+        for index, audio_entry in enumerate(dataset):
+            opposite, _ = dataset.get_opposite(index)
 
             self.assertNotEqual(audio_entry.label, opposite.label)
 
     def test_data_frame_triplets(self):
-        audio_iterator = DJDataset(
-            dataset_path=self.dataset_dir,
-            sample_rate=self.params.sample_rate)
+        dataset = self.get_dataset()
 
-        for index, audio_entry in enumerate(audio_iterator):
-            triplets, labels = audio_iterator.get_triplets(index)
+        for index, audio_entry in enumerate(dataset):
+            triplets, labels = dataset.get_triplets(index)
 
             for triplet, label in zip(triplets, labels):
                 self.assertEqual(len(triplet), 3)

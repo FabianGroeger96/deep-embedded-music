@@ -23,9 +23,9 @@ class TripletsInputPipeline:
         :param log: if the pipeline should log details about the data.
         """
 
-        self.dataset_path = Utils.check_if_path_exists(params.audio_files_path)
+        self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
 
-        self.fold = params.fold
+        self.fold = params.dcase_dataset_fold
 
         self.sample_rate = params.sample_rate
         self.sample_size = params.sample_size

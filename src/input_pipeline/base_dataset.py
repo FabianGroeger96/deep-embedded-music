@@ -1,3 +1,4 @@
+import os
 from abc import ABC, abstractmethod
 from typing import Tuple
 
@@ -8,9 +9,14 @@ from numpy.linalg import norm
 
 
 class BaseDataset(ABC):
+    EXPERIMENT_FOLDER = None
+    LABELS = []
 
     def __init__(self):
         # defines the current index of the iterator
+        self.sample_rate = None
+        self.logger = None
+        self.df = None
         self.current_index = 0
 
     @abstractmethod

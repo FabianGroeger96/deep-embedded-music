@@ -1,41 +1,41 @@
 import logging
 import math
 import os
-import pathlib
 import re
-from typing import Union, Tuple
+from typing import Tuple
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 from src.input_pipeline.base_dataset import BaseDataset
 from src.input_pipeline.dataset_factory import DatasetFactory
-from src.utils.utils_audio import AudioUtils
+from src.utils.params import Params
 from src.utils.utils import Utils
+from src.utils.utils_audio import AudioUtils
 
 
-@DatasetFactory.register("DCASE")
+@DatasetFactory.register("DCASEDataset")
 class DCASEDataset(BaseDataset):
-    AUDIO_FILES_DIR = "audio"
+    EXPERIMENT_FOLDER = "DCASE"
     INFO_FILES_DIR = "evaluation_setup"
     LABELS = ["absence", "cooking", "dishwashing", "eating", "other", "social_activity", "vacuum_cleaner",
               "watching_tv", "working"]
 
-    def __init__(self, dataset_path: Union[str, pathlib.Path], fold: int, sample_rate: int,
-                 sample_size: int, stereo_channels: int, to_mono: bool, train_test_split_distribution: int = 0.05,
-                 log: bool = False):
+    def __init__(self, params: Params, log: bool = False):
 
         super().__init__()
 
-        self.dataset_path = Utils.check_if_path_exists(dataset_path)
-        self.fold = fold
-        self.sample_rate = sample_rate
-        self.sample_size = sample_size
-        self.stereo_channels = stereo_channels
-        self.to_mono = to_mono
-        self.train_test_split_distribution = train_test_split_distribution
+        self.params = params
+
+        self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
+        self.fold = params.dcase_dataset_fold
+        self.sample_rate = params.sample_rate
+        self.sample_size = params.sample_size
+        self.stereo_channels = params.stereo_channels
+        self.to_mono = params.to_mono
+        self.train_test_split = params.train_test_split
         self.log = log
 
         self.initialise()
@@ -97,7 +97,7 @@ class DCASEDataset(BaseDataset):
         # shuffle dataset
         self.df = self.df.sample(frac=1).reset_index(drop=True)
         # split dataset into train and test, test will be used for visualising
-        self.df_train, self.df_test = train_test_split(self.df, test_size=self.train_test_split_distribution)
+        self.df_train, self.df_test = train_test_split(self.df, test_size=self.train_test_split)
 
     def load_data_frame(self):
         train_df = self.load_train_data_frame()
