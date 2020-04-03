@@ -74,7 +74,7 @@ class Utils:
         return logger
 
     @staticmethod
-    def create_load_folders_for_experiment(args, model_name, saved_model_path="", copy_json_file=True):
+    def create_load_folders_for_experiment(args, dataset_folder, model_name, saved_model_path="", copy_json_file=True):
         """
         Creates or loads the folders for a experiment.
 
@@ -84,6 +84,7 @@ class Utils:
         If not it will create the respective folders.
 
         :param args: the arguments of the current experiment.
+        :param dataset_folder: the folder of the experiments for the specified dataset.
         :param model_name: the name of the current model used in the experiment.
         :param saved_model_path: the saved model path, if the folders should be loaded.
         :param copy_json_file: if the global experiment json file should be copied.
@@ -91,14 +92,14 @@ class Utils:
         """
         if saved_model_path is "":
             # create experiment name folder
-            experiment_path = Utils.create_folder(os.path.join(args.experiment_dir, "results"))
+            experiment_path = Utils.create_folder(os.path.join(args.experiment_dir, dataset_folder, "results"))
             # create current experiment folder
             current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
             experiment_folder_name = "{0}-{1}".format(model_name, current_time)
             experiment_path = Utils.create_folder(os.path.join(experiment_path, experiment_folder_name))
         else:
             # set the existing model to the experiment path
-            experiment_path = os.path.join(args.experiment_dir, saved_model_path)
+            experiment_path = os.path.join(args.experiment_dir, dataset_folder, saved_model_path)
 
         # create folder for logging
         logs_path = Utils.create_folder(os.path.join(experiment_path, "logs"))

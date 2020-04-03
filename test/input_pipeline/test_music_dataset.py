@@ -2,11 +2,11 @@ import os
 
 import tensorflow as tf
 
-from src.input_pipeline.dcase_dataset import DCASEDataset
+from src.input_pipeline.music_dataset import MusicDataset
 from src.utils.params import Params
 
 
-class TestDCASEDataset(tf.test.TestCase):
+class TestMusicDataset(tf.test.TestCase):
 
     def setUp(self):
         # load the parameters from json file
@@ -14,7 +14,7 @@ class TestDCASEDataset(tf.test.TestCase):
         self.params = Params(json_path)
 
     def get_dataset(self):
-        dataset = DCASEDataset(params=self.params)
+        dataset = MusicDataset(params=self.params)
 
         return dataset
 
@@ -22,11 +22,9 @@ class TestDCASEDataset(tf.test.TestCase):
         dataset = self.get_dataset()
 
         for audio_entry in dataset:
-            self.assertNotEqual(audio_entry.file_name, "")
+            self.assertNotEqual(audio_entry.name, "")
+            self.assertNotEqual(audio_entry.path, "")
             self.assertNotEqual(audio_entry.label, "")
-            self.assertNotEqual(audio_entry.session, "")
-            self.assertNotEqual(audio_entry.node_id, "")
-            self.assertNotEqual(audio_entry.segment, "")
 
     def test_data_frame_neighbour(self):
         dataset = self.get_dataset()
@@ -34,9 +32,8 @@ class TestDCASEDataset(tf.test.TestCase):
         for index, audio_entry in enumerate(dataset):
             neighbour, _ = dataset.get_neighbour(index)
 
+            self.assertNotEqual(audio_entry.name, neighbour.name)
             self.assertEqual(audio_entry.label, neighbour.label)
-            self.assertNotEqual(audio_entry.session, neighbour.session)
-            self.assertNotEqual(audio_entry.node_id, neighbour.node_id)
 
     def test_data_frame_opposite(self):
         dataset = self.get_dataset()

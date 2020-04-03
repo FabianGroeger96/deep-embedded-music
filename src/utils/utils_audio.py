@@ -7,28 +7,30 @@ import librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.ops import io_ops
 
 
 class AudioUtils:
     """ Contains various util functions for handling audio data. """
 
     @staticmethod
-    def load_audio_from_file(path: Union[str, pathlib.Path], sample_rate: int, stereo_channels: int,
+    def load_audio_from_file(path: Union[str, pathlib.Path], sample_rate: int, sample_size: int, stereo_channels: int,
                              to_mono: bool = True):
         """
         Loads audio file from a path, using tensorflow.
 
         :param path: path to audio file.
         :param sample_rate: sample rate of the audio file.
+        :param sample_size: sample size of the audio files.
         :param stereo_channels: channels of the audio file.
         :param to_mono: if the audio should be converted to a mono signal.
-        :return: the loaded audio data, shape: (sample_rate, channel)
+        :return: the loaded audio data, shape: (sample_rate * sample_size, channel)
         """
-        wav_loader = io_ops.read_file(path)
+        wav_loader = tf.io.read_file(path)
+        # The -32768 to 32767 signed 16-bit values will be scaled to -1.0 to 1.0 in float.
+        # desired_samples: sample_rate * sample_size
         audio, sr = tf.audio.decode_wav(wav_loader,
                                         desired_channels=stereo_channels,
-                                        desired_samples=sample_rate)
+                                        desired_samples=sample_rate * sample_size)
 
         assert audio.shape[-1] == stereo_channels, "Failed to load audio file."
 

@@ -4,9 +4,9 @@ audio/DevNode3_ex3_100.wav	absence	s3
 audio/DevNode1_ex43_1.wav	cooking	s43
 audio/DevNode2_ex44_10.wav	cooking	s43
 audio/DevNode3_ex45_11.wav	cooking	s43
-audio/DevNode1_ex69_3.wav	eating	s69
-audio/DevNode1_ex69_4.wav	eating	s69
-audio/DevNode1_ex69_5.wav	eating	s69
+audio/DevNode1_ex65_3.wav	eating	s65
+audio/DevNode2_ex66_4.wav	eating	s66
+audio/DevNode3_ex67_5.wav	eating	s67
 audio/DevNode4_ex60_1.wav	dishwashing	s60
-audio/DevNode4_ex60_13.wav	dishwashing	s60
-audio/DevNode4_ex60_14.wav	dishwashing	s60
+audio/DevNode5_ex61_13.wav	dishwashing	s61
+audio/DevNode6_ex62_14.wav	dishwashing	s62

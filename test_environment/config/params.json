@@ -1,13 +1,19 @@
 {
   "experiment_name": "triplet_loss",
-  "audio_files_path": "/opt/project/test_environment/",
-  "info_file_path": "/opt/project/test_environment/evaluation_setup/fold1_train.txt",
-  "fold": 1,
+
+  "dcase_dataset_path": "/opt/project/test_environment/",
+  "dcase_dataset_fold": 1,
+
+  "music_dataset_path": "/opt/project/data/dj-set/MusicDataset/",
 
   "log_level": "DEBUG",
 
+  "model": "ConvNet2D",
+  "dataset": "MusicDataset",
+
+  "saved_model_path": "",
   "save_model": 1,
-  "save_frequency": 50,
+  "save_frequency": 1,
 
   "epochs": 10,
   "batch_size": 2,
@@ -24,8 +30,9 @@
   "sample_size": 10,
 
   "stereo_channels": 4,
-  "to_mono": 0,
+  "to_mono": 1,
 
+  "feature_extractor": "MFCCExtractor",
   "frame_length": 480,
   "frame_step": 160,
   "fft_size": 1024,
@@ -35,3 +42,4 @@
   "margin": 0.5,
   "embedding_size": 512
 }
+
