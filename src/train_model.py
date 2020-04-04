@@ -2,6 +2,7 @@ import tensorflow as tf
 
 
 # TODO fix bug "Check failed: IsAligned() ptr = 0x7f29de1276d0" when adding it as a tf.function
+@tf.function
 def train_step(batch, model, loss_fn, optimizer):
     """
     Runs one training step to train the model for one batch.
