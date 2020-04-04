@@ -114,7 +114,7 @@ class TripletsInputPipeline:
 
         dataset = dataset.batch(self.batch_size)
         dataset = dataset.prefetch(self.prefetch_batches)
-        dataset = dataset.chache()
+        dataset = dataset.cache()
 
         return dataset
 
