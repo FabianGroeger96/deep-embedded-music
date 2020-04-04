@@ -33,7 +33,7 @@ class TripletsInputPipeline:
         self.to_mono = params.to_mono
 
         self.batch_size = params.batch_size
-        self.prefetch_batches = tf.data.experimental.AUTOTUNE  # params.prefetch_batches
+        self.prefetch_batches = params.prefetch_batches  # tf.data.experimental.AUTOTUNE / params.prefetch_batches
         self.random_selection_buffer_size = params.random_selection_buffer_size
 
         self.train_test_split_distribution = params.train_test_split
@@ -113,7 +113,8 @@ class TripletsInputPipeline:
             dataset = dataset.shuffle(buffer_size=self.random_selection_buffer_size)
 
         dataset = dataset.batch(self.batch_size)
-        dataset = dataset.prefetch(self.prefetch_batches).repeat()
+        dataset = dataset.prefetch(self.prefetch_batches)
+        dataset = dataset.chache()
 
         return dataset
 

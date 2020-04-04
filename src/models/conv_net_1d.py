@@ -36,6 +36,7 @@ class ConvNet1D(BaseModel):
         :param inputs: the input that will be passed through the model.
         :return: the output of the forward pass.
         """
+        # TODO - training=False disable dropout
         # 1. Conv layer
         features = self.conv_1(inputs)
         features = self.max_pooling(features)
