@@ -38,40 +38,40 @@ class ConvNet2D(BaseModel):
         """
         # 1. Conv layer
         features = self.conv_1(inputs)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         features = self.max_pooling(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         features = self.dropout(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         # 2. Conv layer
         features = self.conv_2(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         features = self.max_pooling(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         features = self.dropout(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         # 3. Conv layer
         features = self.conv_3(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         features = self.max_pooling(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         features = self.dropout(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         # 4. Conv layer
         features = self.conv_4(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         features = self.max_pooling(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         features = self.dropout(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         # Embedding layer
         features = self.flatten(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         features = self.dense(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
         # L2 normalisation
         features = self.l2_normalisation(features)
-        self.logger.info("Feature shape: {}".format(features.shape))
+        self.logger.debug("Feature shape: {}".format(features.shape))
 
         return features
 

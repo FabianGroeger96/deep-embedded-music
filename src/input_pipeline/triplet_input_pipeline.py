@@ -33,7 +33,7 @@ class TripletsInputPipeline:
         self.to_mono = params.to_mono
 
         self.batch_size = params.batch_size
-        self.prefetch_batches = params.prefetch_batches  # tf.data.experimental.AUTOTUNE / params.prefetch_batches
+        self.prefetch_batches = tf.data.experimental.AUTOTUNE  # tf.data.experimental.AUTOTUNE / params.prefetch_batches
         self.random_selection_buffer_size = params.random_selection_buffer_size
 
         self.train_test_split_distribution = params.train_test_split
