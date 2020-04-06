@@ -142,8 +142,10 @@ class BaseModel(tf.keras.Model, ABC):
         :return: None.
         """
         self.logger.info(
-            "layer {0}: Max pooling layer, name: {1}, pool_size: {2}".format(layer_number, max_pooling_layer.name,
-                                                                             max_pooling_layer.pool_size))
+            "layer {0}: Max pooling layer, name: {1}, pool_size: {2}, padding: {3}".format(layer_number,
+                                                                                           max_pooling_layer.name,
+                                                                                           max_pooling_layer.pool_size,
+                                                                                           max_pooling_layer.padding))
 
     def log_dropout_layer(self, dropout_layer, layer_number):
         """
