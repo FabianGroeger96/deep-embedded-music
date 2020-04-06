@@ -191,6 +191,7 @@ class DCASEDataset(BaseDataset):
 
         except ValueError as err:
             self.logger.debug("Error during triplet computation: {}".format(err))
+            raise ValueError("Error during triplet computation")
 
     def get_neighbour(self, anchor_id, calc_dist: bool = False):
         anchor = self.df.iloc[anchor_id]
