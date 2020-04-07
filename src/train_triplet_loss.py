@@ -94,6 +94,10 @@ if __name__ == "__main__":
     print_model = True
     model.log_model()
 
+    if params.use_profiler:
+        # profile execution for one epoch
+        tf.profiler.experimental.start(tensorb_path)
+
     # start of the training loop
     for epoch in range(params.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
@@ -158,3 +162,6 @@ if __name__ == "__main__":
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
+
+        if params.use_profiler:
+            tf.profiler.experimental.stop()

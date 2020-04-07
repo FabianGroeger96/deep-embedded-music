@@ -30,6 +30,8 @@ class Params:
         self.saved_model_path = None
         self.save_frequency = None
 
+        self.use_profiler = None
+
         self.epochs = None
         self.batch_size = None
         self.prefetch_batches = None

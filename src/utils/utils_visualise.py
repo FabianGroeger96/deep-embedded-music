@@ -144,9 +144,6 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
         labels.append(triplet_labels[:, 1])
         labels.append(triplet_labels[:, 2])
 
-        if i > 3:
-            break
-
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
     embeddings = tf.concat(embeddings, axis=0)
     labels = tf.concat(labels, axis=0)
@@ -154,7 +151,7 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
     # get used dataset from pipline
     dataset = pipeline.dataset
 
-    # visualise the distance matrix with graph and confusion matrix
+    # visualise the distance matrix with graph
     visualise_distance_matrix(embeddings, labels=labels, dataset=dataset, epoch=epoch, summary_writer=summary_writer,
                               visualise_graphs=visualise_graphs)
     # visualise embeddings from the entire dataset

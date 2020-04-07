@@ -9,4 +9,8 @@ apt -y install git
 pip install --upgrade pip
 pip install -r requirements.txt
 
+!pip uninstall -y -q tensorflow tensorboard
+!pip uninstall -y -q tensorflow tensorboard
+!pip install -q -U -q tf-nightly tb-nightly tensorboard_plugin_profile
+
 python -m src.train_triplet_loss

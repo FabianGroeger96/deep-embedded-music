@@ -132,5 +132,5 @@ class ConvGRUNet(BaseModel):
         self.logger.info("---")
 
         # GRU layer
-        self.log_gru_layer(self.gru_1, 4)
+        self.log_gru_layer(self.gru_1, 5)
         self.logger.info("---")

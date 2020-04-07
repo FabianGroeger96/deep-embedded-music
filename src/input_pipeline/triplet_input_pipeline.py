@@ -55,11 +55,25 @@ class TripletsInputPipeline:
         self.logger.info("Reinitialising the input pipeline")
         self.dataset.initialise()
 
-    def generate_samples(self, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray,
-                                                                                    np.ndarray, np.ndarray]:
+    def generate_samples(self, audio_shape, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray,
+                                                                                                 np.ndarray, np.ndarray]:
         print_index = 0
         for index, anchor in enumerate(self.dataset):
-            triplets, labels = self.dataset.get_triplets(index, calc_dist=calc_dist, trim=trim)
+
+            # anchor_audio = tf.zeros(audio_shape, tf.float32)
+            # neighbour_audio = tf.zeros(audio_shape, tf.float32)
+            # opposite_audio = tf.zeros(audio_shape, tf.float32)
+            #
+            # labels = np.zeros(3)
+            # labels[0] = index
+            #
+            # triplet_labels = tf.convert_to_tensor(labels, tf.float32)
+
+            try:
+                triplets, labels = self.dataset.get_triplets(index, calc_dist=calc_dist, trim=trim)
+            except ValueError as err:
+                self.logger.debug("Error during triplet creation: {}".format(err))
+                continue
 
             for triplet, triplet_labels in zip(triplets, labels):
                 assert len(triplet) == 3, "Wrong shape of triplets."
@@ -92,13 +106,14 @@ class TripletsInputPipeline:
             audio_shape = [self.sample_rate * self.sample_size, self.stereo_channels]
 
         dataset = tf.data.Dataset.from_generator(self.generate_samples,
-                                                 args=[calc_dist, trim],
+                                                 args=[audio_shape, calc_dist, trim],
                                                  output_types=(tf.float32, tf.float32, tf.float32, tf.float32),
                                                  output_shapes=(
                                                      tf.TensorShape(audio_shape),
                                                      tf.TensorShape(audio_shape),
                                                      tf.TensorShape(audio_shape),
                                                      tf.TensorShape([3])))
+        dataset = dataset.cache()
 
         # extract features from dataset
         if feature_extractor is not None:

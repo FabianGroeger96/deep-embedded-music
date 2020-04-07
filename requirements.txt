@@ -1,4 +1,5 @@
 tensorflow-addons
+tensorboard_plugin_profile
 dtw
 pandas
 numpy
