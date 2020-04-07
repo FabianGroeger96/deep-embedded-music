@@ -96,6 +96,7 @@ if __name__ == "__main__":
 
     if params.use_profiler:
         # profile execution for one epoch
+        logger.info("Starting profiler")
         tf.profiler.experimental.start(tensorb_path)
 
     # start of the training loop
@@ -128,6 +129,10 @@ if __name__ == "__main__":
                                   step=int(ckpt.step))
                 tf.summary.scalar("triplet_loss/dist_sq_neighbour", train_dist_neighbour.result(), step=int(ckpt.step))
                 tf.summary.scalar("triplet_loss/dist_sq_opposite", train_dist_opposite.result(), step=int(ckpt.step))
+
+            if int(ckpt.step) % 100 == 0 and params.use_profiler:
+                logger.info("Stopping profiler at batch: {}".format(int(ckpt.step)))
+                tf.profiler.experimental.stop()
 
             # log the current loss value of the batch
             if int(ckpt.step) % 500 == 0:
@@ -162,6 +167,3 @@ if __name__ == "__main__":
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
-
-        if params.use_profiler:
-            tf.profiler.experimental.stop()
