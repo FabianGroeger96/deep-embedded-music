@@ -1,9 +1,11 @@
 import os
 
 import tensorflow as tf
+import numpy as np
 
 from src.input_pipeline.dcase_dataset import DCASEDataset
 from src.utils.params import Params
+from src.utils.utils_audio import AudioUtils
 
 
 class TestDCASEDataset(tf.test.TestCase):
@@ -28,42 +30,20 @@ class TestDCASEDataset(tf.test.TestCase):
             self.assertNotEqual(audio_entry.node_id, "")
             self.assertNotEqual(audio_entry.segment, "")
 
-    def test_data_frame_neighbour(self):
-        dataset = self.get_dataset()
-
-        for index, audio_entry in enumerate(dataset):
-            neighbour, _ = dataset.get_neighbour(index)
-
-            self.assertEqual(audio_entry.label, neighbour.label)
-            self.assertNotEqual(audio_entry.session, neighbour.session)
-            self.assertNotEqual(audio_entry.node_id, neighbour.node_id)
-
-    def test_data_frame_opposite(self):
-        dataset = self.get_dataset()
-
-        for index, audio_entry in enumerate(dataset):
-            opposite, _ = dataset.get_opposite(index)
-
-            self.assertNotEqual(audio_entry.label, opposite.label)
-
     def test_data_frame_triplets(self):
         dataset = self.get_dataset()
 
         for index, audio_entry in enumerate(dataset):
-            triplets, labels = dataset.get_triplets(index)
+            triplets = dataset.get_triplets(index)
 
-            for triplet, label in zip(triplets, labels):
+            for triplet in triplets:
                 self.assertEqual(len(triplet), 3)
 
-                anchor_audio, neighbour_audio, opposite_audio = triplet
-                anchor_label, neighbour_label, opposite_label = label
+                anchor_seg, neighbour_seg, opposite_seg = triplet
 
-                self.assertNotEqual(len(anchor_audio), 0)
-                self.assertNotEqual(len(neighbour_audio), 0)
-                self.assertNotEqual(len(opposite_audio), 0)
-
-                self.assertEqual(anchor_label, neighbour_label)
-                self.assertNotEqual(anchor_label, opposite_label)
+                self.assertEqual(len(anchor_seg), 2)
+                self.assertEqual(len(neighbour_seg), 2)
+                self.assertEqual(len(opposite_seg), 2)
 
             break
 

@@ -12,7 +12,7 @@ def train_step(batch, model, loss_fn, optimizer):
     :param optimizer: the optimizer for the training.
     :return: the value of the loss, distance to the neighbour and distance to the opposite.
     """
-    anchor, neighbour, opposite, triplet_labels = batch
+    anchor, neighbour, opposite = batch
 
     # record the operations run during the forward pass, which enables auto differentiation
     with tf.GradientTape() as tape:
@@ -22,7 +22,7 @@ def train_step(batch, model, loss_fn, optimizer):
         emb_opposite = model(opposite, training=True)
 
         # compute the triplet loss value for the batch
-        triplet_loss = loss_fn(triplet_labels, [emb_anchor, emb_neighbour, emb_opposite])
+        triplet_loss = loss_fn(None, [emb_anchor, emb_neighbour, emb_opposite])
         # compute the distance losses between the embeddings
         dist_neighbour = loss_fn.calculate_distance(anchor=emb_anchor, embedding=emb_neighbour)
         dist_opposite = loss_fn.calculate_distance(anchor=emb_anchor, embedding=emb_opposite)

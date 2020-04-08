@@ -10,6 +10,9 @@ class BaseExtractor(ABC):
         self.sample_rate = params.sample_rate
         self.sample_size = params.sample_size
 
+        self.sample_tile_size = params.sample_tile_size
+        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
+
         self.lower_edge_hertz = 50
         self.upper_edge_hertz = self.get_nyquist_frequency()
 

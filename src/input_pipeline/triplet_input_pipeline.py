@@ -1,4 +1,5 @@
 import logging
+import os
 from typing import Union, Tuple
 
 import numpy as np
@@ -8,6 +9,7 @@ from src.feature_extractor.base_extractor import BaseExtractor
 from src.input_pipeline.base_dataset import BaseDataset
 from src.utils.params import Params
 from src.utils.utils import Utils
+from src.utils.utils_audio import AudioUtils
 
 
 class TripletsInputPipeline:
@@ -29,6 +31,10 @@ class TripletsInputPipeline:
 
         self.sample_rate = params.sample_rate
         self.sample_size = params.sample_size
+
+        self.sample_tile_size = params.sample_tile_size
+        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
+
         self.stereo_channels = params.stereo_channels
         self.to_mono = params.to_mono
 
@@ -55,73 +61,72 @@ class TripletsInputPipeline:
         self.logger.info("Reinitialising the input pipeline")
         self.dataset.initialise()
 
-    def generate_samples(self, audio_shape, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray,
-                                                                                                 np.ndarray, np.ndarray]:
-        print_index = 0
+    def generate_samples(self, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         for index, anchor in enumerate(self.dataset):
 
-            # anchor_audio = tf.zeros(audio_shape, tf.float32)
-            # neighbour_audio = tf.zeros(audio_shape, tf.float32)
-            # opposite_audio = tf.zeros(audio_shape, tf.float32)
-            #
-            # labels = np.zeros(3)
-            # labels[0] = index
-            #
-            # triplet_labels = tf.convert_to_tensor(labels, tf.float32)
-
             try:
-                triplets, labels = self.dataset.get_triplets(index, calc_dist=calc_dist, trim=trim)
+                triplets = self.dataset.get_triplets(index, trim=trim)
             except ValueError as err:
                 self.logger.debug("Error during triplet creation: {}".format(err))
                 continue
 
-            for triplet, triplet_labels in zip(triplets, labels):
-                assert len(triplet) == 3, "Wrong shape of triplets."
-                assert len(triplet_labels) == 3, "Wrong shape of triplet labels."
+            # load audio files from anchor
+            anchor = self.dataset.df.iloc[triplets[0][0][0]]
+            anchor_path = os.path.join(self.dataset_path, anchor.file_name)
+            anchor_audio = AudioUtils.load_audio_from_file(anchor_path, self.sample_rate, self.sample_size,
+                                                           self.stereo_channels,
+                                                           self.to_mono)
 
-                anchor_audio, neighbour_audio, opposite_audio = triplet
-                anchor_label, neighbour_label, opposite_label = triplet_labels
+            for triplet in triplets:
+                assert len(triplet) == 3, "Wrong shape of triplets."
+
+                anchor_seg, neighbour_seg, opposite_seg = triplet
+
+                # load audio files from neighbour
+                neighbour = self.dataset.df.iloc[neighbour_seg[0]]
+                neighbour_path = os.path.join(self.dataset_path, neighbour.file_name)
+                neighbour_audio = AudioUtils.load_audio_from_file(neighbour_path, self.sample_rate, self.sample_size,
+                                                                  self.stereo_channels,
+                                                                  self.to_mono)
 
                 # make sure audios have the same size
                 audio_length = self.sample_size * self.sample_rate
                 anchor_audio = anchor_audio[:audio_length]
                 neighbour_audio = neighbour_audio[:audio_length]
-                opposite_audio = opposite_audio[:audio_length]
 
-                if print_index % 1000 == 0 and self.log:
-                    self.logger.debug("Triplet labels, index: {0}, a: {1}, n: {2}, o: {3}".format(index,
-                                                                                                  anchor_label,
-                                                                                                  neighbour_label,
-                                                                                                  opposite_label))
-                print_index += 1
+                # cut the tiles out of the audio files
+                anchor_audio_seg = anchor_audio[anchor_seg[1] * self.sample_rate:(anchor_seg[1] +
+                                                                                  self.sample_tile_size) * self.sample_rate]
+                neighbour_audio_seg = neighbour_audio[neighbour_seg[1] * self.sample_rate:(neighbour_seg[1] +
+                                                                                           self.sample_tile_size) * self.sample_rate]
+                opposite_audio_seg = anchor_audio[opposite_seg[1] * self.sample_rate:(opposite_seg[1] +
+                                                                                      self.sample_tile_size) * self.sample_rate]
 
-                yield anchor_audio, neighbour_audio, opposite_audio, triplet_labels
+                yield anchor_audio_seg, neighbour_audio_seg, opposite_audio_seg
 
     def get_dataset(self, feature_extractor: Union[BaseExtractor, None],
                     shuffle: bool = True, calc_dist: bool = False, trim: bool = True):
 
         if self.to_mono:
-            audio_shape = [self.sample_rate * self.sample_size]
+            audio_shape = [self.sample_tile_size * self.sample_rate]
         else:
-            audio_shape = [self.sample_rate * self.sample_size, self.stereo_channels]
+            audio_shape = [self.sample_tile_size * self.sample_rate, self.stereo_channels]
 
         dataset = tf.data.Dataset.from_generator(self.generate_samples,
-                                                 args=[audio_shape, calc_dist, trim],
-                                                 output_types=(tf.float32, tf.float32, tf.float32, tf.float32),
+                                                 args=[calc_dist, trim],
+                                                 output_types=(tf.float32, tf.float32, tf.float32),
                                                  output_shapes=(
                                                      tf.TensorShape(audio_shape),
                                                      tf.TensorShape(audio_shape),
-                                                     tf.TensorShape(audio_shape),
-                                                     tf.TensorShape([3])))
+                                                     tf.TensorShape(audio_shape)))
         dataset = dataset.cache()
 
         # extract features from dataset
         if feature_extractor is not None:
-            dataset = dataset.map(lambda a, n, o, labels: (
+            dataset = dataset.map(lambda a, n, o: (
                 feature_extractor.extract(a),
                 feature_extractor.extract(n),
-                feature_extractor.extract(o),
-                labels))
+                feature_extractor.extract(o)))
 
         if shuffle:
             # buffer size defines from how much elements are in the buffer, from which then will get shuffled

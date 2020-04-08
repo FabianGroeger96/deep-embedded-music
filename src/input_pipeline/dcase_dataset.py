@@ -1,12 +1,10 @@
 import logging
-import math
 import os
+import random
 import re
-from typing import Tuple
 
 import numpy as np
 import pandas as pd
-import tensorflow as tf
 from sklearn.model_selection import train_test_split
 
 from src.input_pipeline.base_dataset import BaseDataset
@@ -31,10 +29,16 @@ class DCASEDataset(BaseDataset):
 
         self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
         self.fold = params.dcase_dataset_fold
+
         self.sample_rate = params.sample_rate
         self.sample_size = params.sample_size
+
+        self.sample_tile_size = params.sample_tile_size
+        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
+
         self.stereo_channels = params.stereo_channels
         self.to_mono = params.to_mono
+
         self.train_test_split = params.train_test_split
         self.log = log
 
@@ -113,14 +117,7 @@ class DCASEDataset(BaseDataset):
         eval_df = pd.read_csv(eval_file_path, sep="\t", names=["file_name", "label"])
         # convert the activity labels into integers
         eval_df["label"] = eval_df["label"].apply(self.LABELS.index)
-        # create session column, because the file doesn't contains this info
-        eval_df["session"] = ""
-        # create two new columns: node_id and segment
-        eval_df["node_id"] = ""
-        eval_df["segment"] = ""
-        # extract node_id, session and segment from sound file name
-        eval_df["node_id"], eval_df["session"], eval_df["segment"] = zip(*eval_df.apply(
-            lambda row: DCASEDataset.extract_info_from_filename(row["file_name"]), axis=1))
+
         return eval_df
 
     def load_train_data_frame(self):
@@ -131,12 +128,7 @@ class DCASEDataset(BaseDataset):
         train_df = pd.read_csv(train_file_path, sep="\t", names=["file_name", "label", "session"])
         # convert the activity labels into integers
         train_df["label"] = train_df["label"].apply(self.LABELS.index)
-        # create two new columns: node_id and segment
-        train_df["node_id"] = ""
-        train_df["segment"] = ""
-        # extract node_id, session and segment from sound file name
-        train_df["node_id"], train_df["session"], train_df["segment"] = zip(*train_df.apply(
-            lambda row: DCASEDataset.extract_info_from_filename(row["file_name"]), axis=1))
+
         return train_df
 
     def count_classes(self):
@@ -157,86 +149,65 @@ class DCASEDataset(BaseDataset):
 
         return self.df_test
 
-    def get_triplets(self, anchor_id, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+    def get_triplets(self, audio_id, trim: bool = True) -> np.ndarray:
         try:
-            anchor = self.df.iloc[anchor_id]
-            neighbour, neighbour_dist = self.get_neighbour(anchor_id, calc_dist=calc_dist)
-            opposite, opposite_dist = self.get_opposite(anchor_id, calc_dist=calc_dist)
+            triplets = []
+            for anchor_id in range(np.floor_divide(self.sample_size, self.sample_tile_size)):
+                a_seg = [audio_id, anchor_id]
+                n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=self.sample_size)
+                o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=self.sample_size)
 
-            if calc_dist:
-                self.check_if_easy_or_hard_triplet(neighbour_dist, opposite_dist)
+                triplets.append([a_seg, n_seg, o_seg])
 
-            # load audio files from anchor
-            anchor_path = os.path.join(self.dataset_path, anchor.file_name)
-            anchor_audio = AudioUtils.load_audio_from_file(anchor_path, self.sample_rate, self.sample_size,
-                                                           self.stereo_channels,
-                                                           self.to_mono)
-            # load audio files from neighbour
-            neighbour_path = os.path.join(self.dataset_path, neighbour.file_name)
-            neighbour_audio = AudioUtils.load_audio_from_file(neighbour_path, self.sample_rate, self.sample_size,
-                                                              self.stereo_channels, self.to_mono)
-            # load audio files from opposite
-            opposite_path = os.path.join(self.dataset_path, opposite.file_name)
-            opposite_audio = AudioUtils.load_audio_from_file(opposite_path, self.sample_rate, self.sample_size,
-                                                             self.stereo_channels, self.to_mono)
+            #
+            # if calc_dist:
+            #     self.check_if_easy_or_hard_triplet(neighbour_dist, opposite_dist)
 
-            triplets = [anchor_audio, neighbour_audio, opposite_audio]
-            triplets = tf.stack(triplets, axis=0)
-            triplets = tf.expand_dims(triplets, axis=0)
-
-            labels = [anchor.label, neighbour.label, opposite.label]
-            labels = np.expand_dims(labels, axis=0)
-
-            return np.asarray(triplets), np.asarray(labels)
+            return np.asarray(triplets)
 
         except ValueError as err:
             self.logger.debug("Error during triplet computation: {}".format(err))
             raise ValueError("Error during triplet computation")
 
-    def get_neighbour(self, anchor_id, calc_dist: bool = False):
-        anchor = self.df.iloc[anchor_id]
+    def get_neighbour(self, audio_id: int, anchor_sample_id: id, audio_length: int):
+        # crate array of possible sample positions
+        sample_possible = np.arange(0, audio_length, self.sample_tile_size)
 
-        filtered_items = self.df
-        filtered_items = filtered_items[filtered_items.label == anchor.label]
-        filtered_items = filtered_items[filtered_items.session != anchor.session]
-        filtered_items = filtered_items[filtered_items.node_id != anchor.node_id]
+        # delete the current anchors id
+        sample_possible = sample_possible[sample_possible != anchor_sample_id]
 
-        if len(filtered_items) > 0:
+        # delete the sample ids which are not in range of the neighbourhood
+        sample_possible = sample_possible[(sample_possible <= anchor_sample_id + self.sample_tile_neighbourhood) & (
+                sample_possible >= anchor_sample_id - self.sample_tile_neighbourhood)]
+
+        if len(sample_possible) > 0:
             if self.log:
-                self.logger.debug("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
+                self.logger.debug("Selecting neighbour randomly from {} samples".format(len(sample_possible)))
         else:
             raise ValueError("No valid neighbour found")
 
-        neighbour = filtered_items.sample().iloc[0]
+        # random choose neighbour in possible samples
+        neighbour_id = np.random.choice(sample_possible, 1)[0]
 
-        if calc_dist:
-            dist = self.compare_audio(anchor, neighbour)
+        return [audio_id, neighbour_id]
+
+    def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int):
+        # crate array of possible sample positions
+        opposite_possible = np.arange(0, len(self.df), 1)
+        opposite_possible = opposite_possible[opposite_possible != audio_id]
+
+        if len(opposite_possible) > 0:
             if self.log:
-                self.logger.debug("Normalized distance between anchor and neighbour: {}".format(math.ceil(dist)))
-        else:
-            dist = None
-
-        return neighbour, dist
-
-    def get_opposite(self, anchor_id, calc_dist: bool = False):
-        anchor = self.df.iloc[anchor_id]
-
-        filtered_items = self.df
-        filtered_items = filtered_items[filtered_items.label != anchor.label]
-
-        if len(filtered_items) > 0:
-            if self.log:
-                self.logger.debug("Selecting opposite randomly from {} samples".format(len(filtered_items)))
+                self.logger.debug("Selecting opposite randomly from {} samples".format(len(opposite_possible)))
         else:
             raise ValueError("No valid opposite found")
 
-        opposite = filtered_items.sample().iloc[0]
+        opposite = random.choice(opposite_possible)
 
-        if calc_dist:
-            dist = self.compare_audio(anchor, opposite)
-            if self.log:
-                self.logger.debug("Normalized distance between anchor and opposite: {}".format(math.ceil(dist)))
-        else:
-            dist = None
+        # crate array of possible sample positions
+        sample_possible = np.arange(0, audio_length, self.sample_tile_size)
 
-        return opposite, dist
+        # random choose neighbour in possible samples
+        opposite_id = np.random.choice(sample_possible, 1)[0]
+
+        return [opposite, opposite_id]

@@ -45,6 +45,8 @@ class Params:
 
         self.sample_rate = None
         self.sample_size = None
+        self.sample_tile_size = None
+        self.sample_tile_neighbourhood = None
 
         self.stereo_channels = None  # only for DCASE dataset
         self.to_mono = None  # leave at TRUE for MusicDataset

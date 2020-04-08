@@ -32,15 +32,15 @@ class BaseDataset(ABC):
         pass
 
     @abstractmethod
-    def get_triplets(self, anchor_id, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+    def get_triplets(self, anchor_id, trim: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
     @abstractmethod
-    def get_neighbour(self, anchor_id, calc_dist: bool = False):
+    def get_neighbour(self, audio_id, anchor_sample_id: id, audio_length: int):
         pass
 
     @abstractmethod
-    def get_opposite(self, anchor_id, calc_dist: bool = False):
+    def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int):
         pass
 
     @abstractmethod

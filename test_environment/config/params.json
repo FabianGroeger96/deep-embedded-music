@@ -28,6 +28,8 @@
 
   "sample_rate": 16000,
   "sample_size": 10,
+  "sample_tile_size": 2,
+  "sample_tile_neighbourhood": 4,
 
   "stereo_channels": 4,
   "to_mono": 1,

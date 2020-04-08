@@ -92,7 +92,7 @@ class MusicDataset(BaseDataset):
 
         return data
 
-    def get_triplets(self, anchor_id, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+    def get_triplets(self, anchor_id, calc_dist: bool = False, trim: bool = True) -> np.ndarray:
         try:
             anchor = self.df.iloc[anchor_id]
             neighbour, neighbour_dist = self.get_neighbour(anchor_id, calc_dist=calc_dist)
@@ -136,7 +136,7 @@ class MusicDataset(BaseDataset):
                 triplets.append([anchor_seg, neighbour_seg, opposite_seg])
                 labels.append([anchor.label, neighbour.label, opposite.label])
 
-            return np.asarray(triplets), np.asarray(labels)
+            return np.asarray(triplets)
 
         except ValueError as err:
             self.logger.debug("Error during triplet computation: {}".format(err))

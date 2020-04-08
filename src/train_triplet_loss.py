@@ -4,7 +4,6 @@ import os
 from enum import Enum
 
 import tensorflow as tf
-from tensorflow.python.eager import profiler
 
 from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.dataset_factory import DatasetFactory
@@ -95,83 +94,79 @@ if __name__ == "__main__":
     print_model = True
     model.log_model()
 
+    profiling = True
     if params.use_profiler:
         # profile execution for one epoch
         logger.info("Starting profiler")
-        tf.profiler.experimental.start(tensorb_path)
+        tf.summary.trace_on(graph=True, profiler=True)
 
     # start of the training loop
     for epoch in range(params.epochs):
+        logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
+        dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset, calc_dist=params.calc_dist)
+        dataset_iterator = iter(dataset_iterator)
+        # iterate over the batches of the dataset
+        for batch_index, (anchor, neighbour, opposite) in enumerate(dataset_iterator):
+            if print_model:
+                model.build(anchor.shape)
+                model.summary(print_fn=logger.info)
+                print_model = False
 
-        with tf.profiler.experimental.Trace("Train", step_num=epoch):
+            # run one training step
+            batch = (anchor, neighbour, opposite)
+            losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
+            loss_triplet, dist_neighbour, dist_opposite = losses
 
-            logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
-            dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset,
-                                                    calc_dist=params.calc_dist)
-            dataset_iterator = iter(dataset_iterator)
-            # iterate over the batches of the dataset
-            for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
-                if print_model:
-                    model.build(anchor.shape)
-                    model.summary(print_fn=logger.info)
-                    print_model = False
+            # add losses to the metrics
+            train_loss_triplet_batches(loss_triplet)
+            train_loss_triplet_epochs(loss_triplet)
+            train_dist_neighbour(dist_neighbour)
+            train_dist_opposite(dist_opposite)
 
-                # run one training step
-                batch = (anchor, neighbour, opposite, triplet_labels)
-                losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
-                loss_triplet, dist_neighbour, dist_opposite = losses
-
-                # add losses to the metrics
-                train_loss_triplet_batches(loss_triplet)
-                train_loss_triplet_epochs(loss_triplet)
-                train_dist_neighbour(dist_neighbour)
-                train_dist_opposite(dist_opposite)
-
-                # write batch losses to summary writer
-                with train_summary_writer.as_default():
-                    # write summary of batch losses
-                    tf.summary.scalar("triplet_loss/loss_triplet_batches", train_loss_triplet_batches.result(),
-                                      step=int(ckpt.step))
-                    tf.summary.scalar("triplet_loss/dist_sq_neighbour", train_dist_neighbour.result(),
-                                      step=int(ckpt.step))
-                    tf.summary.scalar("triplet_loss/dist_sq_opposite", train_dist_opposite.result(),
-                                      step=int(ckpt.step))
-
-                if int(ckpt.step) % 100 == 0 and params.use_profiler:
-                    logger.info("Stopping profiler at batch: {}".format(int(ckpt.step)))
-                    profiler_result = tf.profiler.experimental.stop()
-                    tf.profiler.experimental.save(tensorb_path, profiler_result)
-
-                # log the current loss value of the batch
-                if int(ckpt.step) % 500 == 0:
-                    log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
-                             result=train_loss_triplet_batches.result(), log_level=LogLevel.INFO)
-                else:
-                    log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
-                             result=train_loss_triplet_batches.result(), log_level=LogLevel.DEBUG)
-
-                # add one step to checkpoint
-                ckpt.step.assign_add(1)
-
-            # save the current model after a specified amount of epochs
-            if epoch % params.save_frequency == 0 and bool(params.save_model):
-                manager_save_path = manager.save()
-                logger.info("Saved checkpoint for epoch {0}: {1}".format(epoch, manager_save_path))
-
-            # write epoch loss to summary writer
+            # write batch losses to summary writer
             with train_summary_writer.as_default():
-                # write summary of epoch loss
-                tf.summary.scalar("triplet_loss/loss_triplet_epochs", train_loss_triplet_epochs.result(), step=epoch)
+                # write summary of batch losses
+                tf.summary.scalar("triplet_loss/loss_triplet_batches", train_loss_triplet_batches.result(),
+                                  step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/dist_sq_neighbour", train_dist_neighbour.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss/dist_sq_opposite", train_dist_opposite.result(), step=int(ckpt.step))
 
-            # reset metrics every epoch
-            train_loss_triplet_batches.reset_states()
-            train_loss_triplet_epochs.reset_states()
-            train_dist_neighbour.reset_states()
-            train_dist_opposite.reset_states()
+            if int(ckpt.step) % 10 == 0 and params.use_profiler and profiling:
+                logger.info("Stopping profiler at batch: {}".format(int(ckpt.step)))
+                profiling = False
+                with train_summary_writer.as_default():
+                    tf.summary.trace_export(name="training_loop", step=int(ckpt.step), profiler_outdir=tensorb_path)
 
-            # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
-            visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
-                                         summary_writer=train_summary_writer, tensorb_path=tensorb_path)
+            # log the current loss value of the batch
+            if int(ckpt.step) % 500 == 0:
+                log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
+                         result=train_loss_triplet_batches.result(), log_level=LogLevel.INFO)
+            else:
+                log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
+                         result=train_loss_triplet_batches.result(), log_level=LogLevel.DEBUG)
 
-            # reinitialise pipeline after epoch
-            pipeline.reinitialise()
+            # add one step to checkpoint
+            ckpt.step.assign_add(1)
+
+        # save the current model after a specified amount of epochs
+        if epoch % params.save_frequency == 0 and bool(params.save_model):
+            manager_save_path = manager.save()
+            logger.info("Saved checkpoint for epoch {0}: {1}".format(epoch, manager_save_path))
+
+        # write epoch loss to summary writer
+        with train_summary_writer.as_default():
+            # write summary of epoch loss
+            tf.summary.scalar("triplet_loss/loss_triplet_epochs", train_loss_triplet_epochs.result(), step=epoch)
+
+        # reset metrics every epoch
+        train_loss_triplet_batches.reset_states()
+        train_loss_triplet_epochs.reset_states()
+        train_dist_neighbour.reset_states()
+        train_dist_opposite.reset_states()
+
+        # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
+        # visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
+        #                              summary_writer=train_summary_writer, tensorb_path=tensorb_path)
+
+        # reinitialise pipeline after epoch
+        pipeline.reinitialise()
