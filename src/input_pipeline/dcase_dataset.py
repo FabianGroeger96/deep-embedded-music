@@ -60,17 +60,6 @@ class DCASEDataset(BaseDataset):
                 raise StopIteration
             else:
                 audio_entry = self.df.iloc[self.current_index]
-
-                if self.current_index % 1000 == 0 and self.log:
-                    self.logger.debug(
-                        "Entry {0}: audio file: {1}, label: {2}, session: {3}, node id: {4}, segment: {5}".format(
-                            self.current_index,
-                            audio_entry.file_name,
-                            audio_entry.label,
-                            audio_entry.session,
-                            audio_entry.node_id,
-                            audio_entry.segment))
-
                 self.current_index += 1
 
                 return audio_entry
@@ -152,7 +141,7 @@ class DCASEDataset(BaseDataset):
     def get_triplets(self, audio_id, trim: bool = True) -> np.ndarray:
         try:
             triplets = []
-            for anchor_id in range(np.floor_divide(self.sample_size, self.sample_tile_size)):
+            for anchor_id in range(0, self.sample_size, self.sample_tile_size):
                 a_seg = [audio_id, anchor_id]
                 n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=self.sample_size)
                 o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=self.sample_size)

@@ -52,6 +52,6 @@ class TripletLoss(tf.keras.losses.Loss):
 
         loss = tf.add(tf.subtract(dist_neighbour, dist_opposite), self.margin)
         loss = tf.maximum(0.0, loss)
-        loss = tf.reduce_sum(loss)
+        loss = tf.reduce_mean(loss)
 
         return loss

@@ -4,6 +4,7 @@ import os
 from enum import Enum
 
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.dataset_factory import DatasetFactory
@@ -13,7 +14,6 @@ from src.models.model_factory import ModelFactory
 from src.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
-from src.utils.utils_visualise import visualise_model_on_epoch_end
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments",
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     # get the feature extractor from the factory
     extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
     # define triplet input pipeline
-    pipeline = TripletsInputPipeline(params=params, dataset=dataset)
+    pipeline = TripletsInputPipeline(params=params, dataset=dataset, log=False)
 
     # create model from factory and specified name within the params
     model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
@@ -58,6 +58,7 @@ if __name__ == "__main__":
     optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
     # create the loss function for the model
     triplet_loss_fn = TripletLoss(margin=params.margin)
+    t_loss = tfa.losses.TripletSemiHardLoss(margin=params.margin)
 
     # create folders for experiment results
     experiment_name = "{0}-{1}".format(model.model_name, params.experiment_name)
@@ -69,6 +70,9 @@ if __name__ == "__main__":
     # set logger
     Utils.set_logger(log_path, params.log_level)
     logger = logging.getLogger("Main ({})".format(params.experiment_name))
+
+    # print params
+    params.print(json_path, logger=logger)
 
     # set the folder for the summary writer
     train_summary_writer = tf.summary.create_file_writer(tensorb_path)
@@ -114,6 +118,8 @@ if __name__ == "__main__":
 
             # run one training step
             batch = (anchor, neighbour, opposite)
+            # !!!!!!!!!!
+            # losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
             losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
             loss_triplet, dist_neighbour, dist_opposite = losses
 

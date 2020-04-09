@@ -21,6 +21,9 @@ def train_step(batch, model, loss_fn, optimizer):
         emb_neighbour = model(neighbour, training=True)
         emb_opposite = model(opposite, training=True)
 
+        # embeddings = tf.concat([emb_anchor, emb_neighbour, emb_opposite], axis=0)
+        # triplet_loss = loss_fn(tf.zeros(len(embeddings), tf.int32), embeddings)
+
         # compute the triplet loss value for the batch
         triplet_loss = loss_fn(None, [emb_anchor, emb_neighbour, emb_opposite])
         # compute the distance losses between the embeddings

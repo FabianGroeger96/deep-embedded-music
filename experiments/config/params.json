@@ -8,20 +8,20 @@
 
   "log_level": "DEBUG",
 
-  "model": "ConvGRUNet",
+  "model": "ConvNet2D",
   "dataset": "DCASEDataset",
 
   "saved_model_path": "",
   "save_model": 1,
   "save_frequency": 1,
 
-  "use_profiler": 1,
+  "use_profiler": 0,
 
   "epochs": 10,
-  "batch_size": 64,
-  "prefetch_batches": 64,
-  "random_selection_buffer_size": 64,
-  "learning_rate": 1e-3,
+  "batch_size": 128,
+  "prefetch_batches": 128,
+  "random_selection_buffer_size": 128,
+  "learning_rate": 1e-10,
 
   "shuffle_dataset": 1,
   "train_test_split": 0.001,
@@ -30,8 +30,8 @@
 
   "sample_rate": 16000,
   "sample_size": 10,
-  "sample_tile_size": 2,
-  "sample_tile_neighbourhood": 4,
+  "sample_tile_size": 1,
+  "sample_tile_neighbourhood": 6,
 
   "stereo_channels": 4,
   "to_mono": 1,
@@ -44,5 +44,5 @@
   "n_mfcc_bin": 13,
 
   "margin": 0.5,
-  "embedding_size": 512
+  "embedding_size": 64
 }

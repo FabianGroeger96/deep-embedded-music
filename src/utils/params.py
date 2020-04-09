@@ -76,6 +76,11 @@ class Params:
             params = json.load(f)
             self.__dict__.update(params)
 
+    def print(self, json_path, logger):
+        with open(json_path) as f:
+            params = json.load(f)
+            logger.info(json.dumps(params, indent=4, sort_keys=True))
+
     @property
     def dict(self):
         """Gives dict-like access to Params instance by `params.dict['learning_rate']`"""

@@ -62,6 +62,7 @@ class TripletsInputPipeline:
         self.dataset.initialise()
 
     def generate_samples(self, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        print_index = 0
         for index, anchor in enumerate(self.dataset):
 
             try:
@@ -101,6 +102,12 @@ class TripletsInputPipeline:
                                                                                            self.sample_tile_size) * self.sample_rate]
                 opposite_audio_seg = anchor_audio[opposite_seg[1] * self.sample_rate:(opposite_seg[1] +
                                                                                       self.sample_tile_size) * self.sample_rate]
+
+                if print_index % 100 == 0 and self.log:
+                    self.logger.debug("sound files, a: {0}, n: {1}, o: {2}".format(anchor_seg,
+                                                                                   neighbour_seg,
+                                                                                   opposite_seg))
+                print_index += 1
 
                 yield anchor_audio_seg, neighbour_audio_seg, opposite_audio_seg
 
