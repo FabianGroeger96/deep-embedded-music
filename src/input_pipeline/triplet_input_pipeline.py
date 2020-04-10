@@ -65,6 +65,7 @@ class TripletsInputPipeline:
         gen_name = gen_name.decode("utf-8")
         gen_index = int(gen_name[-1])
         start = int((self.batch_size / 4) * gen_index)
+        end = int((self.batch_size / 4) * (gen_index + 1))
 
         self.dataset.current_index = start
         print_index = start
