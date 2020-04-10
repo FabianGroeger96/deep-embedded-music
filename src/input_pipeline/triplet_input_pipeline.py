@@ -73,8 +73,7 @@ class TripletsInputPipeline:
 
             # load audio files from anchor
             anchor = self.dataset.df.iloc[triplets[0][0][0]]
-            anchor_path = os.path.join(self.dataset_path, anchor.file_name)
-            anchor_audio = AudioUtils.load_audio_from_file(anchor_path, self.sample_rate, self.sample_size,
+            anchor_audio = AudioUtils.load_audio_from_file(anchor.file_name, self.sample_rate, self.sample_size,
                                                            self.stereo_channels,
                                                            self.to_mono)
 
@@ -84,24 +83,23 @@ class TripletsInputPipeline:
                 anchor_seg, neighbour_seg, opposite_seg = triplet
 
                 # load audio files from neighbour
-                neighbour = self.dataset.df.iloc[neighbour_seg[0]]
-                neighbour_path = os.path.join(self.dataset_path, neighbour.file_name)
-                neighbour_audio = AudioUtils.load_audio_from_file(neighbour_path, self.sample_rate, self.sample_size,
-                                                                  self.stereo_channels,
-                                                                  self.to_mono)
+                opposite = self.dataset.df.iloc[opposite_seg[0]]
+                opposite_audio = AudioUtils.load_audio_from_file(opposite.file_name, self.sample_rate, self.sample_size,
+                                                                 self.stereo_channels,
+                                                                 self.to_mono)
 
                 # make sure audios have the same size
                 audio_length = self.sample_size * self.sample_rate
                 anchor_audio = anchor_audio[:audio_length]
-                neighbour_audio = neighbour_audio[:audio_length]
+                opposite_audio = opposite_audio[:audio_length]
 
                 # cut the tiles out of the audio files
                 anchor_audio_seg = anchor_audio[anchor_seg[1] * self.sample_rate:(anchor_seg[1] +
                                                                                   self.sample_tile_size) * self.sample_rate]
-                neighbour_audio_seg = neighbour_audio[neighbour_seg[1] * self.sample_rate:(neighbour_seg[1] +
-                                                                                           self.sample_tile_size) * self.sample_rate]
-                opposite_audio_seg = anchor_audio[opposite_seg[1] * self.sample_rate:(opposite_seg[1] +
-                                                                                      self.sample_tile_size) * self.sample_rate]
+                neighbour_audio_seg = anchor_audio[neighbour_seg[1] * self.sample_rate:(neighbour_seg[1] +
+                                                                                        self.sample_tile_size) * self.sample_rate]
+                opposite_audio_seg = opposite_audio[opposite_seg[1] * self.sample_rate:(opposite_seg[1] +
+                                                                                        self.sample_tile_size) * self.sample_rate]
 
                 if print_index % 100 == 0 and self.log:
                     self.logger.debug("sound files, a: {0}, n: {1}, o: {2}".format(anchor_seg,
@@ -133,7 +131,8 @@ class TripletsInputPipeline:
             dataset = dataset.map(lambda a, n, o: (
                 feature_extractor.extract(a),
                 feature_extractor.extract(n),
-                feature_extractor.extract(o)))
+                feature_extractor.extract(o)), num_parallel_calls=4)
+            dataset = dataset.cache()
 
         if shuffle:
             # buffer size defines from how much elements are in the buffer, from which then will get shuffled

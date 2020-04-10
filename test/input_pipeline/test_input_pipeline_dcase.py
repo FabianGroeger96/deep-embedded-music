@@ -1,6 +1,7 @@
 import os
 
 import tensorflow as tf
+import numpy as np
 
 from src.feature_extractor.log_mel_extractor import LogMelBaseExtractor
 from src.feature_extractor.mfcc_extractor import MFCCBaseExtractor
@@ -81,6 +82,21 @@ class TestInputPipeline(tf.test.TestCase):
             self.assertEqual(self.params.sample_rate * self.params.sample_tile_size, anchor.shape[1])
             self.assertEqual(self.params.sample_rate * self.params.sample_tile_size, neighbour.shape[1])
             self.assertEqual(self.params.sample_rate * self.params.sample_tile_size, opposite.shape[1])
+
+            self.assertFalse(np.array_equal(anchor.numpy(), neighbour.numpy()))
+            self.assertFalse(np.array_equal(anchor.numpy(), opposite.numpy()))
+            self.assertFalse(np.array_equal(neighbour.numpy(), opposite.numpy()))
+
+            break
+
+    def test_dataset_generator_not_equal_segments(self):
+        self.set_dcase_dataset()
+        audio_pipeline = self.get_input_pipeline()
+        dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True, calc_dist=False)
+        for anchor, neighbour, opposite in dataset_iterator:
+            self.assertFalse(np.array_equal(anchor.numpy(), neighbour.numpy()))
+            self.assertFalse(np.array_equal(anchor.numpy(), opposite.numpy()))
+            self.assertFalse(np.array_equal(neighbour.numpy(), opposite.numpy()))
 
             break
 

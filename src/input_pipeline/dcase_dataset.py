@@ -87,8 +87,13 @@ class DCASEDataset(BaseDataset):
     def initialise(self):
         # load the data frame
         self.df = self.load_data_frame()
+
+        # add the full dataset path to the filename
+        self.df["file_name"] = str(self.dataset_path) + "/" + self.df["file_name"].astype(str)
+
         # shuffle dataset
         self.df = self.df.sample(frac=1).reset_index(drop=True)
+
         # split dataset into train and test, test will be used for visualising
         self.df_train, self.df_test = train_test_split(self.df, test_size=self.train_test_split)
 

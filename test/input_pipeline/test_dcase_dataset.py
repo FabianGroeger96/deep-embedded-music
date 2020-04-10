@@ -1,11 +1,9 @@
 import os
 
 import tensorflow as tf
-import numpy as np
 
 from src.input_pipeline.dcase_dataset import DCASEDataset
 from src.utils.params import Params
-from src.utils.utils_audio import AudioUtils
 
 
 class TestDCASEDataset(tf.test.TestCase):
@@ -25,10 +23,6 @@ class TestDCASEDataset(tf.test.TestCase):
 
         for audio_entry in dataset:
             self.assertNotEqual(audio_entry.file_name, "")
-            self.assertNotEqual(audio_entry.label, "")
-            self.assertNotEqual(audio_entry.session, "")
-            self.assertNotEqual(audio_entry.node_id, "")
-            self.assertNotEqual(audio_entry.segment, "")
 
     def test_data_frame_triplets(self):
         dataset = self.get_dataset()
