@@ -135,7 +135,7 @@ class TripletsInputPipeline:
                                                                                          tf.float32)),
                                      cycle_length=4,
                                      block_length=1,
-                                     num_parallel_calls=4)
+                                     num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.cache()
 
         # extract features from dataset
@@ -143,7 +143,7 @@ class TripletsInputPipeline:
             dataset = dataset.map(lambda a, n, o: (
                 feature_extractor.extract(a),
                 feature_extractor.extract(n),
-                feature_extractor.extract(o)), num_parallel_calls=4)
+                feature_extractor.extract(o)), num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.cache()
 
         if shuffle:
@@ -151,7 +151,7 @@ class TripletsInputPipeline:
             dataset = dataset.shuffle(buffer_size=self.random_selection_buffer_size)
 
         dataset = dataset.batch(self.batch_size)
-        dataset = dataset.prefetch(self.prefetch_batches)
+        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
         dataset = dataset.cache()
 
         return dataset
