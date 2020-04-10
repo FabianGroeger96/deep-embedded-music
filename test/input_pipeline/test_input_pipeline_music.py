@@ -29,7 +29,7 @@ class TestInputPipeline(tf.test.TestCase):
     def test_dataset_generator_batch_size(self):
         self.set_music_dataset()
         audio_pipeline = self.get_input_pipeline()
-        dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True, calc_dist=False)
+        dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True)
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # check if there are the same number of samples as requested (batch_size)
             self.assertEqual(self.params.batch_size, anchor.shape[0])
@@ -42,7 +42,7 @@ class TestInputPipeline(tf.test.TestCase):
     def test_dataset_generator_sample_rate_audios(self):
         self.set_music_dataset()
         audio_pipeline = self.get_input_pipeline()
-        dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True, calc_dist=False)
+        dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True)
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
             # check if triplets have the correct audio size (sample_rate)
             self.assertEqual(self.params.sample_rate * self.params.sample_size, anchor.shape[1])
@@ -62,7 +62,7 @@ class TestInputPipeline(tf.test.TestCase):
         self.set_music_dataset()
 
         audio_pipeline = self.get_input_pipeline()
-        datset = audio_pipeline.get_dataset(feature_extractor=feature_extractor, shuffle=True, calc_dist=False)
+        datset = audio_pipeline.get_dataset(feature_extractor=feature_extractor, shuffle=True)
         for anchor, neighbour, opposite in datset:
             # check if triplets have the correct shape
             expected_shape = [self.params.batch_size, frame_size, n_mfcc_bin]
@@ -81,7 +81,7 @@ class TestInputPipeline(tf.test.TestCase):
         self.set_music_dataset()
 
         audio_pipeline = self.get_input_pipeline()
-        dataset = audio_pipeline.get_dataset(feature_extractor=feature_extractor, shuffle=True, calc_dist=False)
+        dataset = audio_pipeline.get_dataset(feature_extractor=feature_extractor, shuffle=True)
         for anchor, neighbour, opposite in dataset:
             # check if triplets have the correct shape
             expected_shape = [self.params.batch_size, frame_size, n_mel_bin]

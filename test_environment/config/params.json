@@ -24,8 +24,6 @@
   "shuffle_dataset": 1,
   "train_test_split": 0.001,
 
-  "calc_dist": 0,
-
   "sample_rate": 16000,
   "sample_size": 10,
   "sample_tile_size": 2,

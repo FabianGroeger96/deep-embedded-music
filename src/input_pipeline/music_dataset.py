@@ -92,14 +92,11 @@ class MusicDataset(BaseDataset):
 
         return data
 
-    def get_triplets(self, anchor_id, calc_dist: bool = False, trim: bool = True) -> np.ndarray:
+    def get_triplets(self, anchor_id, trim: bool = True) -> np.ndarray:
         try:
             anchor = self.df.iloc[anchor_id]
-            neighbour, neighbour_dist = self.get_neighbour(anchor_id, calc_dist=calc_dist)
-            opposite, opposite_dist = self.get_opposite(anchor_id, calc_dist=calc_dist)
-
-            if calc_dist:
-                self.check_if_easy_or_hard_triplet(neighbour_dist, opposite_dist)
+            neighbour, neighbour_dist = self.get_neighbour(anchor_id)
+            opposite, opposite_dist = self.get_opposite(anchor_id)
 
             audio_anchor, _ = librosa.load(anchor["path"], self.sample_rate)
             audio_neighbour, _ = librosa.load(neighbour["path"], self.sample_rate)
@@ -142,7 +139,7 @@ class MusicDataset(BaseDataset):
             self.logger.debug("Error during triplet computation: {}".format(err))
             raise ValueError("Error during triplet computation")
 
-    def get_neighbour(self, anchor_id, calc_dist: bool = False):
+    def get_neighbour(self, anchor_id):
         anchor = self.df.iloc[anchor_id]
 
         filtered_items = self.df
@@ -159,7 +156,7 @@ class MusicDataset(BaseDataset):
 
         return neighbour, None
 
-    def get_opposite(self, anchor_id, calc_dist: bool = False):
+    def get_opposite(self, anchor_id):
         anchor = self.df.iloc[anchor_id]
 
         filtered_items = self.df

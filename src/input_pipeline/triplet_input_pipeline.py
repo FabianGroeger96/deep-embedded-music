@@ -61,8 +61,13 @@ class TripletsInputPipeline:
         self.logger.info("Reinitialising the input pipeline")
         self.dataset.initialise()
 
-    def generate_samples(self, calc_dist: bool = False, trim: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-        print_index = 0
+    def generate_samples(self, gen_name: str, trim: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+        gen_name = gen_name.decode("utf-8")
+        gen_index = int(gen_name[-1])
+        start = int((self.batch_size / 4) * gen_index)
+
+        self.dataset.current_index = start
+        print_index = start
         for index, anchor in enumerate(self.dataset):
 
             try:
@@ -101,29 +106,35 @@ class TripletsInputPipeline:
                 opposite_audio_seg = opposite_audio[opposite_seg[1] * self.sample_rate:(opposite_seg[1] +
                                                                                         self.sample_tile_size) * self.sample_rate]
 
-                if print_index % 100 == 0 and self.log:
-                    self.logger.debug("sound files, a: {0}, n: {1}, o: {2}".format(anchor_seg,
-                                                                                   neighbour_seg,
-                                                                                   opposite_seg))
+                if print_index % 1000 == 0 and self.log:
+                    self.logger.debug("{0} yields sound segments, a: {1}, n: {2}, o: {3}".format(gen_name,
+                                                                                                 anchor_seg,
+                                                                                                 neighbour_seg,
+                                                                                                 opposite_seg))
                 print_index += 1
 
                 yield anchor_audio_seg, neighbour_audio_seg, opposite_audio_seg
 
-    def get_dataset(self, feature_extractor: Union[BaseExtractor, None],
-                    shuffle: bool = True, calc_dist: bool = False, trim: bool = True):
+    def get_dataset(self, feature_extractor: Union[BaseExtractor, None], shuffle: bool = True, trim: bool = True):
 
         if self.to_mono:
             audio_shape = [self.sample_tile_size * self.sample_rate]
         else:
             audio_shape = [self.sample_tile_size * self.sample_rate, self.stereo_channels]
 
-        dataset = tf.data.Dataset.from_generator(self.generate_samples,
-                                                 args=[calc_dist, trim],
-                                                 output_types=(tf.float32, tf.float32, tf.float32),
-                                                 output_shapes=(
-                                                     tf.TensorShape(audio_shape),
-                                                     tf.TensorShape(audio_shape),
-                                                     tf.TensorShape(audio_shape)))
+        dataset = tf.data.Dataset.from_tensor_slices(['Gen_0', 'Gen_1', 'Gen_2', 'Gen_3'])
+        dataset = dataset.interleave(lambda gen_name: tf.data.Dataset.from_generator(self.generate_samples,
+                                                                                     args=[gen_name, trim],
+                                                                                     output_shapes=(
+                                                                                         tf.TensorShape(audio_shape),
+                                                                                         tf.TensorShape(audio_shape),
+                                                                                         tf.TensorShape(audio_shape)),
+                                                                                     output_types=(
+                                                                                         tf.float32, tf.float32,
+                                                                                         tf.float32)),
+                                     cycle_length=4,
+                                     block_length=1,
+                                     num_parallel_calls=4)
         dataset = dataset.cache()
 
         # extract features from dataset
@@ -132,7 +143,7 @@ class TripletsInputPipeline:
                 feature_extractor.extract(a),
                 feature_extractor.extract(n),
                 feature_extractor.extract(o)), num_parallel_calls=4)
-            dataset = dataset.cache()
+        dataset = dataset.cache()
 
         if shuffle:
             # buffer size defines from how much elements are in the buffer, from which then will get shuffled

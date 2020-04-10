@@ -84,7 +84,7 @@ if __name__ == "__main__":
 
     for epoch in range(params.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
-        dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset, calc_dist=params.calc_dist)
+        dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset)
         dataset_iterator = iter(dataset_iterator)
         # iterate over the batches of the dataset
         for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):

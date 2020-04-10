@@ -4,7 +4,6 @@ import os
 from enum import Enum
 
 import tensorflow as tf
-import tensorflow_addons as tfa
 
 from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.dataset_factory import DatasetFactory
@@ -50,7 +49,7 @@ if __name__ == "__main__":
     # get the feature extractor from the factory
     extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
     # define triplet input pipeline
-    pipeline = TripletsInputPipeline(params=params, dataset=dataset, log=False)
+    pipeline = TripletsInputPipeline(params=params, dataset=dataset, log=True)
 
     # create model from factory and specified name within the params
     model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
@@ -58,7 +57,6 @@ if __name__ == "__main__":
     optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
     # create the loss function for the model
     triplet_loss_fn = TripletLoss(margin=params.margin)
-    t_loss = tfa.losses.TripletSemiHardLoss(margin=params.margin)
 
     # create folders for experiment results
     experiment_name = "{0}-{1}".format(model.model_name, params.experiment_name)
@@ -107,7 +105,7 @@ if __name__ == "__main__":
     # start of the training loop
     for epoch in range(params.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
-        dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset, calc_dist=params.calc_dist)
+        dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset)
         dataset_iterator = iter(dataset_iterator)
         # iterate over the batches of the dataset
         for batch_index, (anchor, neighbour, opposite) in enumerate(dataset_iterator):
@@ -118,8 +116,6 @@ if __name__ == "__main__":
 
             # run one training step
             batch = (anchor, neighbour, opposite)
-            # !!!!!!!!!!
-            # losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
             losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
             loss_triplet, dist_neighbour, dist_opposite = losses
 
