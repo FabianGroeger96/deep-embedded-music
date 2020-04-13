@@ -24,7 +24,7 @@ class LogLevel(Enum):
     INFO = 1
 
 
-def log_step(epoch, batch_index, batch_size, result, log_level: LogLevel):
+def log_step(logger, epoch, batch_index, batch_size, result, log_level: LogLevel):
     template = "Epoch {0}, Batch: {1}, Samples Seen: {2}, Triplet Loss: {3:1.2f}"
     if log_level == LogLevel.INFO:
         logger.info(template.format(epoch + 1,
@@ -38,7 +38,7 @@ def log_step(epoch, batch_index, batch_size, result, log_level: LogLevel):
                                      result))
 
 
-if __name__ == "__main__":
+def main():
     # load the parameters from json file
     args = parser.parse_args()
     json_path = os.path.join(args.experiment_dir, "config", "params.json")
@@ -141,10 +141,10 @@ if __name__ == "__main__":
 
             # log the current loss value of the batch
             if int(ckpt.step) % 500 == 0:
-                log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
+                log_step(logger, epoch, batch_index=batch_index, batch_size=params.batch_size,
                          result=train_loss_triplet_batches.result(), log_level=LogLevel.INFO)
             else:
-                log_step(epoch, batch_index=batch_index, batch_size=params.batch_size,
+                log_step(logger, epoch, batch_index=batch_index, batch_size=params.batch_size,
                          result=train_loss_triplet_batches.result(), log_level=LogLevel.DEBUG)
 
             # add one step to checkpoint
@@ -172,3 +172,9 @@ if __name__ == "__main__":
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
+
+        logger.info("Epoch ended")
+
+
+if __name__ == "__main__":
+    main()

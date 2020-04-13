@@ -41,6 +41,8 @@ class Params:
         self.shuffle_dataset = None
         self.train_test_split = None
 
+        self.gen_count = None
+
         self.sample_rate = None
         self.sample_size = None
         self.sample_tile_size = None

@@ -29,6 +29,9 @@ class TripletsInputPipeline:
 
         self.fold = params.dcase_dataset_fold
 
+        self.gen_count = params.gen_count
+        self.gen_index = 0
+
         self.sample_rate = params.sample_rate
         self.sample_size = params.sample_size
 
@@ -63,13 +66,12 @@ class TripletsInputPipeline:
 
     def generate_samples(self, gen_name: str, trim: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
         gen_name = gen_name.decode("utf-8")
-        gen_index = int(gen_name[-1])
-        start = int((self.batch_size / 4) * gen_index)
-        end = int((self.batch_size / 4) * (gen_index + 1))
 
-        self.dataset.current_index = start
-        print_index = start
+        self.dataset.current_index = self.gen_index
         for index, anchor in enumerate(self.dataset):
+            self.dataset.current_index = self.gen_index
+            if self.log and False:
+                self.logger.debug("{0}, index:{1}".format(gen_name, self.gen_index))
 
             try:
                 triplets = self.dataset.get_triplets(index, trim=trim)
@@ -107,14 +109,16 @@ class TripletsInputPipeline:
                 opposite_audio_seg = opposite_audio[opposite_seg[1] * self.sample_rate:(opposite_seg[1] +
                                                                                         self.sample_tile_size) * self.sample_rate]
 
-                if print_index % 1000 == 0 and self.log:
-                    self.logger.debug("{0} yields sound segments, a: {1}, n: {2}, o: {3}".format(gen_name,
-                                                                                                 anchor_seg,
-                                                                                                 neighbour_seg,
-                                                                                                 opposite_seg))
-                print_index += 1
+                if self.gen_index % 1000 == 0 and self.gen_index is not 0 and self.log:
+                    self.logger.debug("{0} yields sound segments {1}, a: {2}, n: {3}, o: {4}".format(gen_name,
+                                                                                                     self.dataset.current_index,
+                                                                                                     anchor_seg,
+                                                                                                     neighbour_seg,
+                                                                                                     opposite_seg))
 
                 yield anchor_audio_seg, neighbour_audio_seg, opposite_audio_seg
+
+            self.gen_index += 1
 
     def get_dataset(self, feature_extractor: Union[BaseExtractor, None], shuffle: bool = True, trim: bool = True):
 
@@ -123,7 +127,8 @@ class TripletsInputPipeline:
         else:
             audio_shape = [self.sample_tile_size * self.sample_rate, self.stereo_channels]
 
-        dataset = tf.data.Dataset.from_tensor_slices(['Gen_0', 'Gen_1', 'Gen_2', 'Gen_3'])
+        gen_arr = ["Gen_{}".format(x) for x in range(self.gen_count)]
+        dataset = tf.data.Dataset.from_tensor_slices(gen_arr)
         dataset = dataset.interleave(lambda gen_name: tf.data.Dataset.from_generator(self.generate_samples,
                                                                                      args=[gen_name, trim],
                                                                                      output_shapes=(
@@ -133,7 +138,7 @@ class TripletsInputPipeline:
                                                                                      output_types=(
                                                                                          tf.float32, tf.float32,
                                                                                          tf.float32)),
-                                     cycle_length=4,
+                                     cycle_length=self.gen_count,
                                      block_length=1,
                                      num_parallel_calls=tf.data.experimental.AUTOTUNE)
         dataset = dataset.cache()
