@@ -1,11 +1,18 @@
 import os
 from abc import ABC, abstractmethod
+from enum import Enum
 from typing import Tuple
 
 import librosa
 import numpy as np
 from dtw import dtw
 from numpy.linalg import norm
+
+
+class DatasetType(Enum):
+    TRAIN = 0
+    EVAL = 1
+    TEST = 2
 
 
 class BaseDataset(ABC):
@@ -16,8 +23,14 @@ class BaseDataset(ABC):
         # defines the current index of the iterator
         self.sample_rate = None
         self.logger = None
+
         self.df = None
+        self.df_train = None
+        self.df_eval = None
+        self.df_test = None
+
         self.current_index = 0
+        self.log = None
 
     @abstractmethod
     def __iter__(self):
@@ -47,8 +60,24 @@ class BaseDataset(ABC):
     def initialise(self):
         pass
 
+    def change_dataset_type(self, dataset_type: DatasetType):
+        self.current_index = 0
+        if dataset_type == DatasetType.TRAIN:
+            self.df = self.df_train
+        elif dataset_type == DatasetType.EVAL:
+            self.df = self.df_eval
+        elif dataset_type == DatasetType.TRAIN:
+            self.df = self.df_train
+
+    def print_dataset_info(self):
+        if self.log:
+            self.logger.debug(self.df_train.head())
+
+        self.count_classes()
+        self.logger.info("Total audio samples: {}".format(self.df_train["file_name"].count()))
+
     def count_classes(self):
-        label_counts = self.df["label"].value_counts()
+        label_counts = self.df_train["label"].value_counts()
         for i, label in enumerate(self.LABELS):
             if i < len(label_counts):
                 self.logger.info("Audio samples in {0}: {1}".format(label, label_counts[i]))

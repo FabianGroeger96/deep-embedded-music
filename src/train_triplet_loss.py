@@ -6,6 +6,7 @@ from enum import Enum
 import tensorflow as tf
 
 from src.feature_extractor.extractor_factory import ExtractorFactory
+from src.input_pipeline.base_dataset import DatasetType
 from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
@@ -92,6 +93,9 @@ def main():
     else:
         logger.info("Initializing models from scratch.")
 
+    # log the current dataset information
+    dataset.print_dataset_info()
+
     # log the current models architecture
     print_model = True
     model.log_model()
@@ -105,8 +109,8 @@ def main():
     # start of the training loop
     for epoch in range(params.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
-        dataset_iterator = pipeline.get_dataset(extractor, shuffle=params.shuffle_dataset)
-        dataset_iterator = iter(dataset_iterator)
+        dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
+                                                shuffle=params.shuffle_dataset)
         # iterate over the batches of the dataset
         for batch_index, (anchor, neighbour, opposite) in enumerate(dataset_iterator):
             if print_model:

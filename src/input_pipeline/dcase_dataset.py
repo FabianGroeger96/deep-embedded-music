@@ -5,9 +5,8 @@ import re
 
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
 
-from src.input_pipeline.base_dataset import BaseDataset
+from src.input_pipeline.base_dataset import BaseDataset, DatasetType
 from src.input_pipeline.dataset_factory import DatasetFactory
 from src.utils.params import Params
 from src.utils.utils import Utils
@@ -39,17 +38,14 @@ class DCASEDataset(BaseDataset):
         self.stereo_channels = params.stereo_channels
         self.to_mono = params.to_mono
 
+        self.dataset_type = DatasetType.TRAIN
+
         self.train_test_split = params.train_test_split
         self.log = log
 
         self.initialise()
 
         self.logger = logging.getLogger(self.__class__.__name__)
-        if self.log:
-            self.logger.debug(self.df.head())
-
-        self.count_classes()
-        self.logger.info("Total audio samples: {}".format(self.df["file_name"].count()))
 
     def __iter__(self):
         return self
@@ -86,33 +82,22 @@ class DCASEDataset(BaseDataset):
 
     def initialise(self):
         # load the data frame
-        self.df = self.load_data_frame()
+        self.load_data_frame()
 
         # add the full dataset path to the filename
-        self.df["file_name"] = str(self.dataset_path) + "/" + self.df["file_name"].astype(str)
+        self.df_train["file_name"] = str(self.dataset_path) + "/" + self.df_train["file_name"].astype(str)
+        self.df_eval["file_name"] = str(self.dataset_path) + "/" + self.df_eval["file_name"].astype(str)
+        self.df_test["file_name"] = str(self.dataset_path) + "/" + self.df_test["file_name"].astype(str)
 
         # shuffle dataset
-        self.df = self.df.sample(frac=1).reset_index(drop=True)
-
-        # split dataset into train and test, test will be used for visualising
-        self.df_train, self.df_test = train_test_split(self.df, test_size=self.train_test_split)
+        self.df_train = self.df_train.sample(frac=1).reset_index(drop=True)
+        self.df_eval = self.df_eval.sample(frac=1).reset_index(drop=True)
+        self.df_test = self.df_test.sample(frac=1).reset_index(drop=True)
 
     def load_data_frame(self):
-        train_df = self.load_train_data_frame()
-        eval_df = self.load_eval_data_frame()
-
-        return pd.concat([train_df, eval_df], axis=0, ignore_index=True)
-
-    def load_eval_data_frame(self):
-        # define name and path of the info file
-        eval_file_name = "fold{0}_evaluate.txt".format(self.fold)
-        eval_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, eval_file_name)
-        # read the train file, which is tab separated
-        eval_df = pd.read_csv(eval_file_path, sep="\t", names=["file_name", "label"])
-        # convert the activity labels into integers
-        eval_df["label"] = eval_df["label"].apply(self.LABELS.index)
-
-        return eval_df
+        self.df_train = self.load_train_data_frame()
+        self.df_eval = self.load_eval_data_frame()
+        self.df_test = self.load_test_data_frame()
 
     def load_train_data_frame(self):
         # define name and path of the info file
@@ -125,23 +110,25 @@ class DCASEDataset(BaseDataset):
 
         return train_df
 
-    def count_classes(self):
-        label_counts = self.df["label"].value_counts()
-        for i, label in enumerate(self.LABELS):
-            if i < len(label_counts):
-                self.logger.info("Audio samples in {0}: {1}".format(label, label_counts[i]))
+    def load_eval_data_frame(self):
+        # define name and path of the info file
+        eval_file_name = "fold{0}_evaluate.txt".format(self.fold)
+        eval_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, eval_file_name)
+        # read the train file, which is tab separated
+        eval_df = pd.read_csv(eval_file_path, sep="\t", names=["file_name", "label"])
+        # convert the activity labels into integers
+        eval_df["label"] = eval_df["label"].apply(self.LABELS.index)
 
-    def get_test_set(self, stereo_channels, to_mono):
-        self.df_test = self.df_test.drop(["node_id", "segment", "session"], axis=1)
-        self.df_test["audio"] = ""
+        return eval_df
 
-        self.df_test["audio"] = self.df_test.apply(lambda row: DCASEDataset.extract_audio_from_filename(
-            row["file_name"], self.dataset_path, self.sample_rate, self.sample_size, stereo_channels, to_mono), axis=1)
-        self.df_test = self.df_test.drop(["file_name"], axis=1)
+    def load_test_data_frame(self):
+        # define name and path of the info file
+        test_file_name = "fold{0}_test.txt".format(self.fold)
+        test_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, test_file_name)
+        # read the train file, which is tab separated
+        test_df = pd.read_csv(test_file_path, sep="\t", names=["file_name"])
 
-        self.df_test = self.df_test[["audio", "label"]]
-
-        return self.df_test
+        return test_df
 
     def get_triplets(self, audio_id, trim: bool = True) -> np.ndarray:
         try:
@@ -152,10 +139,6 @@ class DCASEDataset(BaseDataset):
                 o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=self.sample_size)
 
                 triplets.append([a_seg, n_seg, o_seg])
-
-            #
-            # if calc_dist:
-            #     self.check_if_easy_or_hard_triplet(neighbour_dist, opposite_dist)
 
             return np.asarray(triplets)
 
@@ -187,7 +170,7 @@ class DCASEDataset(BaseDataset):
 
     def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int):
         # crate array of possible sample positions
-        opposite_possible = np.arange(0, len(self.df), 1)
+        opposite_possible = np.arange(0, len(self.df_train), 1)
         opposite_possible = opposite_possible[opposite_possible != audio_id]
 
         if len(opposite_possible) > 0:

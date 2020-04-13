@@ -1,12 +1,11 @@
 import logging
-import os
 from typing import Union, Tuple
 
 import numpy as np
 import tensorflow as tf
 
 from src.feature_extractor.base_extractor import BaseExtractor
-from src.input_pipeline.base_dataset import BaseDataset
+from src.input_pipeline.base_dataset import BaseDataset, DatasetType
 from src.utils.params import Params
 from src.utils.utils import Utils
 from src.utils.utils_audio import AudioUtils
@@ -80,7 +79,7 @@ class TripletsInputPipeline:
                 continue
 
             # load audio files from anchor
-            anchor = self.dataset.df.iloc[triplets[0][0][0]]
+            anchor = self.dataset.df_train.iloc[triplets[0][0][0]]
             anchor_audio = AudioUtils.load_audio_from_file(anchor.file_name, self.sample_rate, self.sample_size,
                                                            self.stereo_channels,
                                                            self.to_mono)
@@ -91,7 +90,7 @@ class TripletsInputPipeline:
                 anchor_seg, neighbour_seg, opposite_seg = triplet
 
                 # load audio files from neighbour
-                opposite = self.dataset.df.iloc[opposite_seg[0]]
+                opposite = self.dataset.df_train.iloc[opposite_seg[0]]
                 opposite_audio = AudioUtils.load_audio_from_file(opposite.file_name, self.sample_rate, self.sample_size,
                                                                  self.stereo_channels,
                                                                  self.to_mono)
@@ -120,7 +119,10 @@ class TripletsInputPipeline:
 
             self.gen_index += 1
 
-    def get_dataset(self, feature_extractor: Union[BaseExtractor, None], shuffle: bool = True, trim: bool = True):
+    def get_dataset(self, feature_extractor: Union[BaseExtractor, None], dataset_type: DatasetType = DatasetType.TRAIN,
+                    shuffle: bool = True, trim: bool = True):
+
+        self.dataset.change_dataset_type(dataset_type)
 
         if self.to_mono:
             audio_shape = [self.sample_tile_size * self.sample_rate]
@@ -160,24 +162,3 @@ class TripletsInputPipeline:
         dataset = dataset.cache()
 
         return dataset
-
-    def get_test_dataset(self, extractor):
-        test_set = self.dataset.get_test_set(self.stereo_channels, self.to_mono)
-        test_set = test_set.to_numpy()
-
-        audio = test_set[:, 0]
-        audio = np.transpose(audio)
-        audio = tf.convert_to_tensor([audio], dtype=tf.float32)
-        audio = tf.squeeze(audio, 0)
-
-        extracted = []
-        for a in audio:
-            ex = extractor.extract(a)
-            extracted.append(ex)
-
-        extracted_tensor = tf.convert_to_tensor(extracted, dtype=tf.float32)
-
-        labels = test_set[:, -1]
-        labels = tf.convert_to_tensor([labels], dtype=tf.int32)
-
-        return extracted_tensor, labels
