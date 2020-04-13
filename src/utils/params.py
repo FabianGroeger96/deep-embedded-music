@@ -42,6 +42,7 @@ class Params:
         self.train_test_split = None
 
         self.gen_count = None
+        self.num_parallel_calls = None
 
         self.sample_rate = None
         self.sample_size = None

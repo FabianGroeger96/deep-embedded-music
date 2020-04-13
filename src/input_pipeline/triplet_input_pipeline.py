@@ -28,6 +28,7 @@ class TripletsInputPipeline:
 
         self.fold = params.dcase_dataset_fold
 
+        self.num_parallel_calls = params.num_parallel_calls
         self.gen_count = params.gen_count
         self.gen_index = 0
 
@@ -142,7 +143,7 @@ class TripletsInputPipeline:
                                                                                          tf.float32)),
                                      cycle_length=self.gen_count,
                                      block_length=1,
-                                     num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                                     num_parallel_calls=self.num_parallel_calls)
         dataset = dataset.cache()
 
         # extract features from dataset
@@ -150,7 +151,7 @@ class TripletsInputPipeline:
             dataset = dataset.map(lambda a, n, o: (
                 feature_extractor.extract(a),
                 feature_extractor.extract(n),
-                feature_extractor.extract(o)), num_parallel_calls=tf.data.experimental.AUTOTUNE)
+                feature_extractor.extract(o)), num_parallel_calls=self.num_parallel_calls)
         dataset = dataset.cache()
 
         if shuffle:
@@ -158,7 +159,7 @@ class TripletsInputPipeline:
             dataset = dataset.shuffle(buffer_size=self.random_selection_buffer_size)
 
         dataset = dataset.batch(self.batch_size)
-        dataset = dataset.prefetch(tf.data.experimental.AUTOTUNE)
+        dataset = dataset.prefetch(self.prefetch_batches)
         dataset = dataset.cache()
 
         return dataset
