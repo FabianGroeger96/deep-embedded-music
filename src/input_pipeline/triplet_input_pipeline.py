@@ -42,8 +42,10 @@ class TripletsInputPipeline:
         self.to_mono = params.to_mono
 
         self.batch_size = params.batch_size
-        self.prefetch_batches = tf.data.experimental.AUTOTUNE  # tf.data.experimental.AUTOTUNE / params.prefetch_batches
+        self.prefetch_batches = params.prefetch_batches
         self.random_selection_buffer_size = params.random_selection_buffer_size
+
+        self.dataset_type = DatasetType.TRAIN
 
         self.train_test_split_distribution = params.train_test_split
 
@@ -62,9 +64,11 @@ class TripletsInputPipeline:
 
     def reinitialise(self):
         self.logger.info("Reinitialising the input pipeline")
+        self.gen_index = 0
         self.dataset.initialise()
 
-    def generate_samples(self, gen_name: str, trim: bool = True) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def generate_samples(self, gen_name: str, trim: bool) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+
         gen_name = gen_name.decode("utf-8")
 
         self.dataset.current_index = self.gen_index
@@ -109,6 +113,12 @@ class TripletsInputPipeline:
                 opposite_audio_seg = opposite_audio[opposite_seg[1] * self.sample_rate:(opposite_seg[1] +
                                                                                         self.sample_tile_size) * self.sample_rate]
 
+                if self.dataset_type == DatasetType.EVAL:
+                    labels = [anchor.label, anchor.label, opposite.label]
+                else:
+                    labels = [-1, -1, -1]
+                labels = np.asarray(labels)
+
                 if self.gen_index % 1000 == 0 and self.gen_index is not 0 and self.log:
                     self.logger.debug("{0} yields sound segments {1}, a: {2}, n: {3}, o: {4}".format(gen_name,
                                                                                                      self.dataset.current_index,
@@ -116,13 +126,14 @@ class TripletsInputPipeline:
                                                                                                      neighbour_seg,
                                                                                                      opposite_seg))
 
-                yield anchor_audio_seg, neighbour_audio_seg, opposite_audio_seg
+                yield anchor_audio_seg, neighbour_audio_seg, opposite_audio_seg, labels
 
             self.gen_index += 1
 
     def get_dataset(self, feature_extractor: Union[BaseExtractor, None], dataset_type: DatasetType = DatasetType.TRAIN,
                     shuffle: bool = True, trim: bool = True):
 
+        self.dataset_type = dataset_type
         self.dataset.change_dataset_type(dataset_type)
 
         if self.to_mono:
@@ -137,27 +148,29 @@ class TripletsInputPipeline:
                                                                                      output_shapes=(
                                                                                          tf.TensorShape(audio_shape),
                                                                                          tf.TensorShape(audio_shape),
-                                                                                         tf.TensorShape(audio_shape)),
+                                                                                         tf.TensorShape(audio_shape),
+                                                                                         tf.TensorShape(3)),
                                                                                      output_types=(
                                                                                          tf.float32, tf.float32,
-                                                                                         tf.float32)),
+                                                                                         tf.float32, tf.float32)),
                                      cycle_length=self.gen_count,
                                      block_length=1,
                                      num_parallel_calls=self.num_parallel_calls)
 
         # extract features from dataset
         if feature_extractor is not None:
-            dataset = dataset.map(lambda a, n, o: (
+            dataset = dataset.map(lambda a, n, o, labels: (
                 feature_extractor.extract(a),
                 feature_extractor.extract(n),
-                feature_extractor.extract(o)), num_parallel_calls=self.num_parallel_calls)
-        dataset = dataset.cache()
+                feature_extractor.extract(o),
+                labels), num_parallel_calls=self.num_parallel_calls)
+            dataset = dataset.cache()
 
-        if shuffle:
-            # buffer size defines from how much elements are in the buffer, from which then will get shuffled
-            dataset = dataset.shuffle(buffer_size=self.random_selection_buffer_size)
+            if shuffle:
+                # buffer size defines from how much elements are in the buffer, from which then will get shuffled
+                dataset = dataset.shuffle(buffer_size=self.random_selection_buffer_size)
 
-        dataset = dataset.batch(self.batch_size)
-        dataset = dataset.prefetch(self.prefetch_batches)
+            dataset = dataset.batch(self.batch_size)
+            dataset = dataset.prefetch(self.prefetch_batches)
 
-        return dataset
+            return dataset

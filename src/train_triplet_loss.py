@@ -14,6 +14,7 @@ from src.models.model_factory import ModelFactory
 from src.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
+from src.utils.utils_visualise import visualise_model_on_epoch_end
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments",
@@ -112,7 +113,7 @@ def main():
         dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
                                                 shuffle=params.shuffle_dataset)
         # iterate over the batches of the dataset
-        for batch_index, (anchor, neighbour, opposite) in enumerate(dataset_iterator):
+        for batch_index, (anchor, neighbour, opposite, _) in enumerate(dataset_iterator):
             if print_model:
                 model.build(anchor.shape)
                 model.summary(print_fn=logger.info)
@@ -171,8 +172,8 @@ def main():
         train_dist_opposite.reset_states()
 
         # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
-        # visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
-        #                              summary_writer=train_summary_writer, tensorb_path=tensorb_path)
+        visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
+                                     summary_writer=train_summary_writer, tensorb_path=tensorb_path)
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()

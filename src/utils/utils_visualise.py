@@ -9,6 +9,8 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 from tensorboard.plugins import projector
 
+from src.input_pipeline.base_dataset import DatasetType
+
 
 def save_labels_tsv(labels, filename, log_dir, dataset):
     """
@@ -124,8 +126,7 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
     # reinitialise pipeline for visualisation
     if reinitialise:
         pipeline.reinitialise()
-    dataset_iterator = pipeline.get_dataset(extractor, shuffle=False)
-    dataset_iterator = iter(dataset_iterator)
+    dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, dataset_type=DatasetType.EVAL)
 
     # lists for embeddings and labels from entire dataset
     embeddings = []
