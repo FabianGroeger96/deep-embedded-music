@@ -121,7 +121,7 @@ class TripletsInputPipeline:
             self.gen_index += 1
 
     def get_dataset(self, feature_extractor: Union[BaseExtractor, None], dataset_type: DatasetType = DatasetType.TRAIN,
-                    shuffle: bool = True, trim: bool = True, cache: bool = False):
+                    shuffle: bool = True, trim: bool = True):
 
         self.dataset.change_dataset_type(dataset_type)
 
@@ -144,8 +144,6 @@ class TripletsInputPipeline:
                                      cycle_length=self.gen_count,
                                      block_length=1,
                                      num_parallel_calls=self.num_parallel_calls)
-        if cache:
-            dataset = dataset.cache()
 
         # extract features from dataset
         if feature_extractor is not None:
@@ -153,8 +151,7 @@ class TripletsInputPipeline:
                 feature_extractor.extract(a),
                 feature_extractor.extract(n),
                 feature_extractor.extract(o)), num_parallel_calls=self.num_parallel_calls)
-        if cache:
-            dataset = dataset.cache()
+        dataset = dataset.cache()
 
         if shuffle:
             # buffer size defines from how much elements are in the buffer, from which then will get shuffled
@@ -162,7 +159,5 @@ class TripletsInputPipeline:
 
         dataset = dataset.batch(self.batch_size)
         dataset = dataset.prefetch(self.prefetch_batches)
-        if cache:
-            dataset = dataset.cache()
 
         return dataset

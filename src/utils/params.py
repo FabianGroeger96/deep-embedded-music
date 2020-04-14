@@ -34,7 +34,7 @@ class Params:
 
         self.epochs = None
         self.batch_size = None
-        self.prefetch_batches = None
+        self.prefetch_batches = None  # -1 for tf.data.experimental.AUTOTUNE
         self.random_selection_buffer_size = None
         self.learning_rate = None
 
@@ -42,7 +42,7 @@ class Params:
         self.train_test_split = None
 
         self.gen_count = None
-        self.num_parallel_calls = None
+        self.num_parallel_calls = None  # -1 for tf.data.experimental.AUTOTUNE
 
         self.sample_rate = None
         self.sample_size = None
