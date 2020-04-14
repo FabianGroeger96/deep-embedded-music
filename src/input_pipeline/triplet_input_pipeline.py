@@ -164,7 +164,6 @@ class TripletsInputPipeline:
                 feature_extractor.extract(n),
                 feature_extractor.extract(o),
                 labels), num_parallel_calls=self.num_parallel_calls)
-            dataset = dataset.cache()
 
             if shuffle:
                 # buffer size defines from how much elements are in the buffer, from which then will get shuffled

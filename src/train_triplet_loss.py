@@ -51,7 +51,7 @@ def main():
     # get the feature extractor from the factory
     extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
     # define triplet input pipeline
-    pipeline = TripletsInputPipeline(params=params, dataset=dataset, log=True)
+    pipeline = TripletsInputPipeline(params=params, dataset=dataset, log=False)
 
     # create model from factory and specified name within the params
     model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
