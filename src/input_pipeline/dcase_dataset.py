@@ -81,6 +81,9 @@ class DCASEDataset(BaseDataset):
         return audio_data
 
     def initialise(self):
+        # set current index to start
+        self.current_index = 0
+
         # load the data frame
         self.load_data_frame()
 
