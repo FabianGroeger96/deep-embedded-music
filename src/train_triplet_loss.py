@@ -118,9 +118,6 @@ def main():
                 model.summary(print_fn=logger.info)
                 print_model = False
 
-            if batch_index > 2:
-                break
-
             # run one training step
             batch = (anchor, neighbour, opposite)
             losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
