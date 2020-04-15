@@ -67,7 +67,8 @@ class TripletsInputPipeline:
         self.gen_index = 0
         self.dataset.initialise()
 
-    def generate_samples(self, gen_name: str, trim: bool) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    def generate_samples(self, gen_name: str, trim: bool, return_labels: bool) -> Tuple[np.ndarray, np.ndarray,
+                                                                                        np.ndarray, np.ndarray]:
 
         gen_name = gen_name.decode("utf-8")
 
@@ -113,7 +114,7 @@ class TripletsInputPipeline:
                 opposite_audio_seg = opposite_audio[opposite_seg[1] * self.sample_rate:(opposite_seg[1] +
                                                                                         self.sample_tile_size) * self.sample_rate]
 
-                if self.dataset_type == DatasetType.EVAL:
+                if self.dataset_type == DatasetType.EVAL or return_labels:
                     labels = [anchor.label, anchor.label, opposite.label]
                 else:
                     labels = [-1, -1, -1]
@@ -131,7 +132,7 @@ class TripletsInputPipeline:
             self.gen_index += 1
 
     def get_dataset(self, feature_extractor: Union[BaseExtractor, None], dataset_type: DatasetType = DatasetType.TRAIN,
-                    shuffle: bool = True, trim: bool = True):
+                    shuffle: bool = True, trim: bool = True, return_labels: bool = False):
 
         self.dataset_type = dataset_type
         self.dataset.change_dataset_type(dataset_type)
@@ -144,7 +145,8 @@ class TripletsInputPipeline:
         gen_arr = ["Gen_{}".format(x) for x in range(self.gen_count)]
         dataset = tf.data.Dataset.from_tensor_slices(gen_arr)
         dataset = dataset.interleave(lambda gen_name: tf.data.Dataset.from_generator(self.generate_samples,
-                                                                                     args=[gen_name, trim],
+                                                                                     args=[gen_name, trim,
+                                                                                           return_labels],
                                                                                      output_shapes=(
                                                                                          tf.TensorShape(audio_shape),
                                                                                          tf.TensorShape(audio_shape),

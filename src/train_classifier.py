@@ -19,12 +19,13 @@ parser.add_argument("--experiment_dir", default="experiments",
                     help="Experiment directory containing params.json")
 parser.add_argument("--dataset_dir", default="DCASE",
                     help="Dataset directory containing the model")
-parser.add_argument("--model_to_load", default="results/ConvNet1D-20200326-065709",
+parser.add_argument("--model_to_load", default="results/ConvGRUNet-LogMel-l1e4-b32-ts2-ns4-m05-e256-20200414-110807",
                     help="Model to load")
 
 
 def train():
-    dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN, shuffle=params.shuffle_dataset)
+    dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
+                                            shuffle=params.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
     for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
         emb_anchor = model(anchor, training=False)
@@ -40,6 +41,7 @@ def train():
 
             pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
             labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
+            labels = tf.dtypes.cast(labels, tf.int32)
 
             c_loss = classifier_loss_fn(y_true=labels, y_pred=pred)
 
@@ -54,8 +56,8 @@ def train():
         metric_train_accuracy_batches(labels, pred)
         metric_train_accuracy_epochs(labels, pred)
 
-        metric_train_f1_epochs(labels, pred)
-        metric_train_mcc_epochs(labels, pred)
+        metric_train_f1_epochs.update_state(tf.one_hot(labels, len(dataset.LABELS)), pred)
+        metric_train_mcc_epochs.update_state(tf.one_hot(labels, len(dataset.LABELS)), pred)
 
         # write batch losses to summary writer
         with train_summary_writer.as_default():
@@ -80,7 +82,8 @@ def train():
 
 
 def evaluate():
-    dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.EVAL, shuffle=params.shuffle_dataset)
+    dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.EVAL,
+                                            shuffle=params.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
     for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
         emb_anchor = model(anchor, training=False)
@@ -101,8 +104,8 @@ def evaluate():
 
         metric_eval_loss_epochs(c_loss)
         metric_eval_accuracy_epochs(labels, pred)
-        metric_eval_f1_epochs(labels, pred)
-        metric_eval_mcc_epochs(labels, pred)
+        metric_eval_f1_epochs.update_state(labels, pred)
+        metric_eval_mcc_epochs.update_state(labels, pred)
 
     # write epoch loss to summary writer
     with train_summary_writer.as_default():
