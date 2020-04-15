@@ -103,8 +103,8 @@ def save_graph(tensorboard_path, execute_callback, **args):
     return r
 
 
-def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writer, tensorb_path, reinitialise=True,
-                                 visualise_graphs=True, save_checkpoint=True):
+def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, summary_writer, tensorb_path,
+                                 reinitialise=True, visualise_graphs=True, save_checkpoint=True):
     """
     Visualises the model at the end of an epoch on the entire dataset.
 
@@ -115,6 +115,7 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
     :param pipeline: the input pipeline to provide the data.
     :param extractor: the extractor used to extract the features from the data.
     :param epoch: the current epoch.
+    :param loss_fn: the triplet loss function, to calculate the loss on eval set.
     :param summary_writer: the summary writer of the tensorboard.
     :param tensorb_path: the path of the tensorboard files from the current experiment.
     :param reinitialise: if the pipeline should be reinitialised or not.
@@ -128,6 +129,11 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
         pipeline.reinitialise()
     dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, dataset_type=DatasetType.EVAL)
 
+    # define triplet loss metrics
+    metric_triplet_loss_epochs = tf.keras.metrics.Mean("eval_triplet_loss_epochs", dtype=tf.float32)
+    metric_dist_neighbour = tf.keras.metrics.Mean("eval_dist_neighbour", dtype=tf.float32)
+    metric_dist_opposite = tf.keras.metrics.Mean("eval_dist_opposite", dtype=tf.float32)
+
     # lists for embeddings and labels from entire dataset
     embeddings = []
     labels = []
@@ -137,6 +143,17 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
         emb_neighbour = model(neighbour, training=False)
         emb_opposite = model(opposite, training=False)
 
+        # compute the triplet loss value for the batch
+        triplet_loss = loss_fn(None, [emb_anchor, emb_neighbour, emb_opposite])
+        # compute the distance losses between the embeddings
+        dist_neighbour = loss_fn.calculate_distance(anchor=emb_anchor, embedding=emb_neighbour)
+        dist_opposite = loss_fn.calculate_distance(anchor=emb_anchor, embedding=emb_opposite)
+
+        # add losses to the metrics
+        metric_triplet_loss_epochs(triplet_loss)
+        metric_dist_neighbour(dist_neighbour)
+        metric_dist_opposite(dist_opposite)
+
         embeddings.append(emb_anchor)
         embeddings.append(emb_neighbour)
         embeddings.append(emb_opposite)
@@ -144,6 +161,14 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, summary_writ
         labels.append(triplet_labels[:, 0])
         labels.append(triplet_labels[:, 1])
         labels.append(triplet_labels[:, 2])
+
+    # write batch losses to summary writer
+    with summary_writer.as_default():
+        # write summary of batch losses
+        tf.summary.scalar("triplet_loss_eval/loss_triplet_epochs", metric_triplet_loss_epochs.result(),
+                          step=epoch)
+        tf.summary.scalar("triplet_loss_eval/dist_sq_neighbour", metric_dist_neighbour.result(), step=epoch)
+        tf.summary.scalar("triplet_loss_eval/dist_sq_opposite", metric_dist_opposite.result(), step=epoch)
 
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
     embeddings = tf.concat(embeddings, axis=0)

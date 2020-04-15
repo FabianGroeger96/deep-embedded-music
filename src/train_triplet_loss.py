@@ -78,8 +78,8 @@ def main():
     train_summary_writer = tf.summary.create_file_writer(tensorb_path)
 
     # define triplet loss metrics
-    train_loss_triplet_batches = tf.keras.metrics.Mean("train_loss_triplet_batches", dtype=tf.float32)
-    train_loss_triplet_epochs = tf.keras.metrics.Mean("train_loss_triplet_epochs", dtype=tf.float32)
+    train_triplet_loss_batches = tf.keras.metrics.Mean("train_triplet_loss_batches", dtype=tf.float32)
+    train_triplet_loss_epochs = tf.keras.metrics.Mean("train_triplet_loss_epochs", dtype=tf.float32)
     train_dist_neighbour = tf.keras.metrics.Mean("train_loss_neighbour", dtype=tf.float32)
     train_dist_opposite = tf.keras.metrics.Mean("train_loss_opposite", dtype=tf.float32)
 
@@ -125,18 +125,20 @@ def main():
             loss_triplet, dist_neighbour, dist_opposite = losses
 
             # add losses to the metrics
-            train_loss_triplet_batches(loss_triplet)
-            train_loss_triplet_epochs(loss_triplet)
+            train_triplet_loss_batches(loss_triplet)
+            train_triplet_loss_epochs(loss_triplet)
             train_dist_neighbour(dist_neighbour)
             train_dist_opposite(dist_opposite)
 
             # write batch losses to summary writer
             with train_summary_writer.as_default():
                 # write summary of batch losses
-                tf.summary.scalar("triplet_loss/loss_triplet_batches", train_loss_triplet_batches.result(),
+                tf.summary.scalar("triplet_loss_train/loss_triplet_batches", train_triplet_loss_batches.result(),
                                   step=int(ckpt.step))
-                tf.summary.scalar("triplet_loss/dist_sq_neighbour", train_dist_neighbour.result(), step=int(ckpt.step))
-                tf.summary.scalar("triplet_loss/dist_sq_opposite", train_dist_opposite.result(), step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss_train/dist_sq_neighbour", train_dist_neighbour.result(),
+                                  step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss_train/dist_sq_opposite", train_dist_opposite.result(),
+                                  step=int(ckpt.step))
 
             if int(ckpt.step) % 10 == 0 and params.use_profiler and profiling:
                 logger.info("Stopping profiler at batch: {}".format(int(ckpt.step)))
@@ -147,10 +149,10 @@ def main():
             # log the current loss value of the batch
             if int(ckpt.step) % 500 == 0:
                 log_step(logger, epoch, batch_index=batch_index, batch_size=params.batch_size,
-                         result=train_loss_triplet_batches.result(), log_level=LogLevel.INFO)
+                         result=train_triplet_loss_batches.result(), log_level=LogLevel.INFO)
             else:
                 log_step(logger, epoch, batch_index=batch_index, batch_size=params.batch_size,
-                         result=train_loss_triplet_batches.result(), log_level=LogLevel.DEBUG)
+                         result=train_triplet_loss_batches.result(), log_level=LogLevel.DEBUG)
 
             # add one step to checkpoint
             ckpt.step.assign_add(1)
@@ -163,17 +165,18 @@ def main():
         # write epoch loss to summary writer
         with train_summary_writer.as_default():
             # write summary of epoch loss
-            tf.summary.scalar("triplet_loss/loss_triplet_epochs", train_loss_triplet_epochs.result(), step=epoch)
+            tf.summary.scalar("triplet_loss_train/loss_triplet_epochs", train_triplet_loss_epochs.result(), step=epoch)
 
         # reset metrics every epoch
-        train_loss_triplet_batches.reset_states()
-        train_loss_triplet_epochs.reset_states()
+        train_triplet_loss_batches.reset_states()
+        train_triplet_loss_epochs.reset_states()
         train_dist_neighbour.reset_states()
         train_dist_opposite.reset_states()
 
         # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
         visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
-                                     summary_writer=train_summary_writer, tensorb_path=tensorb_path)
+                                     loss_fn=triplet_loss_fn, summary_writer=train_summary_writer,
+                                     tensorb_path=tensorb_path)
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
