@@ -3,6 +3,7 @@ import logging
 import os
 
 import tensorflow as tf
+import tensorflow_addons as tfa
 
 from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.base_dataset import DatasetType
@@ -47,18 +48,21 @@ def train():
         # update the values of the trainable variables to minimize the loss
         classifier_optimizer.apply_gradients(zip(grads, classifier.trainable_weights))
 
-        classifier_loss(c_loss)
-        classifier_loss_epochs(c_loss)
+        metric_train_loss_batches(c_loss)
+        metric_train_loss_epochs(c_loss)
 
-        classifier_accuracy(labels, pred)
-        classifier_accuracy_epochs(labels, pred)
+        metric_train_accuracy_batches(labels, pred)
+        metric_train_accuracy_epochs(labels, pred)
+
+        metric_train_f1_epochs(labels, pred)
+        metric_train_mcc_epochs(labels, pred)
 
         # write batch losses to summary writer
         with train_summary_writer.as_default():
             # write summary of batch losses
-            tf.summary.scalar("classifier/train_loss_batches", classifier_loss.result(),
+            tf.summary.scalar("classifier/train_loss_batches", metric_train_loss_batches.result(),
                               step=int(ckpt_classifier.step))
-            tf.summary.scalar("classifier/train_accuracy_batches", classifier_accuracy.result(),
+            tf.summary.scalar("classifier/train_accuracy_batches", metric_train_accuracy_batches.result(),
                               step=int(ckpt_classifier.step))
 
         logger.info("Classifier loss: {0}".format(c_loss))
@@ -69,8 +73,10 @@ def train():
     # write epoch loss to summary writer
     with train_summary_writer.as_default():
         # write summary of epoch loss
-        tf.summary.scalar("classifier/train_loss_epochs", classifier_loss_epochs.result(), step=epoch)
-        tf.summary.scalar("classifier/train_accuracy_epochs", classifier_accuracy_epochs.result(), step=epoch)
+        tf.summary.scalar("classifier/train_loss_epochs", metric_train_loss_epochs.result(), step=epoch)
+        tf.summary.scalar("classifier/train_accuracy_epochs", metric_train_accuracy_epochs.result(), step=epoch)
+        tf.summary.scalar("classifier/train_f1_epochs", metric_train_f1_epochs.result(), step=epoch)
+        tf.summary.scalar("classifier/train_mcc_epochs", metric_train_mcc_epochs.result(), step=epoch)
 
 
 def evaluate():
@@ -93,14 +99,18 @@ def evaluate():
 
             c_loss = classifier_loss_fn(y_true=labels, y_pred=pred)
 
-        classifier_eval_loss_epochs(c_loss)
-        classifier_eval_accuracy_epochs(labels, pred)
+        metric_eval_loss_epochs(c_loss)
+        metric_eval_accuracy_epochs(labels, pred)
+        metric_eval_f1_epochs(labels, pred)
+        metric_eval_mcc_epochs(labels, pred)
 
     # write epoch loss to summary writer
     with train_summary_writer.as_default():
         # write summary of epoch loss
-        tf.summary.scalar("classifier/eval_loss_epochs", classifier_eval_loss_epochs.result(), step=epoch)
-        tf.summary.scalar("classifier/eval_accuracy_epochs", classifier_eval_accuracy_epochs.result(), step=epoch)
+        tf.summary.scalar("classifier/eval_loss_epochs", metric_eval_loss_epochs.result(), step=epoch)
+        tf.summary.scalar("classifier/eval_accuracy_epochs", metric_eval_accuracy_epochs.result(), step=epoch)
+        tf.summary.scalar("classifier/eval_f1_epochs", metric_eval_f1_epochs.result(), step=epoch)
+        tf.summary.scalar("classifier/eval_mcc_epochs", metric_eval_mcc_epochs.result(), step=epoch)
 
 
 if __name__ == "__main__":
@@ -149,13 +159,18 @@ if __name__ == "__main__":
     train_summary_writer = tf.summary.create_file_writer(tensorb_path)
 
     # define triplet loss metrics
-    classifier_accuracy = tf.keras.metrics.SparseCategoricalAccuracy()
-    classifier_accuracy_epochs = tf.keras.metrics.SparseCategoricalAccuracy()
-    classifier_eval_accuracy_epochs = tf.keras.metrics.SparseCategoricalAccuracy()
+    metric_train_accuracy_batches = tf.keras.metrics.SparseCategoricalAccuracy()
+    metric_train_accuracy_epochs = tf.keras.metrics.SparseCategoricalAccuracy()
+    metric_train_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS))
+    metric_train_mcc_epochs = tfa.metrics.MatthewsCorrelationCoefficient(num_classes=len(dataset.LABELS))
 
-    classifier_loss = tf.keras.metrics.Mean("classifier_accuracy", dtype=tf.float32)
-    classifier_loss_epochs = tf.keras.metrics.Mean("classifier_accuracy_epochs", dtype=tf.float32)
-    classifier_eval_loss_epochs = tf.keras.metrics.Mean("classifier_accuracy_epochs", dtype=tf.float32)
+    metric_eval_accuracy_epochs = tf.keras.metrics.SparseCategoricalAccuracy()
+    metric_eval_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS))
+    metric_eval_mcc_epochs = tfa.metrics.MatthewsCorrelationCoefficient(num_classes=len(dataset.LABELS))
+
+    metric_train_loss_batches = tf.keras.metrics.Mean("train_loss_batches", dtype=tf.float32)
+    metric_train_loss_epochs = tf.keras.metrics.Mean("train_loss_epochs", dtype=tf.float32)
+    metric_eval_loss_epochs = tf.keras.metrics.Mean("eval_loss_epochs", dtype=tf.float32)
 
     # define checkpoint and checkpoint manager
     ckpt = tf.train.Checkpoint(net=model)
@@ -177,10 +192,10 @@ if __name__ == "__main__":
         evaluate()
 
         # reset metrics every epoch
-        classifier_accuracy.reset_states()
-        classifier_accuracy_epochs.reset_states()
-        classifier_eval_accuracy_epochs.reset_states()
+        metric_train_accuracy_batches.reset_states()
+        metric_train_accuracy_epochs.reset_states()
+        metric_eval_accuracy_epochs.reset_states()
 
-        classifier_loss.reset_states()
-        classifier_loss_epochs.reset_states()
-        classifier_eval_loss_epochs.reset_states()
+        metric_train_loss_batches.reset_states()
+        metric_train_loss_epochs.reset_states()
+        metric_eval_loss_epochs.reset_states()
