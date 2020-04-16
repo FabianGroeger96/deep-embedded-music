@@ -73,9 +73,6 @@ def train():
                                                                                                 metric_train_accuracy_batches.result(),
                                                                                                 metric_train_f1_batches.result()))
 
-        if batch_index > 2:
-            break
-
         # add one step to checkpoint
         ckpt_classifier.step.assign_add(1)
 
