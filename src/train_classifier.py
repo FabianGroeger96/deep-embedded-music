@@ -43,21 +43,21 @@ def train():
             labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
             labels = tf.dtypes.cast(labels, tf.int32)
 
-            c_loss = classifier_loss_fn(y_true=labels, y_pred=pred)
+            loss = classifier_loss_fn(y_true=labels, y_pred=pred)
 
         # GradientTape automatically retrieves the gradients of the trainable variables with respect to the loss
-        grads = tape.gradient(c_loss, classifier.trainable_weights)
+        grads = tape.gradient(loss, classifier.trainable_weights)
         # update the values of the trainable variables to minimize the loss
         classifier_optimizer.apply_gradients(zip(grads, classifier.trainable_weights))
 
-        metric_train_loss_batches(c_loss)
-        metric_train_loss_epochs(c_loss)
+        metric_train_loss_batches(loss)
+        metric_train_loss_epochs(loss)
 
         metric_train_accuracy_batches(labels, pred)
         metric_train_accuracy_epochs(labels, pred)
 
+        metric_train_f1_batches.update_state(tf.one_hot(labels, len(dataset.LABELS)), pred)
         metric_train_f1_epochs.update_state(tf.one_hot(labels, len(dataset.LABELS)), pred)
-        metric_train_mcc_epochs.update_state(tf.one_hot(labels, len(dataset.LABELS)), pred)
 
         # write batch losses to summary writer
         with train_summary_writer.as_default():
@@ -66,8 +66,15 @@ def train():
                               step=int(ckpt_classifier.step))
             tf.summary.scalar("classifier/train_accuracy_batches", metric_train_accuracy_batches.result(),
                               step=int(ckpt_classifier.step))
+            tf.summary.scalar("classifier/train_f1_batches", metric_train_f1_batches.result(),
+                              step=int(ckpt_classifier.step))
 
-        logger.info("Classifier loss: {0}".format(c_loss))
+        logger.info("TRAIN - batch index: {0}, loss: {1:.2f}, acc: {2:.2f}, f1: {3:.2f}".format(batch_index, loss,
+                                                                                                metric_train_accuracy_batches.result(),
+                                                                                                metric_train_f1_batches.result()))
+
+        if batch_index > 2:
+            break
 
         # add one step to checkpoint
         ckpt_classifier.step.assign_add(1)
@@ -78,10 +85,10 @@ def train():
         tf.summary.scalar("classifier/train_loss_epochs", metric_train_loss_epochs.result(), step=epoch)
         tf.summary.scalar("classifier/train_accuracy_epochs", metric_train_accuracy_epochs.result(), step=epoch)
         tf.summary.scalar("classifier/train_f1_epochs", metric_train_f1_epochs.result(), step=epoch)
-        tf.summary.scalar("classifier/train_mcc_epochs", metric_train_mcc_epochs.result(), step=epoch)
 
 
 def evaluate():
+    logger.info("Starting to evaluate")
     dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.EVAL,
                                             shuffle=params.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
@@ -90,22 +97,22 @@ def evaluate():
         emb_neighbour = model(neighbour, training=False)
         emb_opposite = model(opposite, training=False)
 
-        # record the operations run during the forward pass, which enables auto differentiation
-        with tf.GradientTape() as tape:
-            # run the forward pass of the layer
-            pred_anchor = classifier(emb_anchor)
-            pred_neighbour = classifier(emb_neighbour)
-            pred_opposite = classifier(emb_opposite)
+        # run the forward pass of the layer
+        pred_anchor = classifier(emb_anchor)
+        pred_neighbour = classifier(emb_neighbour)
+        pred_opposite = classifier(emb_opposite)
 
-            pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
-            labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
+        pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
+        labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
+        labels = tf.dtypes.cast(labels, tf.int32)
 
-            c_loss = classifier_loss_fn(y_true=labels, y_pred=pred)
+        loss = classifier_loss_fn(y_true=labels, y_pred=pred)
 
-        metric_eval_loss_epochs(c_loss)
+        metric_eval_loss_epochs(loss)
         metric_eval_accuracy_epochs(labels, pred)
-        metric_eval_f1_epochs.update_state(labels, pred)
-        metric_eval_mcc_epochs.update_state(labels, pred)
+        metric_eval_f1_epochs.update_state(tf.one_hot(labels, len(dataset.LABELS)), pred)
+
+        logger.info("EVAL - batch index: {0}, loss: {1:.2f}".format(batch_index, loss))
 
     # write epoch loss to summary writer
     with train_summary_writer.as_default():
@@ -113,7 +120,6 @@ def evaluate():
         tf.summary.scalar("classifier/eval_loss_epochs", metric_eval_loss_epochs.result(), step=epoch)
         tf.summary.scalar("classifier/eval_accuracy_epochs", metric_eval_accuracy_epochs.result(), step=epoch)
         tf.summary.scalar("classifier/eval_f1_epochs", metric_eval_f1_epochs.result(), step=epoch)
-        tf.summary.scalar("classifier/eval_mcc_epochs", metric_eval_mcc_epochs.result(), step=epoch)
 
 
 if __name__ == "__main__":
@@ -164,15 +170,15 @@ if __name__ == "__main__":
     # define triplet loss metrics
     metric_train_accuracy_batches = tf.keras.metrics.SparseCategoricalAccuracy()
     metric_train_accuracy_epochs = tf.keras.metrics.SparseCategoricalAccuracy()
-    metric_train_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS))
-    metric_train_mcc_epochs = tfa.metrics.MatthewsCorrelationCoefficient(num_classes=len(dataset.LABELS))
 
-    metric_eval_accuracy_epochs = tf.keras.metrics.SparseCategoricalAccuracy()
-    metric_eval_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS))
-    metric_eval_mcc_epochs = tfa.metrics.MatthewsCorrelationCoefficient(num_classes=len(dataset.LABELS))
+    metric_train_f1_batches = tfa.metrics.F1Score(num_classes=len(dataset.LABELS), average="macro")
+    metric_train_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS), average="macro")
 
     metric_train_loss_batches = tf.keras.metrics.Mean("train_loss_batches", dtype=tf.float32)
     metric_train_loss_epochs = tf.keras.metrics.Mean("train_loss_epochs", dtype=tf.float32)
+
+    metric_eval_accuracy_epochs = tf.keras.metrics.SparseCategoricalAccuracy()
+    metric_eval_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS), average="macro")
     metric_eval_loss_epochs = tf.keras.metrics.Mean("eval_loss_epochs", dtype=tf.float32)
 
     # define checkpoint and checkpoint manager
@@ -191,7 +197,9 @@ if __name__ == "__main__":
     for epoch in range(params.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
 
+        # train the classifier
         train()
+        # evaluate the classifier
         evaluate()
 
         # reset metrics every epoch
@@ -202,3 +210,5 @@ if __name__ == "__main__":
         metric_train_loss_batches.reset_states()
         metric_train_loss_epochs.reset_states()
         metric_eval_loss_epochs.reset_states()
+
+        logger.info("Epoch end")
