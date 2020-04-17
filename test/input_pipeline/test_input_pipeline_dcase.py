@@ -35,7 +35,7 @@ class TestInputPipeline(tf.test.TestCase):
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True)
-        for anchor, neighbour, opposite in dataset_iterator:
+        for anchor, neighbour, opposite, _ in dataset_iterator:
             # check if triplets have a third dimension (channel)
             expected_shape = [self.params.batch_size, self.params.sample_tile_size * self.params.sample_rate]
             self.assertEqual(expected_shape, anchor.shape)
@@ -51,7 +51,7 @@ class TestInputPipeline(tf.test.TestCase):
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True)
-        for anchor, neighbour, opposite in dataset_iterator:
+        for anchor, neighbour, opposite, _ in dataset_iterator:
             # check if triplets have a third dimension (channel)
             expected_shape = [self.params.batch_size, self.params.sample_tile_size * self.params.sample_rate,
                               self.params.stereo_channels]
@@ -65,7 +65,7 @@ class TestInputPipeline(tf.test.TestCase):
         self.set_dcase_dataset()
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True)
-        for anchor, neighbour, opposite in dataset_iterator:
+        for anchor, neighbour, opposite, _ in dataset_iterator:
             # check if there are the same number of samples as requested (batch_size)
             self.assertEqual(self.params.batch_size, anchor.shape[0])
             self.assertEqual(self.params.batch_size, neighbour.shape[0])
@@ -77,7 +77,7 @@ class TestInputPipeline(tf.test.TestCase):
         self.set_dcase_dataset()
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True)
-        for anchor, neighbour, opposite in dataset_iterator:
+        for anchor, neighbour, opposite, _ in dataset_iterator:
             # check if triplets have the correct audio size (sample_rate)
             self.assertEqual(self.params.sample_rate * self.params.sample_tile_size, anchor.shape[1])
             self.assertEqual(self.params.sample_rate * self.params.sample_tile_size, neighbour.shape[1])
@@ -93,7 +93,7 @@ class TestInputPipeline(tf.test.TestCase):
         self.set_dcase_dataset()
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True)
-        for anchor, neighbour, opposite in dataset_iterator:
+        for anchor, neighbour, opposite, _ in dataset_iterator:
             self.assertFalse(np.array_equal(anchor.numpy(), neighbour.numpy()))
             self.assertFalse(np.array_equal(anchor.numpy(), opposite.numpy()))
             self.assertFalse(np.array_equal(neighbour.numpy(), opposite.numpy()))
@@ -112,7 +112,7 @@ class TestInputPipeline(tf.test.TestCase):
 
         audio_pipeline = self.get_input_pipeline()
         datset = audio_pipeline.get_dataset(feature_extractor=feature_extractor, shuffle=True)
-        for anchor, neighbour, opposite in datset:
+        for anchor, neighbour, opposite, _ in datset:
             # check if triplets have the correct shape
             expected_shape = [self.params.batch_size, frame_size, n_mfcc_bin, self.params.stereo_channels]
             self.assertEqual(expected_shape, anchor.shape)
@@ -131,7 +131,7 @@ class TestInputPipeline(tf.test.TestCase):
 
         audio_pipeline = self.get_input_pipeline()
         dataset = audio_pipeline.get_dataset(feature_extractor=feature_extractor, shuffle=True)
-        for anchor, neighbour, opposite in dataset:
+        for anchor, neighbour, opposite, _ in dataset:
             # check if triplets have the correct shape
             expected_shape = [self.params.batch_size, frame_size, n_mel_bin, self.params.stereo_channels]
             self.assertEqual(expected_shape, anchor.shape)

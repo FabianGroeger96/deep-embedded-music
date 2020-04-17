@@ -167,11 +167,11 @@ class TripletsInputPipeline:
                 feature_extractor.extract(o),
                 labels), num_parallel_calls=self.num_parallel_calls)
 
-            if shuffle:
-                # buffer size defines from how much elements are in the buffer, from which then will get shuffled
-                dataset = dataset.shuffle(buffer_size=self.random_selection_buffer_size)
+        if shuffle:
+            # buffer size defines from how much elements are in the buffer, from which then will get shuffled
+            dataset = dataset.shuffle(buffer_size=self.random_selection_buffer_size)
 
-            dataset = dataset.batch(self.batch_size)
-            dataset = dataset.prefetch(self.prefetch_batches)
+        dataset = dataset.batch(self.batch_size)
+        dataset = dataset.prefetch(self.prefetch_batches)
 
-            return dataset
+        return dataset

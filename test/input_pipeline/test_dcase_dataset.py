@@ -2,6 +2,7 @@ import os
 
 import tensorflow as tf
 
+from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.dcase_dataset import DCASEDataset
 from src.utils.params import Params
 
@@ -14,7 +15,7 @@ class TestDCASEDataset(tf.test.TestCase):
         self.params = Params(json_path)
 
     def get_dataset(self):
-        dataset = DCASEDataset(params=self.params)
+        dataset = DatasetFactory.create_dataset("DCASEDataset", params=self.params)
 
         return dataset
 
