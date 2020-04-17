@@ -24,6 +24,7 @@ class BasicBlock(tf.keras.layers.Layer):
         else:
             self.downsample = lambda x: x
 
+    @tf.function
     def call(self, inputs, training=None, **kwargs):
         residual = self.downsample(inputs)
 
@@ -63,6 +64,7 @@ class BottleNeck(tf.keras.layers.Layer):
                                                    strides=stride))
         self.downsample.add(tf.keras.layers.BatchNormalization())
 
+    @tf.function
     def call(self, inputs, training=None, **kwargs):
         residual = self.downsample(inputs)
 
