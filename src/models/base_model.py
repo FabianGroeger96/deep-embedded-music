@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 
 import tensorflow as tf
 
+from src.models.residual_block import BasicBlock, BottleNeck
+
 
 class BaseModel(tf.keras.Model, ABC):
     """ The abstract base model. All models will inherit this base. """
@@ -46,7 +48,7 @@ class BaseModel(tf.keras.Model, ABC):
             # expands dimension to work with 2D inputs
             if self.expand_dims:
                 inputs = tf.expand_dims(inputs, -1)
-            features = self.forward_pass(inputs)
+            features = self.forward_pass(inputs, training=training)
 
         elif len(inputs.shape) == 4:
             self.logger.debug("Model used to predict multi channel input.")
@@ -58,7 +60,7 @@ class BaseModel(tf.keras.Model, ABC):
             for i in range(inputs.shape[-1]):
                 # extract one audio channel
                 audio_channel = tf.squeeze(inputs[:, i])
-                feature_channel = self.forward_pass(audio_channel)
+                feature_channel = self.forward_pass(audio_channel, training=training)
                 outputs.append(feature_channel)
             # merge audio channels together
             features = tf.keras.layers.concatenate(outputs)
@@ -86,15 +88,34 @@ class BaseModel(tf.keras.Model, ABC):
         # log end sequence
         self.logger.info("--- MODEL Architecture ---")
 
+    def make_basic_block_layer(self, filter_num, blocks, stride=1):
+        res_block = tf.keras.Sequential()
+        res_block.add(BasicBlock(filter_num, stride=stride))
+
+        for _ in range(1, blocks):
+            res_block.add(BasicBlock(filter_num, stride=1))
+
+        return res_block
+
+    def make_bottleneck_layer(self, filter_num, blocks, stride=1):
+        res_block = tf.keras.Sequential()
+        res_block.add(BottleNeck(filter_num, stride=stride))
+
+        for _ in range(1, blocks):
+            res_block.add(BottleNeck(filter_num, stride=1))
+
+        return res_block
+
     @abstractmethod
     @tf.function
-    def forward_pass(self, inputs):
+    def forward_pass(self, inputs, training=None):
         """
         Abstract method.
         The forward pass through the network.
         Needs to be implemented in models which inherit the BaseModel.
 
         :param inputs: the input that will be passed through the model.
+        :param training: if the model is training, for disabling dropout, batch norm. etc.
         :return: the output of the forward pass.
         """
         pass

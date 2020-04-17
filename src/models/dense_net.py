@@ -21,20 +21,22 @@ class DenseEncoder(BaseModel):
         self.dense = tf.keras.layers.Dense(embedding_dim, input_shape=(None, None, None), activation="relu")
 
     @tf.function
-    def forward_pass(self, inputs):
+    def forward_pass(self, inputs, training=None):
         """
         The forward pass through the network.
 
         :param inputs: the input that will be passed through the model.
+        :param training: if the model is training, for disabling dropout, batch norm. etc.
         :return: the output of the forward pass.
         """
         # Embedding layer
-        features = self.flatten(inputs)
-        features = self.dense(features)
-        # L2 normalisation
-        features = self.l2_normalisation(features)
+        x = self.flatten(inputs)
+        x = self.dense(x)
 
-        return features
+        # L2 normalisation
+        x = self.l2_normalisation(x)
+
+        return x
 
     def log_model_specific_layers(self):
         """

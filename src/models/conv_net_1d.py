@@ -29,37 +29,46 @@ class ConvNet1D(BaseModel):
         self.dropout = tf.keras.layers.Dropout(0.3)
 
     @tf.function
-    def forward_pass(self, inputs):
+    def forward_pass(self, inputs, training=None):
         """
         The forward pass through the network.
 
         :param inputs: the input that will be passed through the model.
+        :param training: if the model is training, for disabling dropout, batch norm. etc.
         :return: the output of the forward pass.
         """
-        # TODO - training=False disable dropout
         # 1. Conv layer
-        features = self.conv_1(inputs)
-        features = self.max_pooling(features)
-        features = self.dropout(features)
-        # 2. Conv layer
-        features = self.conv_2(features)
-        features = self.max_pooling(features)
-        features = self.dropout(features)
-        # 3. Conv layer
-        features = self.conv_3(features)
-        features = self.max_pooling(features)
-        features = self.dropout(features)
-        # 4. Conv layer
-        features = self.conv_4(features)
-        features = self.max_pooling(features)
-        features = self.dropout(features)
-        # Embedding layer
-        features = self.flatten(features)
-        features = self.dense(features)
-        # L2 normalisation
-        features = self.l2_normalisation(features)
+        x = self.conv_1(inputs)
+        x = self.max_pooling(x)
+        if training:
+            x = self.dropout(x)
 
-        return features
+        # 2. Conv layer
+        x = self.conv_2(x)
+        x = self.max_pooling(x)
+        if training:
+            x = self.dropout(x)
+
+        # 3. Conv layer
+        x = self.conv_3(x)
+        x = self.max_pooling(x)
+        if training:
+            x = self.dropout(x)
+
+        # 4. Conv layer
+        x = self.conv_4(x)
+        x = self.max_pooling(x)
+        if training:
+            x = self.dropout(x)
+
+        # Embedding layer
+        x = self.flatten(x)
+        x = self.dense(x)
+
+        # L2 normalisation
+        x = self.l2_normalisation(x)
+
+        return x
 
     def log_model_specific_layers(self):
         """
