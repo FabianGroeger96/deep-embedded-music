@@ -44,6 +44,7 @@ class DCASEDataset(BaseDataset):
         self.log = log
 
         self.initialise()
+        self.change_dataset_type(self.dataset_type)
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
