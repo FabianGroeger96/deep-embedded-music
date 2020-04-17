@@ -8,13 +8,12 @@ from src.models.model_factory import ModelFactory
 class ConvGRUNet(BaseModel):
     """ A 2-dimensional CNN model with an additional GRU layer before the fully connected one. """
 
-    def __init__(self, embedding_dim, batch_normalisation=False, model_name="ConvGRUNet"):
+    def __init__(self, embedding_dim, model_name="ConvGRUNet"):
         """
        Initialises the model.
        Calls the initialise method of the super class.
 
        :param embedding_dim: the dimension for the embedding space.
-       :param batch_normalisation: if the batches should be normalised
        :param model_name: the name of the model.
        """
 
@@ -36,73 +35,59 @@ class ConvGRUNet(BaseModel):
         self.reshape = tf.keras.layers.Reshape((-1, 32))
         self.gru_1 = tf.keras.layers.GRU(32, return_sequences=True)
 
-        self.use_batch_normalisation = batch_normalisation
-        if self.use_batch_normalisation:
-            self.batch_normalisation = tf.keras.layers.BatchNormalization()
+        self.batch_normalisation = tf.keras.layers.BatchNormalization()
 
         self.dropout = tf.keras.layers.Dropout(0.3)
 
     @tf.function
-    def forward_pass(self, inputs):
+    def forward_pass(self, inputs, training=None):
         """
         The forward pass through the network.
 
         :param inputs: the input that will be passed through the model.
+        :param training: if the model is training, for disabling dropout, batch norm. etc.
         :return: the output of the forward pass.
         """
         # 1. Conv layer
-        features = self.conv_1(inputs)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.max_pooling_1(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        if self.use_batch_normalisation:
-            features = self.batch_normalisation(features)
+        x = self.conv_1(inputs)
+        x = self.max_pooling_1(x)
+        if training:
+            x = self.batch_normalisation(x)
 
         # 2. Conv layer
-        features = self.conv_2(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.max_pooling_2(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        if self.use_batch_normalisation:
-            features = self.batch_normalisation(features)
+        x = self.conv_2(x)
+        x = self.max_pooling_2(x)
+        if training:
+            x = self.batch_normalisation(x)
 
         # 3. Conv layer
-        features = self.conv_3(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.max_pooling_3(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        if self.use_batch_normalisation:
-            features = self.batch_normalisation(features)
+        x = self.conv_3(x)
+        x = self.max_pooling_3(x)
+        if training:
+            x = self.batch_normalisation(x)
 
         # 4. Conv layer
-        features = self.conv_4(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.max_pooling_4(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        if self.use_batch_normalisation:
-            features = self.batch_normalisation(features)
+        x = self.conv_4(x)
+        x = self.max_pooling_4(x)
+        if training:
+            x = self.batch_normalisation(x)
 
         # GRU layer
-        features = self.reshape(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.gru_1(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        if self.use_batch_normalisation:
-            features = self.batch_normalisation(features)
+        x = self.reshape(x)
+        x = self.gru_1(x)
+        if training:
+            x = self.batch_normalisation(x)
 
         # Embedding layer
-        features = self.flatten(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.dense(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.dropout(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
+        x = self.flatten(x)
+        x = self.dense(x)
+        if training:
+            x = self.dropout(x)
 
         # L2 normalisation
-        features = self.l2_normalisation(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
+        x = self.l2_normalisation(x)
 
-        return features
+        return x
 
     def log_model_specific_layers(self):
         """

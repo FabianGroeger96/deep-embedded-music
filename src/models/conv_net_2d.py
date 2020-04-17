@@ -37,46 +37,42 @@ class ConvNet2D(BaseModel):
         self.dropout = tf.keras.layers.Dropout(0.3)
 
     @tf.function
-    def forward_pass(self, inputs):
+    def forward_pass(self, inputs, training=None):
         """
         The forward pass through the network.
 
         :param inputs: the input that will be passed through the model.
+        :param training: if the model is training, for disabling dropout, batch norm. etc.
         :return: the output of the forward pass.
         """
         # 1. Conv layer
-        features = self.conv_1(inputs)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.max_pooling_1(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        if self.use_batch_normalisation:
-            features = self.batch_normalisation(features)
-        # 2. Conv layer
-        features = self.conv_2(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.max_pooling_2(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        if self.use_batch_normalisation:
-            features = self.batch_normalisation(features)
-        # 3. Conv layer
-        features = self.conv_3(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.max_pooling_3(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        if self.use_batch_normalisation:
-            features = self.batch_normalisation(features)
-        # Embedding layer
-        features = self.flatten(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.dense(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        features = self.dropout(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
-        # L2 normalisation
-        features = self.l2_normalisation(features)
-        self.logger.debug("Feature shape: {}".format(features.shape))
+        x = self.conv_1(inputs)
+        x = self.max_pooling_1(x)
+        if self.use_batch_normalisation and training:
+            x = self.batch_normalisation(x)
 
-        return features
+        # 2. Conv layer
+        x = self.conv_2(x)
+        x = self.max_pooling_2(x)
+        if self.use_batch_normalisation and training:
+            x = self.batch_normalisation(x)
+
+        # 3. Conv layer
+        x = self.conv_3(x)
+        x = self.max_pooling_3(x)
+        if self.use_batch_normalisation and training:
+            x = self.batch_normalisation(x)
+
+        # Embedding layer
+        x = self.flatten(x)
+        x = self.dense(x)
+        if training:
+            x = self.dropout(x)
+
+        # L2 normalisation
+        x = self.l2_normalisation(x)
+
+        return x
 
     def log_model_specific_layers(self):
         """
