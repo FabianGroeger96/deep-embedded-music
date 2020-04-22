@@ -1,4 +1,12 @@
+from enum import Enum
+
 import tensorflow as tf
+
+
+class TripletLossStrategy(Enum):
+    ALL = 0
+    ZERO_FILTERED = 1
+    HARDEST_NEG = 2
 
 
 class TripletLoss(tf.keras.losses.Loss):
@@ -9,14 +17,16 @@ class TripletLoss(tf.keras.losses.Loss):
     The goal of this loss is to minimize the distance between the anchor and the neighbour, and to maximize the
     distance between the anchor and the opposite."""
 
-    def __init__(self, margin):
+    def __init__(self, margin, strategy: TripletLossStrategy = TripletLossStrategy.ALL):
         """
         Initialises the triplet loss.
 
         :param margin: the margin between the distance of the anchor to the neighbour and the anchor to the opposite.
+        :param strategy: the strategy for calculating the loss.
         """
         super(TripletLoss, self).__init__()
         self.margin = margin
+        self.strategy = strategy
 
     @tf.function
     def calculate_distance(self, anchor, embedding):
@@ -32,7 +42,6 @@ class TripletLoss(tf.keras.losses.Loss):
 
         return distance_sum
 
-    @tf.function
     def call(self, y_true, y_pred):
         """
         Calculates the triplet loss of the given embeddings.
@@ -52,6 +61,15 @@ class TripletLoss(tf.keras.losses.Loss):
 
         loss = tf.add(tf.subtract(dist_neighbour, dist_opposite), self.margin)
         loss = tf.maximum(0.0, loss)
-        loss = tf.reduce_mean(loss)
+
+        if self.strategy == TripletLossStrategy.ALL:
+            loss = tf.reduce_mean(loss)
+        elif self.strategy == TripletLossStrategy.ZERO_FILTERED:
+            # Count number of positive triplets (where triplet_loss > 0)
+            valid_triplets = tf.cast(tf.greater(loss, 1e-16), dtype=tf.float32)
+            num_positive_triplets = tf.reduce_sum(valid_triplets)
+
+            # Get final mean triplet loss over the positive valid triplets
+            loss = tf.reduce_sum(loss) / (num_positive_triplets + 1e-16)
 
         return loss
