@@ -61,7 +61,10 @@ def main():
     # define dataset
     dataset = DatasetFactory.create_dataset(name=params.dataset, params=params)
     # get the feature extractor from the factory
-    extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
+    if not params.feature_extractor == "None":
+        extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
+    else:
+        extractor = None
     # define triplet input pipeline
     pipeline = TripletsInputPipeline(params=params, dataset=dataset, log=False)
 

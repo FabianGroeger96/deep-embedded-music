@@ -25,6 +25,9 @@ class BaseModel(tf.keras.Model, ABC):
         self.model_name = model_name
         self.expand_dims = expand_dims
 
+        # TODO try sigmoid activation for embedding layer
+        # max distance is then embedding dimension
+        # for looseless triplet loss
         self.dense = tf.keras.layers.Dense(embedding_dim, activation=None)
         self.flatten = tf.keras.layers.Flatten()
 
@@ -45,6 +48,15 @@ class BaseModel(tf.keras.Model, ABC):
         self.log_feature_shape("Inputs", inputs)
         if len(inputs.shape) == 3:
             self.logger.debug("Model used to predict single channel input.")
+            # expands dimension to work with 2D inputs
+            if self.expand_dims:
+                inputs = tf.expand_dims(inputs, -1)
+            features = self.forward_pass(inputs, training=training)
+
+        elif len(inputs.shape) == 2:
+            self.logger.debug("Model used to predict single channel input.")
+            # expand dimension for raw waveform
+            inputs = tf.expand_dims(inputs, -1)
             # expands dimension to work with 2D inputs
             if self.expand_dims:
                 inputs = tf.expand_dims(inputs, -1)
