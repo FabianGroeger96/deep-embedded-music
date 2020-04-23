@@ -80,12 +80,14 @@ class TripletsInputPipeline:
             if self.log and False:
                 self.logger.debug("{0}, index:{1}".format(gen_name, self.gen_index))
 
+            # fill the opposite sample buffer
+            opposite_audios = self.dataset.fill_opposite_selection(index)
+
             # load audio files from anchor
             anchor = self.dataset.df_train.iloc[index]
             if self.dataset_name == "MusicDataset":
                 anchor_audio, _ = librosa.load(anchor.file_name, self.sample_rate)
                 anchor_audio, _ = librosa.effects.trim(anchor_audio)
-                self.dataset.fill_opposite_selection(index)
             else:
                 anchor_audio = AudioUtils.load_audio_from_file(anchor.file_name, self.sample_rate, self.sample_size,
                                                                self.stereo_channels,
@@ -94,7 +96,8 @@ class TripletsInputPipeline:
             anchor_audio_length = int(len(anchor_audio) / self.sample_rate)
 
             try:
-                triplets = self.dataset.get_triplets(index, anchor_audio_length, trim=trim)
+                triplets = self.dataset.get_triplets(index, anchor_audio_length, trim=trim,
+                                                     opposite_choices=opposite_audios)
             except ValueError as err:
                 self.logger.debug("Error during triplet creation: {}".format(err))
                 continue
@@ -105,13 +108,8 @@ class TripletsInputPipeline:
                 anchor_seg, neighbour_seg, opposite_seg = triplet
 
                 # load audio files from neighbour
-                if self.dataset_name == "MusicDataset":
-                    opposite_audio = self.dataset.opposite_audios[opposite_seg[0]]
-                else:
-                    opposite = self.dataset.df_train.iloc[opposite_seg[0]]
-                    opposite_audio = AudioUtils.load_audio_from_file(opposite.file_name, self.sample_rate, self.sample_size,
-                                                                     self.stereo_channels,
-                                                                     self.to_mono)
+                opposite_entry = opposite_audios[opposite_seg[0]]
+                opposite_audio = opposite_entry[0]
 
                 # cut the tiles out of the audio files
                 anchor_audio_seg = anchor_audio[anchor_seg[1] * self.sample_rate:(anchor_seg[1] +
@@ -122,7 +120,7 @@ class TripletsInputPipeline:
                                                                                         self.sample_tile_size) * self.sample_rate]
 
                 if self.dataset_type == DatasetType.EVAL or return_labels:
-                    labels = [anchor.label, anchor.label, opposite.label]
+                    labels = [anchor.label, anchor.label, opposite_entry[1]]
                 else:
                     labels = [-1, -1, -1]
                 labels = np.asarray(labels)

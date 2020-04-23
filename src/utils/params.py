@@ -44,6 +44,8 @@ class Params:
         self.gen_count = None
         self.num_parallel_calls = None  # -1 for tf.data.experimental.AUTOTUNE
 
+        self.opposite_sample_buffer_size = None
+
         self.sample_rate = None
         self.sample_size = None
         self.sample_tile_size = None

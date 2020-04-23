@@ -33,9 +33,9 @@ class TestMusicDataset(tf.test.TestCase):
             anchor_audio, _ = librosa.load(anchor.file_name, self.params.sample_rate)
             anchor_audio_length = int(len(anchor_audio) / self.params.sample_rate)
 
-            dataset.fill_opposite_selection(index)
+            opposite_choices = dataset.fill_opposite_selection(index)
 
-            triplets = dataset.get_triplets(index, audio_length=anchor_audio_length)
+            triplets = dataset.get_triplets(index, audio_length=anchor_audio_length, opposite_choices=opposite_choices)
             for triplet in triplets:
                 self.assertEqual(len(triplet), 3)
 

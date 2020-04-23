@@ -48,7 +48,8 @@ class BaseDataset(ABC):
         pass
 
     @abstractmethod
-    def get_triplets(self, audio_id, audio_length, trim: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+    def get_triplets(self, audio_id, audio_length, opposite_choices, trim: bool = True) -> Tuple[
+        np.ndarray, np.ndarray]:
         pass
 
     @abstractmethod
@@ -56,7 +57,7 @@ class BaseDataset(ABC):
         pass
 
     @abstractmethod
-    def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int):
+    def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int, opposite_choices):
         pass
 
     @abstractmethod

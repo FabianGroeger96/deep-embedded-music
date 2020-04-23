@@ -37,7 +37,9 @@ class TestDCASEDataset(tf.test.TestCase):
 
             anchor_audio_length = int(len(anchor_audio) / self.params.sample_rate)
 
-            triplets = dataset.get_triplets(index, audio_length=anchor_audio_length)
+            opposite_audios = dataset.fill_opposite_selection(index)
+
+            triplets = dataset.get_triplets(index, audio_length=anchor_audio_length, opposite_choices=opposite_audios)
             for triplet in triplets:
                 self.assertEqual(len(triplet), 3)
 
@@ -46,8 +48,6 @@ class TestDCASEDataset(tf.test.TestCase):
                 self.assertEqual(len(anchor_seg), 2)
                 self.assertEqual(len(neighbour_seg), 2)
                 self.assertEqual(len(opposite_seg), 2)
-
-            break
 
 
 if __name__ == '__main__':
