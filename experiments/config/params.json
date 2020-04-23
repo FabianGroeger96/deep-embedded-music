@@ -31,7 +31,7 @@
   "gen_count": 8,
   "num_parallel_calls": 8,
 
-  "opposite_sample_buffer_size": 3,
+  "opposite_sample_buffer_size": 10,
 
   "sample_rate": 16000,
   "sample_size": 10,
