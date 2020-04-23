@@ -1,8 +1,5 @@
 import logging
-import math
 import pathlib
-import random
-from typing import Tuple
 
 import librosa
 import numpy as np
@@ -13,7 +10,6 @@ from src.input_pipeline.base_dataset import BaseDataset
 from src.input_pipeline.dataset_factory import DatasetFactory
 from src.utils.params import Params
 from src.utils.utils import Utils
-from src.utils.utils_audio import AudioUtils
 
 
 @DatasetFactory.register("MusicDataset")
@@ -39,6 +35,10 @@ class MusicDataset(BaseDataset):
 
         self.train_test_split = params.train_test_split
         self.log = log
+
+        # set the random seed
+        self.random_seed = params.random_seed
+        np.random.seed(self.random_seed)
 
         self.initialise()
 
@@ -156,7 +156,7 @@ class MusicDataset(BaseDataset):
     def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int, opposite_choices):
         # crate array of possible sample positions
         opposite_possible = np.arange(0, len(opposite_choices), 1)
-        opposite = random.choice(opposite_possible)
+        opposite = np.random.choice(opposite_possible, size=1)[0]
 
         opposite_audio = opposite_choices[opposite][0]
         opposite_audio_length = int(len(opposite_audio) / self.sample_rate)
@@ -165,7 +165,7 @@ class MusicDataset(BaseDataset):
         sample_possible = np.arange(0, opposite_audio_length - self.sample_tile_size, self.sample_tile_size)
 
         # random choose neighbour in possible samples
-        opposite_id = np.random.choice(sample_possible, 1)[0]
+        opposite_id = np.random.choice(sample_possible, size=1)[0]
 
         return [opposite, opposite_id]
 

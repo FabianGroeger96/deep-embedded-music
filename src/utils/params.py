@@ -38,6 +38,8 @@ class Params:
         self.random_selection_buffer_size = None
         self.learning_rate = None
 
+        self.random_seed = None
+
         self.shuffle_dataset = None
         self.train_test_split = None
 
