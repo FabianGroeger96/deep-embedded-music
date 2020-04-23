@@ -70,6 +70,7 @@ def main():
 
     # create model from factory and specified name within the params
     model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
+    # TODO train learning rate decay
     # create the optimizer for the model
     optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
     # create the loss function for the model
