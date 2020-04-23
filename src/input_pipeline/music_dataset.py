@@ -19,35 +19,14 @@ class MusicDataset(BaseDataset):
               "Techno_PeakTime_Driving_Hard", "Techno_Raw_Deep_Hypnotic", "Trance"]
 
     def __init__(self, params: Params, log: bool = False):
-
-        super().__init__()
-
-        self.params = params
+        super().__init__(params=params, log=log)
 
         self.dataset_path = Utils.check_if_path_exists(params.music_dataset_path)
 
-        self.opposite_sample_buffer_size = params.opposite_sample_buffer_size
-
-        self.sample_rate = params.sample_rate
-
-        self.sample_tile_size = params.sample_tile_size
-        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
-
-        self.train_test_split = params.train_test_split
-        self.log = log
-
-        # set the random seed
-        self.random_seed = params.random_seed
-        np.random.seed(self.random_seed)
-
         self.initialise()
+        self.change_dataset_type(self.dataset_type)
 
         self.logger = logging.getLogger(self.__class__.__name__)
-        if self.log:
-            self.logger.debug(self.df.head())
-
-        self.count_classes()
-        self.logger.info("Total audio samples: {}".format(self.df["name"].count()))
 
     def __iter__(self):
         return self
@@ -77,7 +56,8 @@ class MusicDataset(BaseDataset):
         # shuffle dataset
         self.df = self.df.sample(frac=1).reset_index(drop=True)
         # split dataset into train and test, test will be used for visualising
-        self.df_train, self.df_test = train_test_split(self.df, test_size=self.train_test_split)
+        self.df_train, self.df_eval = train_test_split(self.df, test_size=self.train_test_split)
+        self.df_eval, self.df_test = train_test_split(self.df_eval, test_size=self.train_test_split)
 
     def load_data_frame(self):
         audio_names = []
@@ -168,8 +148,3 @@ class MusicDataset(BaseDataset):
         opposite_id = np.random.choice(sample_possible, size=1)[0]
 
         return [opposite, opposite_id]
-
-    def split_audio_in_segment(self, audio, segment_id, sample_size):
-        segment = audio[segment_id * sample_size * self.sample_rate: (segment_id + 1) * sample_size * self.sample_rate]
-
-        return segment

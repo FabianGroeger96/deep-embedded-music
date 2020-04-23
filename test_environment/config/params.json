@@ -24,7 +24,7 @@
   "random_seed": 1234,
 
   "shuffle_dataset": 1,
-  "train_test_split": 0.001,
+  "train_test_split": 0.25,
 
   "gen_count": 4,
   "num_parallel_calls": 4,

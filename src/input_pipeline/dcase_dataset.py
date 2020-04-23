@@ -20,33 +20,10 @@ class DCASEDataset(BaseDataset):
               "watching_tv", "working"]
 
     def __init__(self, params: Params, log: bool = False):
-
-        super().__init__()
-
-        self.params = params
+        super().__init__(params=params, log=log)
 
         self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
         self.fold = params.dcase_dataset_fold
-
-        self.opposite_sample_buffer_size = params.opposite_sample_buffer_size
-
-        self.sample_rate = params.sample_rate
-        self.sample_size = params.sample_size
-
-        self.sample_tile_size = params.sample_tile_size
-        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
-
-        self.stereo_channels = params.stereo_channels
-        self.to_mono = params.to_mono
-
-        self.dataset_type = DatasetType.TRAIN
-
-        self.train_test_split = params.train_test_split
-        self.log = log
-
-        # set the random seed
-        self.random_seed = params.random_seed
-        np.random.seed(self.random_seed)
 
         self.initialise()
         self.change_dataset_type(self.dataset_type)

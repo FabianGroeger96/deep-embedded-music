@@ -8,6 +8,9 @@ import numpy as np
 from dtw import dtw
 from numpy.linalg import norm
 
+from src.utils.params import Params
+from src.utils.utils import Utils
+
 
 class DatasetType(Enum):
     TRAIN = 0
@@ -19,9 +22,30 @@ class BaseDataset(ABC):
     EXPERIMENT_FOLDER = None
     LABELS = []
 
-    def __init__(self):
-        # defines the current index of the iterator
-        self.sample_rate = None
+    def __init__(self, params: Params, log: bool = False):
+        self.params = params
+
+        self.opposite_sample_buffer_size = params.opposite_sample_buffer_size
+
+        self.sample_rate = params.sample_rate
+        self.sample_size = params.sample_size
+
+        self.sample_tile_size = params.sample_tile_size
+        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
+
+        self.stereo_channels = params.stereo_channels
+        self.to_mono = params.to_mono
+
+        self.train_test_split = params.train_test_split
+        self.log = log
+
+        # set the dataset type (e.g. train, eval, test)
+        self.dataset_type = DatasetType.TRAIN
+
+        # set the random seed
+        self.random_seed = params.random_seed
+        np.random.seed(self.random_seed)
+
         self.logger = None
 
         self.df = None
@@ -29,11 +53,8 @@ class BaseDataset(ABC):
         self.df_eval = None
         self.df_test = None
 
-        self.opposite_indices = None
-        self.opposite_audios = []
-
+        # defines the current index of the iterator
         self.current_index = 0
-        self.log = None
 
     @abstractmethod
     def __iter__(self):
@@ -89,6 +110,11 @@ class BaseDataset(ABC):
         for i, label in enumerate(self.LABELS):
             if i < len(label_counts):
                 self.logger.info("Audio samples in {0}: {1}".format(label, label_counts[i]))
+
+    def split_audio_in_segment(self, audio, segment_id):
+        segment = audio[segment_id * self.sample_rate:(segment_id + self.sample_tile_size) * self.sample_rate]
+
+        return segment
 
     def check_if_easy_or_hard_triplet(self, neighbour_dist, opposite_dist):
         # distance to differ between hard / easy triplet

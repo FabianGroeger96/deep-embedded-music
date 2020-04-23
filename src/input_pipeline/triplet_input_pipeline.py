@@ -112,12 +112,9 @@ class TripletsInputPipeline:
                 opposite_audio = opposite_entry[0]
 
                 # cut the tiles out of the audio files
-                anchor_audio_seg = anchor_audio[anchor_seg[1] * self.sample_rate:(anchor_seg[1] +
-                                                                                  self.sample_tile_size) * self.sample_rate]
-                neighbour_audio_seg = anchor_audio[neighbour_seg[1] * self.sample_rate:(neighbour_seg[1] +
-                                                                                        self.sample_tile_size) * self.sample_rate]
-                opposite_audio_seg = opposite_audio[opposite_seg[1] * self.sample_rate:(opposite_seg[1] +
-                                                                                        self.sample_tile_size) * self.sample_rate]
+                anchor_audio_seg = self.dataset.split_audio_in_segment(anchor_audio, anchor_seg[1])
+                neighbour_audio_seg = self.dataset.split_audio_in_segment(anchor_audio, neighbour_seg[1])
+                opposite_audio_seg = self.dataset.split_audio_in_segment(opposite_audio, opposite_seg[1])
 
                 if self.dataset_type == DatasetType.EVAL or return_labels:
                     labels = [anchor.label, anchor.label, opposite_entry[1]]
