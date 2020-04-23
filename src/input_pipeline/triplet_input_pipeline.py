@@ -1,6 +1,7 @@
 import logging
 from typing import Union, Tuple
 
+import librosa
 import numpy as np
 import tensorflow as tf
 
@@ -25,6 +26,7 @@ class TripletsInputPipeline:
         """
 
         self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
+        self.dataset_name = params.dataset
 
         self.fold = params.dcase_dataset_fold
 
@@ -78,17 +80,24 @@ class TripletsInputPipeline:
             if self.log and False:
                 self.logger.debug("{0}, index:{1}".format(gen_name, self.gen_index))
 
+            # load audio files from anchor
+            anchor = self.dataset.df_train.iloc[index]
+            if self.dataset_name == "MusicDataset":
+                anchor_audio, _ = librosa.load(anchor.file_name, self.sample_rate)
+                anchor_audio, _ = librosa.effects.trim(anchor_audio)
+                self.dataset.fill_opposite_selection(index)
+            else:
+                anchor_audio = AudioUtils.load_audio_from_file(anchor.file_name, self.sample_rate, self.sample_size,
+                                                               self.stereo_channels,
+                                                               self.to_mono)
+
+            anchor_audio_length = int(len(anchor_audio) / self.sample_rate)
+
             try:
-                triplets = self.dataset.get_triplets(index, trim=trim)
+                triplets = self.dataset.get_triplets(index, anchor_audio_length, trim=trim)
             except ValueError as err:
                 self.logger.debug("Error during triplet creation: {}".format(err))
                 continue
-
-            # load audio files from anchor
-            anchor = self.dataset.df_train.iloc[triplets[0][0][0]]
-            anchor_audio = AudioUtils.load_audio_from_file(anchor.file_name, self.sample_rate, self.sample_size,
-                                                           self.stereo_channels,
-                                                           self.to_mono)
 
             for triplet in triplets:
                 assert len(triplet) == 3, "Wrong shape of triplets."
@@ -96,15 +105,13 @@ class TripletsInputPipeline:
                 anchor_seg, neighbour_seg, opposite_seg = triplet
 
                 # load audio files from neighbour
-                opposite = self.dataset.df_train.iloc[opposite_seg[0]]
-                opposite_audio = AudioUtils.load_audio_from_file(opposite.file_name, self.sample_rate, self.sample_size,
-                                                                 self.stereo_channels,
-                                                                 self.to_mono)
-
-                # make sure audios have the same size
-                audio_length = self.sample_size * self.sample_rate
-                anchor_audio = anchor_audio[:audio_length]
-                opposite_audio = opposite_audio[:audio_length]
+                if self.dataset_name == "MusicDataset":
+                    opposite_audio = self.dataset.opposite_audios[opposite_seg[0]]
+                else:
+                    opposite = self.dataset.df_train.iloc[opposite_seg[0]]
+                    opposite_audio = AudioUtils.load_audio_from_file(opposite.file_name, self.sample_rate, self.sample_size,
+                                                                     self.stereo_channels,
+                                                                     self.to_mono)
 
                 # cut the tiles out of the audio files
                 anchor_audio_seg = anchor_audio[anchor_seg[1] * self.sample_rate:(anchor_seg[1] +

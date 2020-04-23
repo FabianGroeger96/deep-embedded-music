@@ -3,8 +3,8 @@ import os
 import tensorflow as tf
 
 from src.input_pipeline.dataset_factory import DatasetFactory
-from src.input_pipeline.dcase_dataset import DCASEDataset
 from src.utils.params import Params
+from src.utils.utils_audio import AudioUtils
 
 
 class TestDCASEDataset(tf.test.TestCase):
@@ -29,8 +29,15 @@ class TestDCASEDataset(tf.test.TestCase):
         dataset = self.get_dataset()
 
         for index, audio_entry in enumerate(dataset):
-            triplets = dataset.get_triplets(index)
+            anchor = dataset.df_train.iloc[index]
+            anchor_audio = AudioUtils.load_audio_from_file(anchor.file_name, self.params.sample_rate,
+                                                           self.params.sample_size,
+                                                           self.params.stereo_channels,
+                                                           self.params.to_mono)
 
+            anchor_audio_length = int(len(anchor_audio) / self.params.sample_rate)
+
+            triplets = dataset.get_triplets(index, audio_length=anchor_audio_length)
             for triplet in triplets:
                 self.assertEqual(len(triplet), 3)
 

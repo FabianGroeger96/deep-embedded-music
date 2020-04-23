@@ -29,6 +29,9 @@ class BaseDataset(ABC):
         self.df_eval = None
         self.df_test = None
 
+        self.opposite_indices = None
+        self.opposite_audios = []
+
         self.current_index = 0
         self.log = None
 
@@ -45,7 +48,7 @@ class BaseDataset(ABC):
         pass
 
     @abstractmethod
-    def get_triplets(self, anchor_id, trim: bool = True) -> Tuple[np.ndarray, np.ndarray]:
+    def get_triplets(self, audio_id, audio_length, trim: bool = True) -> Tuple[np.ndarray, np.ndarray]:
         pass
 
     @abstractmethod
@@ -58,6 +61,10 @@ class BaseDataset(ABC):
 
     @abstractmethod
     def initialise(self):
+        pass
+
+    @abstractmethod
+    def fill_opposite_selection(self, index):
         pass
 
     def change_dataset_type(self, dataset_type: DatasetType):

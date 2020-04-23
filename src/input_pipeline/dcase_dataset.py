@@ -134,13 +134,17 @@ class DCASEDataset(BaseDataset):
 
         return test_df
 
-    def get_triplets(self, audio_id, trim: bool = True) -> np.ndarray:
+    def fill_opposite_selection(self, audio_id):
+        # TODO eval if needed
+        pass
+
+    def get_triplets(self, audio_id, audio_length, trim: bool = True) -> np.ndarray:
         try:
             triplets = []
-            for anchor_id in range(0, self.sample_size, self.sample_tile_size):
+            for anchor_id in range(0, audio_length, self.sample_tile_size):
                 a_seg = [audio_id, anchor_id]
-                n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=self.sample_size)
-                o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=self.sample_size)
+                n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length)
+                o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length)
 
                 triplets.append([a_seg, n_seg, o_seg])
 
@@ -174,7 +178,7 @@ class DCASEDataset(BaseDataset):
 
     def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int):
         # crate array of possible sample positions
-        opposite_possible = np.arange(0, len(self.df_train), 1)
+        opposite_possible = np.arange(0, len(self.df), 1)
         opposite_possible = opposite_possible[opposite_possible != audio_id]
 
         if len(opposite_possible) > 0:

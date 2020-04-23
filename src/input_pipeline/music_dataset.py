@@ -13,6 +13,7 @@ from src.input_pipeline.base_dataset import BaseDataset
 from src.input_pipeline.dataset_factory import DatasetFactory
 from src.utils.params import Params
 from src.utils.utils import Utils
+from src.utils.utils_audio import AudioUtils
 
 
 @DatasetFactory.register("MusicDataset")
@@ -28,7 +29,12 @@ class MusicDataset(BaseDataset):
         self.params = params
 
         self.dataset_path = Utils.check_if_path_exists(params.music_dataset_path)
+
         self.sample_rate = params.sample_rate
+
+        self.sample_tile_size = params.sample_tile_size
+        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
+
         self.train_test_split = params.train_test_split
         self.log = log
 
@@ -86,52 +92,32 @@ class MusicDataset(BaseDataset):
             audio_paths.append(file_path)
             audio_labels.append(file_label)
 
-        data = {'name': audio_names, "path": audio_paths, 'label': audio_labels}
+        data = {'name': audio_names, "file_name": audio_paths, 'label': audio_labels}
         data = pd.DataFrame(data)
         data["label"] = data["label"].apply(self.LABELS.index)
 
         return data
 
-    def get_triplets(self, anchor_id, trim: bool = True) -> np.ndarray:
+    def fill_opposite_selection(self, audio_id):
+        opposite_possible = np.arange(0, len(self.df), 1)
+        opposite_possible = opposite_possible[opposite_possible != audio_id]
+        self.opposite_indices = np.random.choice(opposite_possible, 3)
+        self.opposite_audios = []
+        for index in self.opposite_indices:
+            opposite_df = self.df.iloc[index]
+            opposite_audio, _ = librosa.load(opposite_df.file_name, self.sample_rate)
+            opposite_audio, _ = librosa.effects.trim(opposite_audio)
+            self.opposite_audios.append(opposite_audio)
+
+    def get_triplets(self, audio_id, audio_length, trim: bool = True) -> np.ndarray:
         try:
-            anchor = self.df.iloc[anchor_id]
-            neighbour, neighbour_dist = self.get_neighbour(anchor_id)
-            opposite, opposite_dist = self.get_opposite(anchor_id)
-
-            audio_anchor, _ = librosa.load(anchor["path"], self.sample_rate)
-            audio_neighbour, _ = librosa.load(neighbour["path"], self.sample_rate)
-            audio_opposite, _ = librosa.load(opposite["path"], self.sample_rate)
-
-            if trim:
-                # remove leading and trailing silence
-                audio_anchor, _ = librosa.effects.trim(audio_anchor)
-                audio_neighbour, _ = librosa.effects.trim(audio_neighbour)
-                audio_opposite, _ = librosa.effects.trim(audio_opposite)
-
-            # get audio length in seconds
-            audio_anchor_length = librosa.get_duration(audio_anchor, self.sample_rate)
-            audio_neighbour_length = librosa.get_duration(audio_neighbour, self.sample_rate)
-            audio_opposite_length = librosa.get_duration(audio_opposite, self.sample_rate)
-
-            # get the possible count of segments
-            anchor_segments_count = math.floor(audio_anchor_length / 10)
-            neighbour_segments_count = math.floor(audio_neighbour_length / 10)
-            opposite_segments_count = math.floor(audio_opposite_length / 10)
-
             triplets = []
-            labels = []
+            for anchor_id in range(0, audio_length, self.sample_tile_size):
+                a_seg = [audio_id, anchor_id]
+                n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length)
+                o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length)
 
-            for seg_id in range(anchor_segments_count):
-                anchor_seg = audio_anchor[seg_id * 10 * self.sample_rate: (seg_id + 1) * 10 * self.sample_rate]
-
-                neighbour_seg_id = random.randint(0, neighbour_segments_count - 1)
-                neighbour_seg = self.split_audio_in_segment(audio_neighbour, neighbour_seg_id, 10)
-
-                opposite_seg_id = random.randint(0, opposite_segments_count - 1)
-                opposite_seg = self.split_audio_in_segment(audio_opposite, opposite_seg_id, 10)
-
-                triplets.append([anchor_seg, neighbour_seg, opposite_seg])
-                labels.append([anchor.label, neighbour.label, opposite.label])
+                triplets.append([a_seg, n_seg, o_seg])
 
             return np.asarray(triplets)
 
@@ -139,38 +125,43 @@ class MusicDataset(BaseDataset):
             self.logger.debug("Error during triplet computation: {}".format(err))
             raise ValueError("Error during triplet computation")
 
-    def get_neighbour(self, anchor_id):
-        anchor = self.df.iloc[anchor_id]
+    def get_neighbour(self, audio_id: int, anchor_sample_id: id, audio_length: int):
+        # crate array of possible sample positions
+        sample_possible = np.arange(0, audio_length - self.sample_tile_size, self.sample_tile_size)
 
-        filtered_items = self.df
-        filtered_items = filtered_items[filtered_items.label == anchor.label]
-        filtered_items = filtered_items[filtered_items["name"] != anchor["name"]]
+        # delete the current anchors id
+        sample_possible = sample_possible[sample_possible != anchor_sample_id]
 
-        if len(filtered_items) > 0:
+        # delete the sample ids which are not in range of the neighbourhood
+        sample_possible = sample_possible[(sample_possible <= anchor_sample_id + self.sample_tile_neighbourhood) & (
+                sample_possible >= anchor_sample_id - self.sample_tile_neighbourhood)]
+
+        if len(sample_possible) > 0:
             if self.log:
-                self.logger.debug("Selecting neighbour randomly from {} samples".format(len(filtered_items)))
+                self.logger.debug("Selecting neighbour randomly from {} samples".format(len(sample_possible)))
         else:
             raise ValueError("No valid neighbour found")
 
-        neighbour = filtered_items.sample().iloc[0]
+        # random choose neighbour in possible samples
+        neighbour_id = np.random.choice(sample_possible, 1)[0]
 
-        return neighbour, None
+        return [audio_id, neighbour_id]
 
-    def get_opposite(self, anchor_id):
-        anchor = self.df.iloc[anchor_id]
+    def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int):
+        # crate array of possible sample positions
+        opposite_possible = np.arange(0, len(self.opposite_indices), 1)
+        opposite = random.choice(opposite_possible)
 
-        filtered_items = self.df
-        filtered_items = filtered_items[filtered_items.label != anchor.label]
+        opposite_audio = self.opposite_audios[opposite]
+        opposite_audio_length = int(len(opposite_audio) / self.sample_rate)
 
-        if len(filtered_items) > 0:
-            if self.log:
-                self.logger.debug("Selecting opposite randomly from {} samples".format(len(filtered_items)))
-        else:
-            raise ValueError("No valid opposite found")
+        # crate array of possible sample positions
+        sample_possible = np.arange(0, opposite_audio_length - self.sample_tile_size, self.sample_tile_size)
 
-        opposite = filtered_items.sample().iloc[0]
+        # random choose neighbour in possible samples
+        opposite_id = np.random.choice(sample_possible, 1)[0]
 
-        return opposite, None
+        return [opposite, opposite_id]
 
     def split_audio_in_segment(self, audio, segment_id, sample_size):
         segment = audio[segment_id * sample_size * self.sample_rate: (segment_id + 1) * sample_size * self.sample_rate]
