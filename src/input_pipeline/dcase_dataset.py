@@ -1,6 +1,5 @@
 import logging
 import os
-import random
 import re
 
 import numpy as np
@@ -21,27 +20,10 @@ class DCASEDataset(BaseDataset):
               "watching_tv", "working"]
 
     def __init__(self, params: Params, log: bool = False):
-
-        super().__init__()
-
-        self.params = params
+        super().__init__(params=params, log=log)
 
         self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
         self.fold = params.dcase_dataset_fold
-
-        self.sample_rate = params.sample_rate
-        self.sample_size = params.sample_size
-
-        self.sample_tile_size = params.sample_tile_size
-        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
-
-        self.stereo_channels = params.stereo_channels
-        self.to_mono = params.to_mono
-
-        self.dataset_type = DatasetType.TRAIN
-
-        self.train_test_split = params.train_test_split
-        self.log = log
 
         self.initialise()
         self.change_dataset_type(self.dataset_type)
@@ -134,13 +116,29 @@ class DCASEDataset(BaseDataset):
 
         return test_df
 
-    def get_triplets(self, audio_id, trim: bool = True) -> np.ndarray:
+    def fill_opposite_selection(self, audio_id):
+        opposite_possible = np.arange(0, len(self.df), 1)
+        opposite_possible = opposite_possible[opposite_possible != audio_id]
+
+        opposite_indices = np.random.choice(opposite_possible, self.opposite_sample_buffer_size)
+        opposite_audios = []
+        for index in opposite_indices:
+            opposite_df = self.df.iloc[index]
+            opposite_audio = AudioUtils.load_audio_from_file(opposite_df.file_name, self.sample_rate, self.sample_size,
+                                                             self.stereo_channels,
+                                                             self.to_mono)
+            opposite_audios.append([opposite_audio, opposite_df.label])
+
+        return opposite_audios
+
+    def get_triplets(self, audio_id, audio_length, opposite_choices, trim: bool = True) -> np.ndarray:
         try:
             triplets = []
-            for anchor_id in range(0, self.sample_size, self.sample_tile_size):
+            for anchor_id in range(0, audio_length, self.sample_tile_size):
                 a_seg = [audio_id, anchor_id]
-                n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=self.sample_size)
-                o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=self.sample_size)
+                n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length)
+                o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length,
+                                          opposite_choices=opposite_choices)
 
                 triplets.append([a_seg, n_seg, o_seg])
 
@@ -172,23 +170,15 @@ class DCASEDataset(BaseDataset):
 
         return [audio_id, neighbour_id]
 
-    def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int):
+    def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int, opposite_choices):
         # crate array of possible sample positions
-        opposite_possible = np.arange(0, len(self.df_train), 1)
-        opposite_possible = opposite_possible[opposite_possible != audio_id]
-
-        if len(opposite_possible) > 0:
-            if self.log:
-                self.logger.debug("Selecting opposite randomly from {} samples".format(len(opposite_possible)))
-        else:
-            raise ValueError("No valid opposite found")
-
-        opposite = random.choice(opposite_possible)
+        opposite_possible = np.arange(0, len(opposite_choices), 1)
+        opposite = np.random.choice(opposite_possible, size=1)[0]
 
         # crate array of possible sample positions
         sample_possible = np.arange(0, audio_length, self.sample_tile_size)
 
         # random choose neighbour in possible samples
-        opposite_id = np.random.choice(sample_possible, 1)[0]
+        opposite_id = np.random.choice(sample_possible, size=1)[0]
 
         return [opposite, opposite_id]

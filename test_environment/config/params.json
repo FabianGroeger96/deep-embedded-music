@@ -21,11 +21,15 @@
   "random_selection_buffer_size": 1,
   "learning_rate": 1e-3,
 
+  "random_seed": 1234,
+
   "shuffle_dataset": 1,
-  "train_test_split": 0.001,
+  "train_test_split": 0.25,
 
   "gen_count": 4,
   "num_parallel_calls": 4,
+
+  "opposite_sample_buffer_size": 3,
 
   "sample_rate": 16000,
   "sample_size": 10,

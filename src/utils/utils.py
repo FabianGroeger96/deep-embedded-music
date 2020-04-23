@@ -92,6 +92,7 @@ class Utils:
         """
         if saved_model_path is "":
             # create experiment name folder
+            Utils.create_folder(os.path.join(args.experiment_dir, dataset_folder))
             experiment_path = Utils.create_folder(os.path.join(args.experiment_dir, dataset_folder, "results"))
             # create current experiment folder
             current_time = datetime.now().strftime("%Y%m%d-%H%M%S")

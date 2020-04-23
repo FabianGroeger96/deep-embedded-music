@@ -1,5 +1,6 @@
 import os
 
+import librosa
 import tensorflow as tf
 
 from src.input_pipeline.music_dataset import MusicDataset
@@ -22,45 +23,27 @@ class TestMusicDataset(tf.test.TestCase):
         dataset = self.get_dataset()
 
         for audio_entry in dataset:
-            self.assertNotEqual(audio_entry.name, "")
-            self.assertNotEqual(audio_entry.path, "")
-            self.assertNotEqual(audio_entry.label, "")
-
-    def test_data_frame_neighbour(self):
-        dataset = self.get_dataset()
-
-        for index, audio_entry in enumerate(dataset):
-            neighbour, _ = dataset.get_neighbour(index)
-
-            self.assertNotEqual(audio_entry.name, neighbour.name)
-            self.assertEqual(audio_entry.label, neighbour.label)
-
-    def test_data_frame_opposite(self):
-        dataset = self.get_dataset()
-
-        for index, audio_entry in enumerate(dataset):
-            opposite, _ = dataset.get_opposite(index)
-
-            self.assertNotEqual(audio_entry.label, opposite.label)
+            self.assertNotEqual(audio_entry.file_name, "")
 
     def test_data_frame_triplets(self):
         dataset = self.get_dataset()
 
         for index, audio_entry in enumerate(dataset):
-            triplets, labels = dataset.get_triplets(index)
+            anchor = dataset.df_train.iloc[index]
+            anchor_audio, _ = librosa.load(anchor.file_name, self.params.sample_rate)
+            anchor_audio_length = int(len(anchor_audio) / self.params.sample_rate)
 
-            for triplet, label in zip(triplets, labels):
+            opposite_choices = dataset.fill_opposite_selection(index)
+
+            triplets = dataset.get_triplets(index, audio_length=anchor_audio_length, opposite_choices=opposite_choices)
+            for triplet in triplets:
                 self.assertEqual(len(triplet), 3)
 
-                anchor_audio, neighbour_audio, opposite_audio = triplet
-                anchor_label, neighbour_label, opposite_label = label
+                anchor_seg, neighbour_seg, opposite_seg = triplet
 
-                self.assertNotEqual(len(anchor_audio), 0)
-                self.assertNotEqual(len(neighbour_audio), 0)
-                self.assertNotEqual(len(opposite_audio), 0)
-
-                self.assertEqual(anchor_label, neighbour_label)
-                self.assertNotEqual(anchor_label, opposite_label)
+                self.assertEqual(len(anchor_seg), 2)
+                self.assertEqual(len(neighbour_seg), 2)
+                self.assertEqual(len(opposite_seg), 2)
 
             break
 

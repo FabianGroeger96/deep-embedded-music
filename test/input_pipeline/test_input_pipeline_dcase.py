@@ -25,6 +25,7 @@ class TestInputPipeline(tf.test.TestCase):
         return audio_pipeline
 
     def set_dcase_dataset(self):
+        self.params.dataset = "DCASEDataset"
         self.dataset = DatasetFactory.create_dataset("DCASEDataset", params=self.params)
 
     def test_dataset_generator_channels(self):

@@ -38,11 +38,15 @@ class Params:
         self.random_selection_buffer_size = None
         self.learning_rate = None
 
+        self.random_seed = None
+
         self.shuffle_dataset = None
         self.train_test_split = None
 
         self.gen_count = None
         self.num_parallel_calls = None  # -1 for tf.data.experimental.AUTOTUNE
+
+        self.opposite_sample_buffer_size = None
 
         self.sample_rate = None
         self.sample_size = None
