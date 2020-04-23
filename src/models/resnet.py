@@ -51,6 +51,7 @@ class ResNet(BaseModel, ABC):
                                                      stride=2)
 
         self.avgpool = tf.keras.layers.GlobalAveragePooling2D()
+        self.dropout = tf.keras.layers.Dropout(0.5)
 
     @tf.function
     def forward_pass(self, inputs, training=None):
@@ -63,6 +64,8 @@ class ResNet(BaseModel, ABC):
         x = self.layer3(x, training=training)
         x = self.layer4(x, training=training)
         x = self.avgpool(x)
+        if training:
+            x = self.dropout(x)
 
         # embedding
         x = self.flatten(x)
