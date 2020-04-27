@@ -11,7 +11,7 @@ from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
 from src.models.model_factory import ModelFactory
-from src.train_model import train_step
+from src.training.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
 from src.utils.utils_visualise import visualise_model_on_epoch_end
