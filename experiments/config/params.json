@@ -1,5 +1,5 @@
 {
-  "experiment_name": "LogMel-l1e4-b64-ts2-ns4-m05-e256",
+  "experiment_name": "LogMel-l1e5-b32-ts5-ns5-m5-e512",
 
   "dcase_dataset_path": "/tf/data/DCASE18-Task5-development/",
   "dcase_dataset_fold": 1,
@@ -8,7 +8,7 @@
 
   "log_level": "DEBUG",
 
-  "model": "ConvGRUNet",
+  "model": "ResNet18",
   "dataset": "DCASEDataset",
 
   "saved_model_path": "",
@@ -17,26 +17,26 @@
 
   "use_profiler": 0,
 
-  "epochs": 10,
-  "batch_size": 64,
-  "prefetch_batches": 64,
+  "epochs": 20,
+  "batch_size": 256,
+  "prefetch_batches": 2048,
   "random_selection_buffer_size": 64,
-  "learning_rate": 1e-4,
+  "learning_rate": 1e-5,
 
   "random_seed": 1234,
 
   "shuffle_dataset": 1,
   "train_test_split": 0.001,
 
-  "gen_count": 8,
-  "num_parallel_calls": 8,
-
+  "gen_count": 16,
+  "num_parallel_calls": 16,
+  
   "opposite_sample_buffer_size": 10,
 
   "sample_rate": 16000,
   "sample_size": 10,
-  "sample_tile_size": 2,
-  "sample_tile_neighbourhood": 4,
+  "sample_tile_size": 5,
+  "sample_tile_neighbourhood": 5,
 
   "stereo_channels": 4,
   "to_mono": 1,
@@ -48,6 +48,6 @@
   "n_mel_bin": 128,
   "n_mfcc_bin": 13,
 
-  "margin": 0.5,
-  "embedding_size": 256
+  "margin": 1.0,
+  "embedding_size": 512
 }
