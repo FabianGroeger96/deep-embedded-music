@@ -11,11 +11,6 @@ class LogMelBaseExtractor(BaseExtractor):
     def __init__(self, params: Params):
         super().__init__(params=params)
 
-        self.frame_length = params.frame_length
-        self.frame_step = params.frame_step
-        self.fft_size = params.fft_size
-        self.n_mel_bin = params.n_mel_bin
-
     # OUTPUT: (frame_size, mel_bin_size, ?channels)
     def extract(self, audio):
         if len(audio.shape) == 1:

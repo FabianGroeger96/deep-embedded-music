@@ -8,16 +8,18 @@ from src.models.model_factory import ModelFactory
 class ConvGRUNet(BaseModel):
     """ A 2-dimensional CNN model with an additional GRU layer before the fully connected one. """
 
-    def __init__(self, embedding_dim, model_name="ConvGRUNet"):
+    def __init__(self, embedding_dim, l2_amount, model_name="ConvGRUNet"):
         """
        Initialises the model.
        Calls the initialise method of the super class.
 
        :param embedding_dim: the dimension for the embedding space.
+       :param l2_amount: the amount of l2 regularization.
        :param model_name: the name of the model.
        """
 
-        super(ConvGRUNet, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=True)
+        super(ConvGRUNet, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=True,
+                                         l2_amount=l2_amount)
 
         input_shape = (None, None, None, None)
         self.conv_1 = tf.keras.layers.Conv2D(16, (7, 7), padding="same", input_shape=input_shape, activation="relu")

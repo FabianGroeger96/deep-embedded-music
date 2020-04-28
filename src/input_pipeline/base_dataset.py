@@ -9,7 +9,6 @@ from dtw import dtw
 from numpy.linalg import norm
 
 from src.utils.params import Params
-from src.utils.utils import Utils
 
 
 class DatasetType(Enum):

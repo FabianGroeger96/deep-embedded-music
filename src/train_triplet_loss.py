@@ -27,17 +27,28 @@ class LogLevel(Enum):
 
 
 def log_step(logger, epoch, batch_index, batch_size, result, log_level: LogLevel):
-    template = "Epoch {0}, Batch: {1}, Samples Seen: {2}, Triplet Loss: {3:1.2f}"
+    template = "Epoch {0}, Batch: {1}, Samples Seen: {2}, Loss: {3:1.2f}, Triplet Loss: {4:1.2f}, Regularization " \
+               "Loss: {5:1.2f}"
+
+    loss = result["loss"]
+    loss_triplet = result["triplet_loss"]
+    loss_regularization = result["regularization_loss"]
+
     if log_level == LogLevel.INFO:
         logger.info(template.format(epoch + 1,
                                     batch_index + 1,
                                     (batch_index + 1) * batch_size,
-                                    result))
+                                    loss,
+                                    loss_triplet,
+                                    loss_regularization))
+
     elif log_level == LogLevel.DEBUG:
         logger.debug(template.format(epoch + 1,
                                      batch_index + 1,
                                      (batch_index + 1) * batch_size,
-                                     result))
+                                     loss,
+                                     loss_triplet,
+                                     loss_regularization))
 
 
 def main():
@@ -69,7 +80,7 @@ def main():
     pipeline = TripletsInputPipeline(params=params, dataset=dataset, log=False)
 
     # create model from factory and specified name within the params
-    model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
+    model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size, l2_amount=params.l2_amount)
     # TODO train learning rate decay
     # create the optimizer for the model
     optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
@@ -94,13 +105,12 @@ def main():
     train_summary_writer = tf.summary.create_file_writer(tensorb_path)
 
     # define triplet loss metrics
-    train_triplet_loss_batches = tf.keras.metrics.Mean("train_triplet_loss_batches", dtype=tf.float32)
+    train_joint_loss_epochs = tf.keras.metrics.Mean("train_joint_loss_epochs", dtype=tf.float32)
     train_triplet_loss_epochs = tf.keras.metrics.Mean("train_triplet_loss_epochs", dtype=tf.float32)
-    train_dist_neighbour = tf.keras.metrics.Mean("train_loss_neighbour", dtype=tf.float32)
-    train_dist_opposite = tf.keras.metrics.Mean("train_loss_opposite", dtype=tf.float32)
+    train_regularization_loss_epochs = tf.keras.metrics.Mean("train_regularization_loss_epochs", dtype=tf.float32)
 
     # define checkpoint and checkpoint manager
-    ckpt = tf.train.Checkpoint(step=tf.Variable(1), optimizer=optimizer, net=model)
+    ckpt = tf.train.Checkpoint(optimizer=optimizer, net=model, step=tf.Variable(1))
     manager = tf.train.CheckpointManager(ckpt, save_path, max_to_keep=3)
 
     # check if models has been trained before
@@ -138,23 +148,28 @@ def main():
             # run one training step
             batch = (anchor, neighbour, opposite)
             losses = train_step(batch, model=model, loss_fn=triplet_loss_fn, optimizer=optimizer)
-            loss_triplet, dist_neighbour, dist_opposite = losses
 
-            # add losses to the metrics
-            train_triplet_loss_batches(loss_triplet)
+            # retrieve losses from step
+            loss = losses["loss"]
+            loss_triplet = losses["triplet_loss"]
+            loss_regularization = losses["regularization_loss"]
+            dist_neighbour = losses["dist_neighbour"]
+            dist_opposite = losses["dist_opposite"]
+
+            # add losses to the metrics for epoch metrics
+            train_joint_loss_epochs(loss)
             train_triplet_loss_epochs(loss_triplet)
-            train_dist_neighbour(dist_neighbour)
-            train_dist_opposite(dist_opposite)
+            train_regularization_loss_epochs(loss_regularization)
 
             # write batch losses to summary writer
             with train_summary_writer.as_default():
                 # write summary of batch losses
-                tf.summary.scalar("triplet_loss_train/loss_triplet_batches", train_triplet_loss_batches.result(),
+                tf.summary.scalar("triplet_loss_train/loss_joint_batches", loss, step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss_train/loss_triplet_batches", loss_triplet, step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss_train/loss_regularization_batches", loss_regularization,
                                   step=int(ckpt.step))
-                tf.summary.scalar("triplet_loss_train/dist_sq_neighbour", train_dist_neighbour.result(),
-                                  step=int(ckpt.step))
-                tf.summary.scalar("triplet_loss_train/dist_sq_opposite", train_dist_opposite.result(),
-                                  step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss_train/dist_sq_neighbour", dist_neighbour, step=int(ckpt.step))
+                tf.summary.scalar("triplet_loss_train/dist_sq_opposite", dist_opposite, step=int(ckpt.step))
 
             if int(ckpt.step) % 10 == 0 and params.use_profiler and profiling:
                 logger.info("Stopping profiler at batch: {}".format(int(ckpt.step)))
@@ -165,10 +180,10 @@ def main():
             # log the current loss value of the batch
             if int(ckpt.step) % 500 == 0:
                 log_step(logger, epoch, batch_index=batch_index, batch_size=params.batch_size,
-                         result=train_triplet_loss_batches.result(), log_level=LogLevel.INFO)
+                         result=losses, log_level=LogLevel.INFO)
             else:
                 log_step(logger, epoch, batch_index=batch_index, batch_size=params.batch_size,
-                         result=train_triplet_loss_batches.result(), log_level=LogLevel.DEBUG)
+                         result=losses, log_level=LogLevel.DEBUG)
 
             # add one step to checkpoint
             ckpt.step.assign_add(1)
@@ -181,13 +196,16 @@ def main():
         # write epoch loss to summary writer
         with train_summary_writer.as_default():
             # write summary of epoch loss
+            tf.summary.scalar("triplet_loss_train/loss_joint_epochs", train_joint_loss_epochs.result(), step=epoch)
             tf.summary.scalar("triplet_loss_train/loss_triplet_epochs", train_triplet_loss_epochs.result(), step=epoch)
+            tf.summary.scalar("triplet_loss_train/loss_regularization_epochs",
+                              train_regularization_loss_epochs.result(),
+                              step=epoch)
 
         # reset metrics every epoch
-        train_triplet_loss_batches.reset_states()
+        train_joint_loss_epochs.reset_states()
         train_triplet_loss_epochs.reset_states()
-        train_dist_neighbour.reset_states()
-        train_dist_opposite.reset_states()
+        train_regularization_loss_epochs.reset_states()
 
         # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
         visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,

@@ -9,13 +9,14 @@ from src.models.residual_block import BasicBlock, BottleNeck
 class BaseModel(tf.keras.Model, ABC):
     """ The abstract base model. All models will inherit this base. """
 
-    def __init__(self, embedding_dim, model_name, expand_dims):
+    def __init__(self, embedding_dim, model_name, expand_dims, l2_amount=0.1):
         """
         Initialises the model.
 
         :param embedding_dim: the dimension for the embedding space.
         :param model_name: the name of the model.
         :param expand_dims: if the model should expand its dimension.
+        :param l2_amount: the amount of l2 regularization.
         """
         super(BaseModel, self).__init__()
 
@@ -24,6 +25,7 @@ class BaseModel(tf.keras.Model, ABC):
         self.embedding_dim = embedding_dim
         self.model_name = model_name
         self.expand_dims = expand_dims
+        self.l2_amount = l2_amount
 
         # TODO try sigmoid activation for embedding layer
         # max distance is then embedding dimension
@@ -100,21 +102,21 @@ class BaseModel(tf.keras.Model, ABC):
         # log end sequence
         self.logger.info("--- MODEL Architecture ---")
 
-    def make_basic_block_layer(self, filter_num, blocks, stride=1):
+    def make_basic_block_layer(self, filter_num, blocks, stride=1, l2_amount=1.0):
         res_block = tf.keras.Sequential()
-        res_block.add(BasicBlock(filter_num, stride=stride))
+        res_block.add(BasicBlock(filter_num, stride=stride, l2_amount=l2_amount))
 
         for _ in range(1, blocks):
-            res_block.add(BasicBlock(filter_num, stride=1))
+            res_block.add(BasicBlock(filter_num, stride=1, l2_amount=l2_amount))
 
         return res_block
 
-    def make_bottleneck_layer(self, filter_num, blocks, stride=1):
+    def make_bottleneck_layer(self, filter_num, blocks, stride=1, l2_amount=1.0):
         res_block = tf.keras.Sequential()
-        res_block.add(BottleNeck(filter_num, stride=stride))
+        res_block.add(BottleNeck(filter_num, stride=stride, l2_amount=l2_amount))
 
         for _ in range(1, blocks):
-            res_block.add(BottleNeck(filter_num, stride=1))
+            res_block.add(BottleNeck(filter_num, stride=1, l2_amount=l2_amount))
 
         return res_block
 

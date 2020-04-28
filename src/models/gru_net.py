@@ -8,15 +8,17 @@ from src.models.model_factory import ModelFactory
 class GRUNet(BaseModel):
     """ A simple 1-dimensional GRU model. """
 
-    def __init__(self, embedding_dim, model_name="GRUNet"):
+    def __init__(self, embedding_dim, l2_amount, model_name="GRUNet"):
         """
        Initialises the model.
        Calls the initialise method of the super class.
 
        :param embedding_dim: the dimension for the embedding space.
+       :param l2_amount: the amount of l2 regularization.
        :param model_name: the name of the model.
        """
-        super(GRUNet, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=False)
+        super(GRUNet, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=False,
+                                     l2_amount=l2_amount)
 
         self.gru_1 = tf.keras.layers.GRU(64, return_sequences=True)
         self.gru_2 = tf.keras.layers.GRU(128)

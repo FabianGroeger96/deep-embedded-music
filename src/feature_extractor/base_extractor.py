@@ -16,6 +16,12 @@ class BaseExtractor(ABC):
         self.lower_edge_hertz = 50
         self.upper_edge_hertz = self.get_nyquist_frequency()
 
+        self.frame_length = params.frame_length
+        self.frame_step = params.frame_step
+        self.fft_size = params.fft_size
+        self.n_mel_bin = params.n_mel_bin
+        self.n_mfcc_bin = params.n_mfcc_bin
+
     @abstractmethod
     def extract(self, audio):
         pass

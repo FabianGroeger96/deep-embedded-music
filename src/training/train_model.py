@@ -21,18 +21,31 @@ def train_step(batch, model, loss_fn, optimizer):
         emb_neighbour = model(neighbour, training=True)
         emb_opposite = model(opposite, training=True)
 
+        # compute the regularization loss from layers
+        regularization_loss = tf.math.reduce_sum(model.losses)
         # compute the triplet loss value for the batch
         triplet_loss = loss_fn(None, [emb_anchor, emb_neighbour, emb_opposite])
+        # compute the overall loss
+        loss = regularization_loss + triplet_loss
+
         # compute the distance losses between the embeddings
         dist_neighbour = loss_fn.calculate_distance(anchor=emb_anchor, embedding=emb_neighbour)
         dist_opposite = loss_fn.calculate_distance(anchor=emb_anchor, embedding=emb_opposite)
 
     # GradientTape automatically retrieves the gradients of the trainable variables with respect to the loss
-    grads = tape.gradient(triplet_loss, model.trainable_weights)
+    grads = tape.gradient(loss, model.trainable_weights)
     # update the values of the trainable variables to minimize the loss
     optimizer.apply_gradients(zip(grads, model.trainable_weights))
 
-    return triplet_loss, dist_neighbour, dist_opposite
+    losses = {
+        "loss": loss,
+        "triplet_loss": triplet_loss,
+        "regularization_loss": regularization_loss,
+        "dist_neighbour": dist_neighbour,
+        "dist_opposite": dist_opposite
+    }
+
+    return losses
 
 
 @tf.function

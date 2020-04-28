@@ -8,16 +8,18 @@ from src.models.model_factory import ModelFactory
 class ConvNet2D(BaseModel):
     """ A simple 2-dimensional CNN model. """
 
-    def __init__(self, embedding_dim, batch_normalisation=False, model_name="ConvNet2D"):
+    def __init__(self, embedding_dim, batch_normalisation=False, l2_amount=0.1, model_name="ConvNet2D"):
         """
        Initialises the model.
        Calls the initialise method of the super class.
 
        :param embedding_dim: the dimension for the embedding space.
-       :param batch_normalisation: if the batches should be normalised
+       :param batch_normalisation: if the batches should be normalised.
+       :param l2_amount: the amount of l2 regularization.
        :param model_name: the name of the model.
        """
-        super(ConvNet2D, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=True)
+        super(ConvNet2D, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=True,
+                                        l2_amount=l2_amount)
 
         input_shape = (None, None, None, None)
 
