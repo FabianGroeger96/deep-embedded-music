@@ -3,29 +3,30 @@ import tensorflow as tf
 
 class BasicBlock(tf.keras.layers.Layer):
 
-    def __init__(self, filter_num, stride=1, l2_amount=1.0):
+    def __init__(self, filter_num, stride=1, l2_amount=0.1):
         super(BasicBlock, self).__init__()
+        self.l2_regularization = tf.keras.regularizers.l2(l2_amount)
         self.conv1 = tf.keras.layers.Conv2D(filters=filter_num,
                                             kernel_size=(3, 3),
                                             strides=stride,
                                             padding="same",
-                                            bias_regularizer=tf.keras.regularizers.l2(l2_amount),
-                                            kernel_regularizer=tf.keras.regularizers.l2(l2_amount))
+                                            bias_regularizer=self.l2_regularization,
+                                            kernel_regularizer=self.l2_regularization)
         self.bn1 = tf.keras.layers.BatchNormalization()
         self.conv2 = tf.keras.layers.Conv2D(filters=filter_num,
                                             kernel_size=(3, 3),
                                             strides=1,
                                             padding="same",
-                                            bias_regularizer=tf.keras.regularizers.l2(l2_amount),
-                                            kernel_regularizer=tf.keras.regularizers.l2(l2_amount))
+                                            bias_regularizer=self.l2_regularization,
+                                            kernel_regularizer=self.l2_regularization)
         self.bn2 = tf.keras.layers.BatchNormalization()
         if stride != 1:
             self.downsample = tf.keras.Sequential()
             self.downsample.add(tf.keras.layers.Conv2D(filters=filter_num,
                                                        kernel_size=(1, 1),
                                                        strides=stride,
-                                                       bias_regularizer=tf.keras.regularizers.l2(l2_amount),
-                                                       kernel_regularizer=tf.keras.regularizers.l2(l2_amount)))
+                                                       bias_regularizer=self.l2_regularization,
+                                                       kernel_regularizer=self.l2_regularization))
             self.downsample.add(tf.keras.layers.BatchNormalization())
         else:
             self.downsample = lambda x: x
@@ -46,36 +47,37 @@ class BasicBlock(tf.keras.layers.Layer):
 
 
 class BottleNeck(tf.keras.layers.Layer):
-    def __init__(self, filter_num, stride=1, l2_amount=1.0):
+    def __init__(self, filter_num, stride=1, l2_amount=0.1):
         super(BottleNeck, self).__init__()
+        self.l2_regularization = tf.keras.regularizers.l2(l2_amount)
         self.conv1 = tf.keras.layers.Conv2D(filters=filter_num,
                                             kernel_size=(1, 1),
                                             strides=1,
                                             padding='same',
-                                            bias_regularizer=tf.keras.regularizers.l2(l2_amount),
-                                            kernel_regularizer=tf.keras.regularizers.l2(l2_amount))
+                                            bias_regularizer=self.l2_regularization,
+                                            kernel_regularizer=self.l2_regularization)
         self.bn1 = tf.keras.layers.BatchNormalization()
         self.conv2 = tf.keras.layers.Conv2D(filters=filter_num,
                                             kernel_size=(3, 3),
                                             strides=stride,
                                             padding='same',
-                                            bias_regularizer=tf.keras.regularizers.l2(l2_amount),
-                                            kernel_regularizer=tf.keras.regularizers.l2(l2_amount))
+                                            bias_regularizer=self.l2_regularization,
+                                            kernel_regularizer=self.l2_regularization)
         self.bn2 = tf.keras.layers.BatchNormalization()
         self.conv3 = tf.keras.layers.Conv2D(filters=filter_num * 4,
                                             kernel_size=(1, 1),
                                             strides=1,
                                             padding='same',
-                                            bias_regularizer=tf.keras.regularizers.l2(l2_amount),
-                                            kernel_regularizer=tf.keras.regularizers.l2(l2_amount))
+                                            bias_regularizer=self.l2_regularization,
+                                            kernel_regularizer=self.l2_regularization)
         self.bn3 = tf.keras.layers.BatchNormalization()
 
         self.downsample = tf.keras.Sequential()
         self.downsample.add(tf.keras.layers.Conv2D(filters=filter_num * 4,
                                                    kernel_size=(1, 1),
                                                    strides=stride,
-                                                   bias_regularizer=tf.keras.regularizers.l2(l2_amount),
-                                                   kernel_regularizer=tf.keras.regularizers.l2(l2_amount)))
+                                                   bias_regularizer=self.l2_regularization,
+                                                   kernel_regularizer=self.l2_regularization))
         self.downsample.add(tf.keras.layers.BatchNormalization())
 
     @tf.function

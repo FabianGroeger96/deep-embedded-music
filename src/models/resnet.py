@@ -17,12 +17,14 @@ class ResNet(BaseModel, ABC):
         super(ResNet, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=True,
                                      l2_amount=l2_amount)
 
+        self.l2_regularization = tf.keras.regularizers.l2(self.l2_amount)
+
         self.conv1 = tf.keras.layers.Conv2D(filters=64,
                                             kernel_size=(7, 7),
                                             strides=2,
                                             padding="same",
-                                            bias_regularizer=tf.keras.regularizers.l2(self.l2_amount),
-                                            kernel_regularizer=tf.keras.regularizers.l2(self.l2_amount))
+                                            bias_regularizer=self.l2_regularization,
+                                            kernel_regularizer=self.l2_regularization)
         self.bn1 = tf.keras.layers.BatchNormalization()
         self.pool1 = tf.keras.layers.MaxPool2D(pool_size=(3, 3),
                                                strides=2,
