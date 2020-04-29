@@ -1,5 +1,5 @@
 {
-  "experiment_name": "LogMel-l1e5-b32-ts5-ns5-m5-e512",
+  "experiment_name": "LogMel-l1e5-b256-l201-ts5-ns5-m1-e2",
 
   "dcase_dataset_path": "/tf/data/DCASE18-Task5-development/",
   "dcase_dataset_fold": 1,
@@ -17,10 +17,10 @@
 
   "use_profiler": 0,
 
-  "epochs": 10,
-  "batch_size": 16,
-  "prefetch_batches": 16,
-  "random_selection_buffer_size": 8,
+  "epochs": 20,
+  "batch_size": 256,
+  "prefetch_batches": 2048,
+  "random_selection_buffer_size": 64,
   "learning_rate": 1e-5,
 
   "l2_amount": 0.1,
@@ -43,7 +43,7 @@
   "stereo_channels": 4,
   "to_mono": 1,
 
-  "feature_extractor": "MFCCExtractor",
+  "feature_extractor": "LogMelExtractor",
   "frame_length": 480,
   "frame_step": 160,
   "fft_size": 1024,
@@ -51,5 +51,5 @@
   "n_mfcc_bin": 13,
 
   "margin": 1.0,
-  "embedding_size": 512
+  "embedding_size": 2
 }
