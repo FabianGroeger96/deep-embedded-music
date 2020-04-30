@@ -11,7 +11,7 @@ class TestMusicDataset(tf.test.TestCase):
 
     def setUp(self):
         # load the parameters from json file
-        json_path = os.path.join("/opt/project/test_environment/", "config", "params.json")
+        json_path = os.path.join("/tf/test_environment/", "config", "params.json")
         self.params = Params(json_path)
 
     def get_dataset(self):

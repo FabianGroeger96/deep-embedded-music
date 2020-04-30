@@ -11,22 +11,23 @@ from src.utils.utils_audio import AudioUtils
 class TestFeatureExtractor(tf.test.TestCase):
 
     def setUp(self):
-        self.experiment_dir = "/opt/project/test_environment/"
-        self.audio_file_path = "/opt/project/test_environment/audio/DevNode1_ex1_1.wav"
-        self.audio_mono = AudioUtils.load_audio_from_file(self.audio_file_path,
-                                                          sample_rate=16000,
-                                                          sample_size=10,
-                                                          stereo_channels=4,
-                                                          to_mono=True)
-        self.audio_multi = AudioUtils.load_audio_from_file(self.audio_file_path,
-                                                           sample_rate=16000,
-                                                           sample_size=10,
-                                                           stereo_channels=4,
-                                                           to_mono=False)
+        self.experiment_dir = "/tf/test_environment/"
+        self.audio_file_path = "/tf/test_environment/audio/DevNode1_ex1_1.wav"
 
         # load the parameters from json file
         json_path = os.path.join(self.experiment_dir, "config", "params.json")
         self.params = Params(json_path)
+
+        self.audio_mono = AudioUtils.load_audio_from_file(self.audio_file_path,
+                                                          sample_rate=16000,
+                                                          sample_size=self.params.sample_tile_size,
+                                                          stereo_channels=4,
+                                                          to_mono=True)
+        self.audio_multi = AudioUtils.load_audio_from_file(self.audio_file_path,
+                                                           sample_rate=16000,
+                                                           sample_size=self.params.sample_tile_size,
+                                                           stereo_channels=4,
+                                                           to_mono=False)
 
     def test_mfcc_extractor_mono(self):
         feature_extractor = MFCCBaseExtractor(params=self.params)

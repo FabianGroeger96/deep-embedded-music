@@ -13,7 +13,7 @@ from src.utils.params import Params
 class TestTripletLoss(tf.test.TestCase):
 
     def setUp(self):
-        json_path = os.path.join("/opt/project/test_environment/", "config", "params.json")
+        json_path = os.path.join("/tf/test_environment/", "config", "params.json")
         self.params = Params(json_path)
 
         self.feature_extractor = ExtractorFactory.create_extractor("LogMelExtractor", params=self.params)

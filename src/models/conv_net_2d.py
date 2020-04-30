@@ -23,13 +23,13 @@ class ConvNet2D(BaseModel):
 
         input_shape = (None, None, None, None)
 
-        self.conv_1 = tf.keras.layers.Conv2D(32, (3, 3), input_shape=input_shape, activation="relu")
+        self.conv_1 = tf.keras.layers.Conv2D(32, (3, 3), input_shape=input_shape, activation="relu", padding="same")
         self.max_pooling_1 = tf.keras.layers.MaxPool2D((3, 3), strides=(2, 2), padding="same")
 
-        self.conv_2 = tf.keras.layers.Conv2D(32, (3, 3), activation="relu")
+        self.conv_2 = tf.keras.layers.Conv2D(32, (3, 3), activation="relu", padding="same")
         self.max_pooling_2 = tf.keras.layers.MaxPool2D((3, 3), strides=(2, 2), padding="same")
 
-        self.conv_3 = tf.keras.layers.Conv2D(64, (2, 2), activation="relu")
+        self.conv_3 = tf.keras.layers.Conv2D(64, (2, 2), activation="relu", padding="same")
         self.max_pooling_3 = tf.keras.layers.MaxPool2D((2, 2), strides=(2, 2), padding="same")
 
         self.use_batch_normalisation = batch_normalisation

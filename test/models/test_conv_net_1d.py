@@ -6,6 +6,7 @@ from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
+from src.models.conv_net_1d import ConvNet1D
 from src.models.model_factory import ModelFactory
 from src.training.train_model import train_step
 from src.utils.params import Params
@@ -15,10 +16,10 @@ from src.utils.utils_audio import AudioUtils
 class TestConvNet1D(tf.test.TestCase):
 
     def setUp(self):
-        json_path = os.path.join("/opt/project/test_environment/", "config", "params.json")
+        json_path = os.path.join("/tf/test_environment/", "config", "params.json")
         self.params = Params(json_path)
 
-        self.audio_file_path = "/opt/project/test_environment/audio/DevNode1_ex1_1.wav"
+        self.audio_file_path = "/tf/test_environment/audio/DevNode1_ex1_1.wav"
         self.audio = AudioUtils.load_audio_from_file(self.audio_file_path,
                                                      sample_rate=16000,
                                                      sample_size=10,
@@ -27,18 +28,28 @@ class TestConvNet1D(tf.test.TestCase):
         self.feature_extractor = ExtractorFactory.create_extractor("LogMelExtractor", params=self.params)
         self.audio_feature = self.feature_extractor.extract(self.audio)
 
-        self.model = ModelFactory.create_model("ConvNet1D", embedding_dim=self.params.embedding_size)
+        self.create_model()
 
         # create the optimizer for the model
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.params.learning_rate)
         # create the loss function for the model
         self.triplet_loss_fn = TripletLoss(margin=self.params.margin)
 
+    def create_model(self):
+        self.model = ModelFactory.create_model("ConvNet1D", embedding_dim=self.params.embedding_size,
+                                               l2_amount=self.params.l2_amount)
+
     def get_input_pipeline(self):
         dataset = DatasetFactory.create_dataset("DCASEDataset", params=self.params)
         audio_pipeline = TripletsInputPipeline(params=self.params, dataset=dataset)
 
         return audio_pipeline
+
+    def test_build_model(self):
+        self.create_model()
+        self.model.build(self.audio_feature.shape)
+
+        self.assertDTypeEqual(self.model, ConvNet1D)
 
     def test_output_tensor(self):
         model_input = tf.expand_dims(self.audio_feature, axis=0)
@@ -48,38 +59,17 @@ class TestConvNet1D(tf.test.TestCase):
         self.assertFalse(is_empty)
 
     def test_loss_not_zero(self):
-        self.model = ModelFactory.create_model("ConvNet1D", embedding_dim=self.params.embedding_size)
+        self.create_model()
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)
-        for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
-            batch = (anchor, neighbour, opposite, triplet_labels)
+        for anchor, neighbour, opposite, _ in dataset_iterator:
+            batch = (anchor, neighbour, opposite)
             losses = train_step(batch, model=self.model, loss_fn=self.triplet_loss_fn, optimizer=self.optimizer)
-            loss_triplet, dist_neighbour, dist_opposite = losses
+            loss_triplet = losses["triplet_loss"]
 
             self.assertNotEqual(loss_triplet, 0)
-
             break
-
-    def test_loss_decreases(self):
-        self.model = ModelFactory.create_model("ConvNet1D", embedding_dim=self.params.embedding_size)
-
-        loss_vals = []
-
-        # instantiate input pipeline
-        audio_pipeline = self.get_input_pipeline()
-        for epoch in range(50):
-            dataset_iterator = audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)
-            for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
-                batch = (anchor, neighbour, opposite, triplet_labels)
-                losses = train_step(batch, model=self.model, loss_fn=self.triplet_loss_fn, optimizer=self.optimizer)
-                loss_triplet, dist_neighbour, dist_opposite = losses
-                loss_vals.append(loss_triplet)
-                break
-
-            audio_pipeline.reinitialise()
-
-        self.assertLess(loss_vals[-1], loss_vals[0])
 
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ from src.utils.utils_audio import AudioUtils
 class TestUtilsAudio(tf.test.TestCase):
 
     def setUp(self):
-        self.audio_file_path = "/opt/project/test_environment/audio/DevNode1_ex1_1.wav"
+        self.audio_file_path = "/tf/test_environment/audio/DevNode1_ex1_1.wav"
 
     def test_audio_loading_mono(self):
         expected_shape = (16000 * 10,)
