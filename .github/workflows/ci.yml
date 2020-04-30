@@ -9,9 +9,9 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: tensorflow/tensorflow:2.1.0-gpu-py3
     steps:
-      - uses: tensorflow/tensorflow:2.1.0-gpu-py3
+      - uses: actions/checkout@v2
       - name: Set up Python 3.6
         uses: actions/setup-python@v1
         with:
