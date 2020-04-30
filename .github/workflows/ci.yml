@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    runs-on: tensorflow/tensorflow:2.1.0-gpu-py3
+    runs-on: tensorflow:2.1.0-gpu-py3
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python 3.6
