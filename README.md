@@ -31,7 +31,8 @@ This research seeks to alleviate this incongruity by developing alternative lear
 ### Train triplet loss
 The following docker command can be executed using the `onstart.sh` script, to train the triplet loss architecture on a GPU. The container will start, and the training procedure begins right away.
 ```shell script
-docker run -it -v ${PWD}:/tf/ -w /tf --name deep-embedded-music-0 -e NVIDIA_VISIBLE_DEVICES=0 --privileged=true \
+docker run -it -v ${PWD}:/tf/ -w /tf --name deep-embedded-music-0 \
+-e NVIDIA_VISIBLE_DEVICES=0 --privileged=true \
 tensorflow/tensorflow:2.1.0-gpu-py3 /bin/bash ./onstart.sh
 ```
 If you want to start the training without the `onstart.sh` script, you can start the docker container and then
@@ -53,7 +54,8 @@ python -m src.train_classifier
 ```
 
 ### Run tensorboard
-The tensorboard can be used, to examine the results from the trained models. The tensorboard can be started by executing the docker command below. The tensorboard is then available on [http://localhost:6006](http://localhost:6006).
+The tensorboard can be used, to examine the results from the trained models. The tensorboard can be started by
+ executing the docker command below. The tensorboard is then available on [http://localhost:6006](http://localhost:6006). The `--logdir` specifies the location of the results to visualise.
 ```shell script
 docker run -it -p 6006:6006 --rm -v ${PWD}:/tf/ --name deep-embedded-music-tensorboard \
 tensorflow/tensorflow:2.1.0-gpu-py3 \
