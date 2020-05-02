@@ -36,13 +36,13 @@ class BaseExtractor(ABC):
     # compute STFT
     # INPUT : (sample_size, )
     # OUTPUT: (frame_size, fft_size // 2 + 1)
-    def get_stft_spectrogram(self, data, frame_length, frame_step, fft_size):
+    def get_stft_spectrogram(self, data):
         # Input: A Tensor of [batch_size, num_samples]
         # mono PCM samples in the range [-1, 1].
         stfts = tf.signal.stft(data,
-                               frame_length=frame_length,
-                               frame_step=frame_step,
-                               fft_length=fft_size)
+                               frame_length=self.frame_length,
+                               frame_step=self.frame_step,
+                               fft_length=self.fft_size)
 
         # determine the amplitude
         spectrograms = tf.abs(stfts)
@@ -52,7 +52,7 @@ class BaseExtractor(ABC):
     # compute mel-Frequency
     # INPUT : (frame_size, fft_size // 2 + 1)
     # OUTPUT: (frame_size, mel_bin_size)
-    def get_mel(self, stfts, n_mel_bin):
+    def get_mel(self, stfts):
         # STFT-bin
         # 257 (= FFT size / 2 + 1)
         n_stft_bin = stfts.shape[-1]
@@ -60,7 +60,7 @@ class BaseExtractor(ABC):
         # linear_to_mel_weight_matrix shape: (257, 128)
         # (FFT size / 2 + 1, num of mel bins)
         linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-            num_mel_bins=n_mel_bin,
+            num_mel_bins=self.n_mel_bin,
             num_spectrogram_bins=n_stft_bin,
             sample_rate=self.sample_rate,
             lower_edge_hertz=self.lower_edge_hertz,
@@ -81,33 +81,26 @@ class BaseExtractor(ABC):
     # compute MFCC
     # INPUT : (frame_size, mel_bin_size)
     # OUTPUT: (frame_size, n_mfcc_bin)
-    def get_mfcc(self, log_mel_spectrograms, n_mfcc_bin):
+    def get_mfcc(self, log_mel_spectrograms):
         mfcc = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrograms)
-        mfcc = mfcc[..., :n_mfcc_bin]
+        mfcc = mfcc[..., :self.n_mfcc_bin]
 
         return mfcc
 
     # OUTPUT: (frame_size, mel_bin_size)
-    def extract_log_mel_features(self, audio, frame_length, frame_step, fft_size, n_mel_bin):
+    def extract_log_mel_features(self, audio):
         # find the feature value (STFT)
-        stft = self.get_stft_spectrogram(audio,
-                                         frame_length=frame_length,
-                                         frame_step=frame_step,
-                                         fft_size=fft_size)
+        stft = self.get_stft_spectrogram(audio)
         # find features (logarithmic mel spectrogram)
-        log_mel_spectrogram = self.get_mel(stft, n_mel_bin)
+        log_mel_spectrogram = self.get_mel(stft)
 
         return log_mel_spectrogram
 
     # OUTPUT: (frame_size, n_mfcc_bin)
-    def extract_mfcc_features(self, audio, frame_length, frame_step, fft_size, n_mel_bin, n_mfcc_bin):
+    def extract_mfcc_features(self, audio):
         # extract the log mel features from the audio
-        log_mel_spectrogram = self.extract_log_mel_features(audio,
-                                                            frame_length=frame_length,
-                                                            frame_step=frame_step,
-                                                            fft_size=fft_size,
-                                                            n_mel_bin=n_mel_bin)
+        log_mel_spectrogram = self.extract_log_mel_features(audio)
         # extract MFCC feature values
-        mfcc = self.get_mfcc(log_mel_spectrogram, n_mfcc_bin)
+        mfcc = self.get_mfcc(log_mel_spectrogram)
 
         return mfcc

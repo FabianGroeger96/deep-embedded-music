@@ -14,12 +14,7 @@ class MFCCBaseExtractor(BaseExtractor):
     # OUTPUT: (frame_size, n_mfcc_bin, ?channels)
     def extract(self, audio):
         if len(audio.shape) == 1:
-            log_mel_spectrogram = self.extract_mfcc_features(audio,
-                                                             frame_length=self.frame_length,
-                                                             frame_step=self.frame_step,
-                                                             fft_size=self.fft_size,
-                                                             n_mel_bin=self.n_mel_bin,
-                                                             n_mfcc_bin=self.n_mfcc_bin)
+            log_mel_spectrogram = self.extract_mfcc_features(audio)
 
             return log_mel_spectrogram
 
@@ -31,12 +26,7 @@ class MFCCBaseExtractor(BaseExtractor):
                 # extract one audio channel
                 audio_channel = tf.squeeze(audio[:, i])
                 # find the feature value (STFT)
-                log_mel_spectrogram = self.extract_mfcc_features(audio_channel,
-                                                                 frame_length=self.frame_length,
-                                                                 frame_step=self.frame_step,
-                                                                 fft_size=self.fft_size,
-                                                                 n_mel_bin=self.n_mel_bin,
-                                                                 n_mfcc_bin=self.n_mfcc_bin)
+                log_mel_spectrogram = self.extract_mfcc_features(audio_channel)
                 # append the feature to the list of features
                 feature_list.append(log_mel_spectrogram)
             # stack the different audio channels on top of each other (..., ..., channels)
