@@ -47,10 +47,12 @@ If the tensorboard profiler wants to be used, by setting the parameter `use_prof
   [https://developer.nvidia.com/nvidia-development-tools-solutions-err-nvgpuctrperm-cupti](https://developer.nvidia.com/nvidia-development-tools-solutions-err-nvgpuctrperm-cupti).
 
 ### Train classifier
-A separate python script has to be called named `train_classifier.py`, to train the classifier on top of the embedding architecture. 
+A separate python script has to be called named `train_classifier.py`, to train the classifier on top of the
+ embedding architecture. The `--model_to_load` argument specifies which embedding model should be used to train the
+  classifier, the classifier will be trained using the same dataset.
  ```shell script
 cd deep-embedded-music
-python -m src.train_classifier
+python -m src.train_classifier --model_to_load results/path_to_model/
 ```
 
 ### Run tensorboard
