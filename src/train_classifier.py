@@ -19,7 +19,7 @@ parser.add_argument("--experiment_dir", default="experiments",
                     help="Experiment directory containing params.json")
 parser.add_argument("--dataset_dir", default="DCASE",
                     help="Dataset directory containing the model")
-parser.add_argument("--model_to_load", default="results/ConvGRUNet-LogMel-l1e4-b32-ts2-ns4-m05-e256-20200414-110807",
+parser.add_argument("--model_to_load", default="results/ResNet18-LogMel-l1e5-b128-l201-ts5-ns5-m1-e64-20200501-095536",
                     help="Model to load")
 
 
@@ -205,5 +205,8 @@ if __name__ == "__main__":
         metric_train_loss_batches.reset_states()
         metric_train_loss_epochs.reset_states()
         metric_eval_loss_epochs.reset_states()
+
+        # reinitialise pipeline after epoch
+        pipeline.reinitialise()
 
         logger.info("Epoch end")
