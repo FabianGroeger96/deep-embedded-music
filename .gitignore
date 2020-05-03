@@ -218,3 +218,8 @@ checkpoint
 experiments/*
 experiments/DCASE/*
 experiments/DJ/*
+data/*
+data/DCASE18-Task5-development/*
+data/DCASE18-Task5-evaluation/*
+data/dj-set/*
+data/dj-set/MusicDataset/*
