@@ -32,9 +32,12 @@ This research seeks to alleviate this incongruity by developing alternative lear
 The following docker command can be executed using the `onstart.sh` script, to train the triplet loss architecture on a GPU. The container will start, and the training procedure begins right away.
 ```shell script
 docker run -it -v ${PWD}:/tf/ -w /tf --name deep-embedded-music-0 \
--e NVIDIA_VISIBLE_DEVICES=0 --privileged=true \
+--gpus all --privileged=true \
 tensorflow/tensorflow:2.1.0-gpu-py3 /bin/bash ./onstart.sh
 ```
+
+>Take note of your Docker version with docker -v. Versions earlier than 19.03 require nvidia-docker2 and the --runtime=nvidia flag. On versions including and after 19.03, you will use the nvidia-container-toolkit package and the --gpus all flag. Both options are documented on the page linked above.
+
 If you want to start the training without the `onstart.sh` script, you can start the docker container and then
  executing the python script `train_triplet_loss.py` manually.
  ```shell script
