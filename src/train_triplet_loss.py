@@ -95,7 +95,7 @@ def main():
                                                                                                   saved_model_path=params.saved_model_path)
 
     # set logger
-    Utils.set_logger(__name__, log_path, params.log_level)
+    Utils.set_logger(log_path, params.log_level)
     logger = logging.getLogger("Main ({})".format(params.experiment_name))
 
     # print params

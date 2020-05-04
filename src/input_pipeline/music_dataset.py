@@ -64,7 +64,7 @@ class MusicDataset(BaseDataset):
         audio_paths = []
         audio_labels = []
 
-        files = Utils.get_files_in_path(self.dataset_path, ".mp3")
+        files = Utils.get_files_in_path(self.dataset_path, ".wav")
         for file in files:
             file_path = pathlib.Path(file)
             file_name = file_path.name

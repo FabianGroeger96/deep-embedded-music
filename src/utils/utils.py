@@ -47,18 +47,17 @@ class Utils:
         return path
 
     @staticmethod
-    def set_logger(logger_name, log_path, log_level: str = "INFO"):
+    def set_logger(log_path, log_level: str = "INFO"):
         """
         Sets the logger to log info in terminal and file `log_path`.
 
         In general, it is useful to have a logger so that every output to the terminal is saved
         in a permanent file. Here we save it to `log_path/experiment.log`.
 
-        :param logger_name: (string) name of the default logger
         :param log_path: (string) where to log
         :param log_level: sets the log level
         """
-        logger = logging.getLogger(logger_name)
+        logger = logging.getLogger()
         logger.setLevel(log_level)
 
         if not logger.handlers:

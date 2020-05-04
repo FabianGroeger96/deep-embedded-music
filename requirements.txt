@@ -13,3 +13,4 @@ librosa
 tqdm
 pydub
 pytest
+soundfile
