@@ -160,7 +160,7 @@ if __name__ == "__main__":
                                                                                                   model_name=experiment_name)
 
     # set logger
-    Utils.set_logger(log_path, params.log_level)
+    Utils.set_logger(__name__, log_path, params.log_level)
     logger = logging.getLogger("Main ({})".format(params.experiment_name))
 
     # set the folder for the summary writer

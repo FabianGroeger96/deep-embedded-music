@@ -97,7 +97,7 @@ class MusicDataset(BaseDataset):
     def get_triplets(self, audio_id, audio_length, opposite_choices, trim: bool = True) -> np.ndarray:
         try:
             triplets = []
-            for anchor_id in range(0, audio_length, self.sample_tile_size):
+            for anchor_id in range(0, audio_length - self.sample_tile_size, self.sample_tile_size):
                 a_seg = [audio_id, anchor_id]
                 n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length)
                 o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length,

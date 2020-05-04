@@ -1,9 +1,11 @@
 import logging
+import re
 from typing import Union, Tuple
 
 import librosa
 import numpy as np
 import tensorflow as tf
+import warnings
 
 from src.feature_extractor.base_extractor import BaseExtractor
 from src.input_pipeline.base_dataset import BaseDataset, DatasetType
@@ -24,6 +26,8 @@ class TripletsInputPipeline:
         :param params: parameters of the current experiment.
         :param log: if the pipeline should log details about the data.
         """
+        # ignore warnings, such as the librosa warnings
+        warnings.filterwarnings('ignore')
 
         self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
         self.dataset_name = params.dataset
@@ -32,7 +36,6 @@ class TripletsInputPipeline:
 
         self.num_parallel_calls = params.num_parallel_calls
         self.gen_count = params.gen_count
-        self.gen_index = 0
 
         self.sample_rate = params.sample_rate
         self.sample_size = params.sample_size
@@ -66,25 +69,25 @@ class TripletsInputPipeline:
 
     def reinitialise(self):
         self.logger.info("Reinitialising the input pipeline")
-        self.gen_index = 0
         self.dataset.initialise()
 
     def generate_samples(self, gen_name: str, trim: bool, return_labels: bool) -> Tuple[np.ndarray, np.ndarray,
                                                                                         np.ndarray, np.ndarray]:
 
         gen_name = gen_name.decode("utf-8")
+        gen_index = int(re.findall('[0-9]+', gen_name)[0])
 
-        self.dataset.current_index = self.gen_index
-        for index, anchor in enumerate(self.dataset):
-            self.dataset.current_index = self.gen_index
-            if self.log and False:
-                self.logger.debug("{0}, index:{1}".format(gen_name, self.gen_index))
+        self.dataset.current_index = gen_index
+        for anchor in self.dataset:
+            current_index = self.dataset.current_index - 1
+            if self.log:
+                self.logger.debug("{0}, {1}, index:{2}".format(gen_name, gen_index, current_index))
 
             # fill the opposite sample buffer
-            opposite_audios = self.dataset.fill_opposite_selection(index)
+            opposite_audios = self.dataset.fill_opposite_selection(current_index)
 
             # load audio files from anchor
-            anchor = self.dataset.df_train.iloc[index]
+            anchor = self.dataset.df.iloc[current_index]
             if self.dataset_name == "MusicDataset":
                 anchor_audio, _ = librosa.load(anchor.file_name, self.sample_rate)
                 anchor_audio, _ = librosa.effects.trim(anchor_audio)
@@ -96,7 +99,7 @@ class TripletsInputPipeline:
             anchor_audio_length = int(len(anchor_audio) / self.sample_rate)
 
             try:
-                triplets = self.dataset.get_triplets(index, anchor_audio_length, trim=trim,
+                triplets = self.dataset.get_triplets(current_index, anchor_audio_length, trim=trim,
                                                      opposite_choices=opposite_audios)
             except ValueError as err:
                 self.logger.debug("Error during triplet creation: {}".format(err))
@@ -122,16 +125,14 @@ class TripletsInputPipeline:
                     labels = [-1, -1, -1]
                 labels = np.asarray(labels)
 
-                if self.gen_index % 1000 == 0 and self.gen_index is not 0 and self.log:
+                if current_index % 1000 == 0 and current_index is not 0 and self.log:
                     self.logger.debug("{0} yields sound segments {1}, a: {2}, n: {3}, o: {4}".format(gen_name,
-                                                                                                     self.dataset.current_index,
+                                                                                                     current_index,
                                                                                                      anchor_seg,
                                                                                                      neighbour_seg,
                                                                                                      opposite_seg))
 
                 yield anchor_audio_seg, neighbour_audio_seg, opposite_audio_seg, labels
-
-            self.gen_index += 1
 
     def get_dataset(self, feature_extractor: Union[BaseExtractor, None], dataset_type: DatasetType = DatasetType.TRAIN,
                     shuffle: bool = True, trim: bool = True, return_labels: bool = False):
