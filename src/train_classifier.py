@@ -19,7 +19,7 @@ parser.add_argument("--experiment_dir", default="experiments",
                     help="Experiment directory containing params.json")
 parser.add_argument("--dataset_dir", default="DCASE",
                     help="Dataset directory containing the model")
-parser.add_argument("--model_to_load", default="results/ResNet18-LogMel-l1e5-b128-l201-ts5-ns5-m1-e64-20200501-095536",
+parser.add_argument("--model_to_load", default="results/ResNet18-LogMel-l1e5-b64-l201-ts5-ns5-m1-e16-20200501-154131",
                     help="Model to load")
 
 
@@ -69,9 +69,12 @@ def train():
             tf.summary.scalar("classifier/train_f1_batches", metric_train_f1_batches.result(),
                               step=int(ckpt_classifier.step))
 
-        logger.info("TRAIN - batch index: {0}, loss: {1:.2f}, acc: {2:.2f}, f1: {3:.2f}".format(batch_index, loss,
-                                                                                                metric_train_accuracy_batches.result(),
-                                                                                                metric_train_f1_batches.result()))
+        logger.info("TRAIN - epoch: {0}, batch index: {1}, loss: {2:.2f}, acc: {3:.2f}, f1: {4:.2f}".format(
+            epoch,
+            batch_index,
+            loss,
+            metric_train_accuracy_batches.result(),
+            metric_train_f1_batches.result()))
 
         # add one step to checkpoint
         ckpt_classifier.step.assign_add(1)
@@ -86,6 +89,7 @@ def train():
 
 def evaluate():
     logger.info("Starting to evaluate")
+    pipeline.reinitialise()
     dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.EVAL,
                                             shuffle=params.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
@@ -109,7 +113,7 @@ def evaluate():
         metric_eval_accuracy_epochs(labels, pred)
         metric_eval_f1_epochs.update_state(tf.one_hot(labels, len(dataset.LABELS)), pred)
 
-        logger.info("EVAL - batch index: {0}, loss: {1:.2f}".format(batch_index, loss))
+        logger.info("EVAL - epoch: {0}, batch index: {1}, loss: {2:.2f}".format(epoch, batch_index, loss))
 
     # write epoch loss to summary writer
     with train_summary_writer.as_default():
@@ -208,5 +212,4 @@ if __name__ == "__main__":
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
-
         logger.info("Epoch end")
