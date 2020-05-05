@@ -17,7 +17,7 @@ class TripletLoss(tf.keras.losses.Loss):
     The goal of this loss is to minimize the distance between the anchor and the neighbour, and to maximize the
     distance between the anchor and the opposite."""
 
-    def __init__(self, margin, strategy: TripletLossStrategy = TripletLossStrategy.ALL):
+    def __init__(self, margin, strategy: TripletLossStrategy = TripletLossStrategy.ZERO_FILTERED):
         """
         Initialises the triplet loss.
 
