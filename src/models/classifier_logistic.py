@@ -32,8 +32,8 @@ class ClassifierLogistic(tf.keras.Model):
         :raises: ValueError: if the input has the wrong shape.
         """
         if len(inputs.shape) == 3:
-            inputs = tf.keras.layers.Flatten()(inputs)
-
+            pass
+        inputs = tf.keras.layers.Flatten()(inputs)
         features = self.dense_output(inputs)
 
         return features

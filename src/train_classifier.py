@@ -21,8 +21,11 @@ parser.add_argument("--experiment_dir", default="experiments",
 parser.add_argument("--dataset_dir", default="DCASE",
                     help="Dataset directory containing the model")
 parser.add_argument("--model_to_load",
-                    default="results/experiment_embedding_size/ResNet18-LogMel-l1e5-b128-l201-ts5-ns5-m1-e32-20200501-183842",
+                    default="None",
                     help="Model to load")
+parser.add_argument("--classifier",
+                    default="Logistic",
+                    help="Which classifier to use, dense or logistic")
 
 
 def train():
@@ -165,13 +168,26 @@ if __name__ == "__main__":
 
         # load the params.json file from the existing model
         json_path = os.path.join(experiment_path, "logs", "params.json")
+        # get the parameters from the json file
+        params = Params(json_path)
+
+        # create model from factory and specified name within the params
+        model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
+        # define checkpoint and checkpoint manager
+        ckpt = tf.train.Checkpoint(net=model)
+        manager = tf.train.CheckpointManager(ckpt, saved_model_path, max_to_keep=3)
+
+        # check if models has been trained before
+        ckpt.restore(manager.latest_checkpoint)
+        if not manager.latest_checkpoint:
+            raise ValueError("Embedding model could not be restored")
     else:
         # load default parameters
         json_path = os.path.join(args.experiment_dir, "config", "params.json")
+        # get the parameters from the json file
         params = Params(json_path)
-
-    # get the parameters from the json file
-    params = Params(json_path)
+        # no embedding model should be used, e.g. as a baseline model
+        model = None
 
     # define dataset
     dataset = DatasetFactory.create_dataset(name=params.dataset, params=params)
@@ -181,7 +197,13 @@ if __name__ == "__main__":
     pipeline = TripletsInputPipeline(params=params, dataset=dataset)
 
     # create the classifier model
-    classifier = ClassifierLogistic("Classifier", n_labels=len(dataset.LABELS))
+    if args.classifier == "Dense":
+        classifier = Classifier("Classifier", n_labels=len(dataset.LABELS))
+    elif args.classifier == "Logistic":
+        classifier = ClassifierLogistic("Classifier", n_labels=len(dataset.LABELS))
+    else:
+        raise ValueError("Wrong specified classifier")
+
     # loss for the classifier
     classifier_loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     # create the optimizer for the classifier
@@ -213,22 +235,6 @@ if __name__ == "__main__":
     metric_eval_accuracy_epochs = tf.keras.metrics.SparseCategoricalAccuracy()
     metric_eval_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS), average="macro")
     metric_eval_loss_epochs = tf.keras.metrics.Mean("eval_loss_epochs", dtype=tf.float32)
-
-    if args.model_to_load != "None":
-        # create model from factory and specified name within the params
-        model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
-        # define checkpoint and checkpoint manager
-        ckpt = tf.train.Checkpoint(net=model)
-        manager = tf.train.CheckpointManager(ckpt, saved_model_path, max_to_keep=3)
-
-        # check if models has been trained before
-        ckpt.restore(manager.latest_checkpoint)
-        if manager.latest_checkpoint:
-            logger.info("Restored models from {}".format(manager.latest_checkpoint))
-        else:
-            logger.info("Initializing models from scratch.")
-    else:
-        model = None
 
     ckpt_classifier = tf.train.Checkpoint(step=tf.Variable(1), net=classifier)
 
