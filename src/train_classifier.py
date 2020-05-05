@@ -72,9 +72,14 @@ def train():
         logger.info("TRAIN - epoch: {0}, batch index: {1}, loss: {2:.2f}, acc: {3:.2f}, f1: {4:.2f}".format(
             epoch,
             batch_index,
-            loss,
+            metric_train_loss_batches.result(),
             metric_train_accuracy_batches.result(),
             metric_train_f1_batches.result()))
+
+        # reset metrics every epoch
+        metric_train_accuracy_batches.reset_states()
+        metric_train_loss_batches.reset_states()
+        metric_train_f1_batches.reset_states()
 
         # add one step to checkpoint
         ckpt_classifier.step.assign_add(1)
@@ -209,6 +214,10 @@ if __name__ == "__main__":
         metric_train_loss_batches.reset_states()
         metric_train_loss_epochs.reset_states()
         metric_eval_loss_epochs.reset_states()
+
+        metric_train_f1_batches.reset_states()
+        metric_train_f1_epochs.reset_states()
+        metric_eval_f1_epochs.reset_states()
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
