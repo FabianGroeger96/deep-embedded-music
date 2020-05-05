@@ -33,6 +33,9 @@ class Classifier(tf.keras.Model):
         :return: returns the output of the model.
         :raises: ValueError: if the input has the wrong shape.
         """
+        if len(inputs.shape) == 3:
+            inputs = tf.keras.layers.Flatten()(inputs)
+
         features = self.dense_1(inputs)
         features = self.dense_2(features)
         features = self.dense_output(features)

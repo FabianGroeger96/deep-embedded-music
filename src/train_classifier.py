@@ -19,7 +19,8 @@ parser.add_argument("--experiment_dir", default="experiments",
                     help="Experiment directory containing params.json")
 parser.add_argument("--dataset_dir", default="DCASE",
                     help="Dataset directory containing the model")
-parser.add_argument("--model_to_load", default="results/ResNet18-LogMel-l1e5-b64-l201-ts5-ns5-m1-e16-20200501-154131",
+parser.add_argument("--model_to_load",
+                    default="results/experiment_embedding_size/ResNet18-LogMel-l1e5-b128-l201-ts5-ns5-m1-e32-20200501-183842",
                     help="Model to load")
 
 
@@ -28,9 +29,8 @@ def train():
                                             shuffle=params.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
     for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
-        emb_anchor = model(anchor, training=False)
-        emb_neighbour = model(neighbour, training=False)
-        emb_opposite = model(opposite, training=False)
+        # embed the triplets into the embedding space
+        emb_anchor, emb_neighbour, emb_opposite = embed_triplet(anchor, neighbour, opposite)
 
         # record the operations run during the forward pass, which enables auto differentiation
         with tf.GradientTape() as tape:
@@ -99,9 +99,8 @@ def evaluate():
                                             shuffle=params.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
     for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
-        emb_anchor = model(anchor, training=False)
-        emb_neighbour = model(neighbour, training=False)
-        emb_opposite = model(opposite, training=False)
+        # embed the triplets into the embedding space
+        emb_anchor, emb_neighbour, emb_opposite = embed_triplet(anchor, neighbour, opposite)
 
         # run the forward pass of the layer
         pred_anchor = classifier(emb_anchor)
@@ -128,17 +127,49 @@ def evaluate():
         tf.summary.scalar("classifier/eval_f1_epochs", metric_eval_f1_epochs.result(), step=epoch)
 
 
+def embed_triplet(anchor, neighbour, opposite):
+    if model is not None:
+        emb_anchor = model(anchor, training=False)
+        emb_neighbour = model(neighbour, training=False)
+        emb_opposite = model(opposite, training=False)
+    else:
+        emb_anchor = anchor
+        emb_neighbour = neighbour
+        emb_opposite = opposite
+    return emb_anchor, emb_neighbour, emb_opposite
+
+
 if __name__ == "__main__":
+    gpus = tf.config.experimental.list_physical_devices('GPU')
+    if gpus:
+        try:
+            # Currently, memory growth needs to be the same across GPUs
+            for gpu in gpus:
+                tf.config.experimental.set_memory_growth(gpu, True)
+            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
+            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
+        except RuntimeError as e:
+            # Memory growth must be set before GPUs have been initialized
+            print(e)
+
     # load the arguments
     args = parser.parse_args()
 
-    # set the existing model to the experiment path
-    experiment_path = os.path.join(args.experiment_dir, args.dataset_dir, args.model_to_load)
-    # create folder for saving model
-    saved_model_path = Utils.create_folder(os.path.join(experiment_path, "saved_model"))
+    if args.model_to_load != "None":
+        # load the parameters of the model to train
+        # set the existing model to the experiment path
+        experiment_path = os.path.join(args.experiment_dir, args.dataset_dir, args.model_to_load)
+        # create folder for saving model
+        saved_model_path = Utils.create_folder(os.path.join(experiment_path, "saved_model"))
 
-    # load the params.json file from the existing model
-    json_path = os.path.join(experiment_path, "logs", "params.json")
+        # load the params.json file from the existing model
+        json_path = os.path.join(experiment_path, "logs", "params.json")
+    else:
+        # load default parameters
+        json_path = os.path.join(args.experiment_dir, "config", "params.json")
+        params = Params(json_path)
+
+    # get the parameters from the json file
     params = Params(json_path)
 
     # define dataset
@@ -147,9 +178,6 @@ if __name__ == "__main__":
     extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
     # define triplet input pipeline
     pipeline = TripletsInputPipeline(params=params, dataset=dataset)
-
-    # create model from factory and specified name within the params
-    model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
 
     # create the classifier model
     classifier = Classifier("Classifier", n_labels=len(dataset.LABELS))
@@ -185,16 +213,21 @@ if __name__ == "__main__":
     metric_eval_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS), average="macro")
     metric_eval_loss_epochs = tf.keras.metrics.Mean("eval_loss_epochs", dtype=tf.float32)
 
-    # define checkpoint and checkpoint manager
-    ckpt = tf.train.Checkpoint(net=model)
-    manager = tf.train.CheckpointManager(ckpt, saved_model_path, max_to_keep=3)
+    if args.model_to_load != "None":
+        # create model from factory and specified name within the params
+        model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
+        # define checkpoint and checkpoint manager
+        ckpt = tf.train.Checkpoint(net=model)
+        manager = tf.train.CheckpointManager(ckpt, saved_model_path, max_to_keep=3)
 
-    # check if models has been trained before
-    ckpt.restore(manager.latest_checkpoint)
-    if manager.latest_checkpoint:
-        logger.info("Restored models from {}".format(manager.latest_checkpoint))
+        # check if models has been trained before
+        ckpt.restore(manager.latest_checkpoint)
+        if manager.latest_checkpoint:
+            logger.info("Restored models from {}".format(manager.latest_checkpoint))
+        else:
+            logger.info("Initializing models from scratch.")
     else:
-        logger.info("Initializing models from scratch.")
+        model = None
 
     ckpt_classifier = tf.train.Checkpoint(step=tf.Variable(1), net=classifier)
 
