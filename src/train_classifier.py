@@ -10,6 +10,7 @@ from src.input_pipeline.base_dataset import DatasetType
 from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.models.classifier import Classifier
+from src.models.classifier_logistic import ClassifierLogistic
 from src.models.model_factory import ModelFactory
 from src.utils.params import Params
 from src.utils.utils import Utils
@@ -180,7 +181,7 @@ if __name__ == "__main__":
     pipeline = TripletsInputPipeline(params=params, dataset=dataset)
 
     # create the classifier model
-    classifier = Classifier("Classifier", n_labels=len(dataset.LABELS))
+    classifier = ClassifierLogistic("Classifier", n_labels=len(dataset.LABELS))
     # loss for the classifier
     classifier_loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     # create the optimizer for the classifier
