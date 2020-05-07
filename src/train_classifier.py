@@ -30,7 +30,7 @@ parser.add_argument("--classifier",
 
 def train():
     dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
-                                            shuffle=params.shuffle_dataset, return_labels=True)
+                                            shuffle=params_classifier.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
     for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
         # embed the triplets into the embedding space
@@ -100,7 +100,7 @@ def evaluate():
     logger.info("Starting to evaluate")
     pipeline.reinitialise()
     dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.EVAL,
-                                            shuffle=params.shuffle_dataset, return_labels=True)
+                                            shuffle=params_classifier.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
     for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
         # embed the triplets into the embedding space
@@ -132,10 +132,10 @@ def evaluate():
 
 
 def embed_triplet(anchor, neighbour, opposite):
-    if model is not None:
-        emb_anchor = model(anchor, training=False)
-        emb_neighbour = model(neighbour, training=False)
-        emb_opposite = model(opposite, training=False)
+    if model_embedding is not None:
+        emb_anchor = model_embedding(anchor, training=False)
+        emb_neighbour = model_embedding(neighbour, training=False)
+        emb_opposite = model_embedding(opposite, training=False)
     else:
         emb_anchor = anchor
         emb_neighbour = neighbour
@@ -159,22 +159,24 @@ if __name__ == "__main__":
     # load the arguments
     args = parser.parse_args()
 
+    # load default config file for classifier
+    params_classifier = Params(os.path.join(args.experiment_dir, "config", "params.json"))
+
     if args.model_to_load != "None":
         # load the parameters of the model to train
         # set the existing model to the experiment path
         experiment_path = os.path.join(args.experiment_dir, args.dataset_dir, args.model_to_load)
-        # create folder for saving model
-        saved_model_path = Utils.create_folder(os.path.join(experiment_path, "saved_model"))
+        # load folder for saving model
+        saved_model_path = os.path.join(experiment_path, "saved_model")
 
-        # load the params.json file from the existing model
-        json_path = os.path.join(experiment_path, "logs", "params.json")
         # get the parameters from the json file
-        params = Params(json_path)
+        params_saved_model = Params(os.path.join(experiment_path, "logs", "params.json"))
 
-        # create model from factory and specified name within the params
-        model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size)
+        # load the embedding model
+        model_embedding = ModelFactory.create_model(params_saved_model.model,
+                                                    embedding_dim=params_saved_model.embedding_size)
         # define checkpoint and checkpoint manager
-        ckpt = tf.train.Checkpoint(net=model)
+        ckpt = tf.train.Checkpoint(net=model_embedding)
         manager = tf.train.CheckpointManager(ckpt, saved_model_path, max_to_keep=3)
 
         # check if models has been trained before
@@ -183,41 +185,39 @@ if __name__ == "__main__":
             raise ValueError("Embedding model could not be restored")
     else:
         # load default parameters
-        json_path = os.path.join(args.experiment_dir, "config", "params.json")
-        # get the parameters from the json file
-        params = Params(json_path)
+        params_saved_model = params_classifier
         # no embedding model should be used, e.g. as a baseline model
-        model = None
+        model_embedding = None
 
     # define dataset
-    dataset = DatasetFactory.create_dataset(name=params.dataset, params=params)
+    dataset = DatasetFactory.create_dataset(name=params_saved_model.dataset, params=params_saved_model)
     # get the feature extractor from the factory
-    extractor = ExtractorFactory.create_extractor(params.feature_extractor, params=params)
+    extractor = ExtractorFactory.create_extractor(params_saved_model.feature_extractor, params=params_saved_model)
     # define triplet input pipeline
-    pipeline = TripletsInputPipeline(params=params, dataset=dataset)
+    pipeline = TripletsInputPipeline(params=params_saved_model, dataset=dataset)
 
     # create the classifier model
     if args.classifier == "Dense":
-        classifier = Classifier("Classifier", n_labels=len(dataset.LABELS))
+        classifier = Classifier("DenseClassifier", n_labels=len(dataset.LABELS))
     elif args.classifier == "Logistic":
-        classifier = ClassifierLogistic("Classifier", n_labels=len(dataset.LABELS))
+        classifier = ClassifierLogistic("LogisticClassifier", n_labels=len(dataset.LABELS))
     else:
         raise ValueError("Wrong specified classifier")
 
     # loss for the classifier
     classifier_loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
     # create the optimizer for the classifier
-    classifier_optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
+    classifier_optimizer = tf.keras.optimizers.Adam(learning_rate=params_classifier.learning_rate)
 
     # create folders for experiment results
-    experiment_name = "{0}-{1}".format(classifier.model_name, params.experiment_name)
+    experiment_name = "{0}-{1}".format(classifier.model_name, params_classifier.experiment_name)
     experiment_path, log_path, tensorb_path, save_path = Utils.create_load_folders_for_experiment(args,
                                                                                                   dataset_folder=dataset.EXPERIMENT_FOLDER,
                                                                                                   model_name=experiment_name)
 
     # set logger
-    Utils.set_logger(log_path, params.log_level)
-    logger = logging.getLogger("Main ({})".format(params.experiment_name))
+    Utils.set_logger(log_path, params_classifier.log_level)
+    logger = logging.getLogger("Main ({})".format(params_classifier.experiment_name))
 
     # set the folder for the summary writer
     train_summary_writer = tf.summary.create_file_writer(tensorb_path)
@@ -238,8 +238,8 @@ if __name__ == "__main__":
 
     ckpt_classifier = tf.train.Checkpoint(step=tf.Variable(1), net=classifier)
 
-    for epoch in range(params.epochs):
-        logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
+    for epoch in range(params_classifier.epochs):
+        logger.info("Starting epoch {0} from {1}".format(epoch + 1, params_classifier.epochs))
 
         # train the classifier
         train()
