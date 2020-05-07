@@ -6,8 +6,8 @@ from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
-from src.models.gru_net import GRUNet
-from src.models.model_factory import ModelFactory
+from src.models_embedding.gru_net import GRUNet
+from src.models_embedding.model_factory import ModelFactory
 from src.training.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils_audio import AudioUtils

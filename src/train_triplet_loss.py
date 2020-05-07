@@ -10,7 +10,7 @@ from src.input_pipeline.base_dataset import DatasetType
 from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
-from src.models.model_factory import ModelFactory
+from src.models_embedding.model_factory import ModelFactory
 from src.training.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
@@ -113,17 +113,17 @@ def main():
     ckpt = tf.train.Checkpoint(optimizer=optimizer, net=model, step=tf.Variable(1))
     manager = tf.train.CheckpointManager(ckpt, save_path, max_to_keep=3)
 
-    # check if models has been trained before
+    # check if models_embedding has been trained before
     ckpt.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
-        logger.info("Restored models from {}".format(manager.latest_checkpoint))
+        logger.info("Restored models_embedding from {}".format(manager.latest_checkpoint))
     else:
-        logger.info("Initializing models from scratch.")
+        logger.info("Initializing models_embedding from scratch.")
 
     # log the current dataset information
     dataset.print_dataset_info()
 
-    # log the current models architecture
+    # log the current models_embedding architecture
     print_model = True
     model.log_model()
 

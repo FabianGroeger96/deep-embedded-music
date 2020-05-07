@@ -1,26 +1,22 @@
 import logging
 import re
+import warnings
 from typing import Union, Tuple
 
 import librosa
 import numpy as np
 import tensorflow as tf
-import warnings
 
 from src.feature_extractor.base_extractor import BaseExtractor
 from src.input_pipeline.base_dataset import BaseDataset, DatasetType
 from src.utils.params import Params
-from src.utils.utils import Utils
 from src.utils.utils_audio import AudioUtils
 
 
 class TripletsInputPipeline:
     """Input pipeline to generate triplets."""
 
-    def __init__(self,
-                 params: Params,
-                 dataset: BaseDataset,
-                 log: bool = False):
+    def __init__(self, params: Params, dataset: BaseDataset, log: bool = False):
         """
         Initialises the audio pipeline.
         :param params: parameters of the current experiment.
@@ -29,50 +25,21 @@ class TripletsInputPipeline:
         # ignore warnings, such as the librosa warnings
         warnings.filterwarnings('ignore')
 
-        self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
-        self.dataset_name = params.dataset
-
-        self.fold = params.dcase_dataset_fold
-
-        self.num_parallel_calls = params.num_parallel_calls
-        self.gen_count = params.gen_count
-
-        self.sample_rate = params.sample_rate
-        self.sample_size = params.sample_size
-
-        self.sample_tile_size = params.sample_tile_size
-        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
-
-        self.stereo_channels = params.stereo_channels
-        self.to_mono = params.to_mono
-
-        self.batch_size = params.batch_size
-        self.prefetch_batches = params.prefetch_batches
-        self.random_selection_buffer_size = params.random_selection_buffer_size
-
-        self.dataset_type = DatasetType.TRAIN
-
-        self.train_test_split_distribution = params.train_test_split
+        self.params = params
 
         self.dataset = dataset
+        self.dataset_type = DatasetType.TRAIN
 
         self.log = log
 
         self.logger = logging.getLogger(self.__class__.__name__)
 
-        # check if audio path contains *.wav files
-        files = Utils.get_files_in_path(self.dataset_path, ".wav")
-        if len(files) <= 0:
-            raise ValueError("No audio files found in '{}'".format(self.dataset_path))
-        else:
-            self.logger.info("Found {} audio files".format(len(files)))
-
     def reinitialise(self):
         self.logger.info("Reinitialising the input pipeline")
         self.dataset.initialise()
 
-    def generate_samples(self, gen_name: str, trim: bool, return_labels: bool) -> Tuple[np.ndarray, np.ndarray,
-                                                                                        np.ndarray, np.ndarray]:
+    def __generate_samples(self, gen_name: str, trim: bool, return_labels: bool) -> Tuple[np.ndarray, np.ndarray,
+                                                                                          np.ndarray, np.ndarray]:
 
         gen_name = gen_name.decode("utf-8")
         gen_index = int(re.findall('[0-9]+', gen_name)[0])
@@ -88,15 +55,16 @@ class TripletsInputPipeline:
 
             # load audio files from anchor
             anchor = self.dataset.df.iloc[current_index]
-            if self.dataset_name == "MusicDataset":
-                anchor_audio, _ = librosa.load(anchor.file_name, self.sample_rate)
+            if self.params.dataset == "MusicDataset":
+                anchor_audio, _ = librosa.load(anchor.file_name, self.params.sample_rate)
                 anchor_audio, _ = librosa.effects.trim(anchor_audio)
             else:
-                anchor_audio = AudioUtils.load_audio_from_file(anchor.file_name, self.sample_rate, self.sample_size,
-                                                               self.stereo_channels,
-                                                               self.to_mono)
+                anchor_audio = AudioUtils.load_audio_from_file(anchor.file_name, self.params.sample_rate,
+                                                               self.params.sample_size,
+                                                               self.params.stereo_channels,
+                                                               self.params.to_mono)
 
-            anchor_audio_length = int(len(anchor_audio) / self.sample_rate)
+            anchor_audio_length = int(len(anchor_audio) / self.params.sample_rate)
 
             try:
                 triplets = self.dataset.get_triplets(current_index, anchor_audio_length, trim=trim,
@@ -140,14 +108,14 @@ class TripletsInputPipeline:
         self.dataset_type = dataset_type
         self.dataset.change_dataset_type(dataset_type)
 
-        if self.to_mono:
-            audio_shape = [self.sample_tile_size * self.sample_rate]
+        if self.params.to_mono:
+            audio_shape = [self.params.sample_tile_size * self.params.sample_rate]
         else:
-            audio_shape = [self.sample_tile_size * self.sample_rate, self.stereo_channels]
+            audio_shape = [self.params.sample_tile_size * self.params.sample_rate, self.params.stereo_channels]
 
-        gen_arr = ["Gen_{}".format(x) for x in range(self.gen_count)]
+        gen_arr = ["Gen_{}".format(x) for x in range(self.params.gen_count)]
         dataset = tf.data.Dataset.from_tensor_slices(gen_arr)
-        dataset = dataset.interleave(lambda gen_name: tf.data.Dataset.from_generator(self.generate_samples,
+        dataset = dataset.interleave(lambda gen_name: tf.data.Dataset.from_generator(self.__generate_samples,
                                                                                      args=[gen_name, trim,
                                                                                            return_labels],
                                                                                      output_shapes=(
@@ -158,9 +126,9 @@ class TripletsInputPipeline:
                                                                                      output_types=(
                                                                                          tf.float32, tf.float32,
                                                                                          tf.float32, tf.float32)),
-                                     cycle_length=self.gen_count,
+                                     cycle_length=self.params.gen_count,
                                      block_length=1,
-                                     num_parallel_calls=self.num_parallel_calls)
+                                     num_parallel_calls=self.params.num_parallel_calls)
 
         # extract features from dataset
         if feature_extractor is not None:
@@ -168,13 +136,13 @@ class TripletsInputPipeline:
                 feature_extractor.extract(a),
                 feature_extractor.extract(n),
                 feature_extractor.extract(o),
-                labels), num_parallel_calls=self.num_parallel_calls)
+                labels), num_parallel_calls=self.params.num_parallel_calls)
 
         if shuffle:
             # buffer size defines from how much elements are in the buffer, from which then will get shuffled
-            dataset = dataset.shuffle(buffer_size=self.random_selection_buffer_size)
+            dataset = dataset.shuffle(buffer_size=self.params.random_selection_buffer_size)
 
-        dataset = dataset.batch(self.batch_size)
-        dataset = dataset.prefetch(self.prefetch_batches)
+        dataset = dataset.batch(self.params.batch_size)
+        dataset = dataset.prefetch(self.params.prefetch_batches)
 
         return dataset

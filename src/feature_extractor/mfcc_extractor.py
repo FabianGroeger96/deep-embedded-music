@@ -39,9 +39,9 @@ class MFCCBaseExtractor(BaseExtractor):
 
     def get_output_shape(self):
         # calculate the frame size
-        data = np.zeros(self.sample_rate * self.sample_tile_size)
+        data = np.zeros(self.params.sample_rate * self.params.sample_tile_size)
         # shape: (frame_size, frame_length)
-        frames = tf.signal.frame(data, frame_length=self.frame_length, frame_step=self.frame_step)
+        frames = tf.signal.frame(data, frame_length=self.params.frame_length, frame_step=self.params.frame_step)
         frame_size = frames.shape[0]
 
-        return frame_size, self.n_mfcc_bin
+        return frame_size, self.params.n_mfcc_bin

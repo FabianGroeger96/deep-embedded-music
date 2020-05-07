@@ -9,9 +9,9 @@ from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.base_dataset import DatasetType
 from src.input_pipeline.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
-from src.models.classifier import Classifier
-from src.models.classifier_logistic import ClassifierLogistic
-from src.models.model_factory import ModelFactory
+from src.models_classifier.classifier_dense import ClassifierDense
+from src.models_classifier.classifier_logistic import ClassifierLogistic
+from src.models_embedding.model_factory import ModelFactory
 from src.utils.params import Params
 from src.utils.utils import Utils
 
@@ -179,7 +179,7 @@ if __name__ == "__main__":
         ckpt = tf.train.Checkpoint(net=model_embedding)
         manager = tf.train.CheckpointManager(ckpt, saved_model_path, max_to_keep=3)
 
-        # check if models has been trained before
+        # check if models_embedding has been trained before
         ckpt.restore(manager.latest_checkpoint)
         if not manager.latest_checkpoint:
             raise ValueError("Embedding model could not be restored")
@@ -198,7 +198,7 @@ if __name__ == "__main__":
 
     # create the classifier model
     if args.classifier == "Dense":
-        classifier = Classifier("DenseClassifier", n_labels=len(dataset.LABELS))
+        classifier = ClassifierDense("DenseClassifier", n_labels=len(dataset.LABELS))
     elif args.classifier == "Logistic":
         classifier = ClassifierLogistic("LogisticClassifier", n_labels=len(dataset.LABELS))
     else:

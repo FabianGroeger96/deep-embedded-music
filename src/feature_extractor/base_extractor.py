@@ -7,20 +7,10 @@ from src.utils.params import Params
 
 class BaseExtractor(ABC):
     def __init__(self, params: Params):
-        self.sample_rate = params.sample_rate
-        self.sample_size = params.sample_size
-
-        self.sample_tile_size = params.sample_tile_size
-        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
+        self.params = params
 
         self.lower_edge_hertz = 50
         self.upper_edge_hertz = self.get_nyquist_frequency()
-
-        self.frame_length = params.frame_length
-        self.frame_step = params.frame_step
-        self.fft_size = params.fft_size
-        self.n_mel_bin = params.n_mel_bin
-        self.n_mfcc_bin = params.n_mfcc_bin
 
     @abstractmethod
     def extract(self, audio):
@@ -31,7 +21,7 @@ class BaseExtractor(ABC):
         pass
 
     def get_nyquist_frequency(self):
-        return self.sample_rate / 2
+        return self.params.sample_size / 2
 
     # compute STFT
     # INPUT : (sample_size, )
@@ -40,9 +30,9 @@ class BaseExtractor(ABC):
         # Input: A Tensor of [batch_size, num_samples]
         # mono PCM samples in the range [-1, 1].
         stfts = tf.signal.stft(data,
-                               frame_length=self.frame_length,
-                               frame_step=self.frame_step,
-                               fft_length=self.fft_size)
+                               frame_length=self.params.frame_length,
+                               frame_step=self.params.frame_step,
+                               fft_length=self.params.fft_size)
 
         # determine the amplitude
         spectrograms = tf.abs(stfts)
@@ -60,9 +50,9 @@ class BaseExtractor(ABC):
         # linear_to_mel_weight_matrix shape: (257, 128)
         # (FFT size / 2 + 1, num of mel bins)
         linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
-            num_mel_bins=self.n_mel_bin,
+            num_mel_bins=self.params.n_mel_bin,
             num_spectrogram_bins=n_stft_bin,
-            sample_rate=self.sample_rate,
+            sample_rate=self.params.sample_size,
             lower_edge_hertz=self.lower_edge_hertz,
             upper_edge_hertz=self.upper_edge_hertz
         )
@@ -83,7 +73,7 @@ class BaseExtractor(ABC):
     # OUTPUT: (frame_size, n_mfcc_bin)
     def get_mfcc(self, log_mel_spectrograms):
         mfcc = tf.signal.mfccs_from_log_mel_spectrograms(log_mel_spectrograms)
-        mfcc = mfcc[..., :self.n_mfcc_bin]
+        mfcc = mfcc[..., :self.params.n_mfcc_bin]
 
         return mfcc
 

@@ -1,10 +1,8 @@
-import logging
-
 import tensorflow as tf
 
 
-class Classifier(tf.keras.Model):
-    """ The classifier. It will be used to evaluate the embedding space. """
+class ClassifierLogistic(tf.keras.Model):
+    """ The logistic classifier. It will be used to evaluate the embedding space. """
 
     def __init__(self, model_name, n_labels):
         """
@@ -13,13 +11,9 @@ class Classifier(tf.keras.Model):
         :param model_name: the name of the model.
         :param n_labels: the count of classes to predict.
         """
-        super(Classifier, self).__init__()
-
-        self.logger = logging.getLogger(model_name)
+        super(ClassifierLogistic, self).__init__()
         self.model_name = model_name
 
-        self.dense_1 = tf.keras.layers.Dense(256, input_shape=(None, None), activation="relu", name="hidden_layer_1")
-        self.dense_2 = tf.keras.layers.Dense(256, activation="relu", name="hidden_layer_2")
         self.dense_output = tf.keras.layers.Dense(n_labels, activation="softmax", name="output")
 
     @tf.function
@@ -33,11 +27,7 @@ class Classifier(tf.keras.Model):
         :return: returns the output of the model.
         :raises: ValueError: if the input has the wrong shape.
         """
-        if len(inputs.shape) == 3:
-            inputs = tf.keras.layers.Flatten()(inputs)
-
-        features = self.dense_1(inputs)
-        features = self.dense_2(features)
-        features = self.dense_output(features)
+        inputs = tf.keras.layers.Flatten()(inputs)
+        features = self.dense_output(inputs)
 
         return features

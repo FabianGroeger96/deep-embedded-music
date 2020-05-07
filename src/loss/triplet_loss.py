@@ -6,7 +6,6 @@ import tensorflow as tf
 class TripletLossStrategy(Enum):
     ALL = 0
     ZERO_FILTERED = 1
-    HARDEST_NEG = 2
 
 
 class TripletLoss(tf.keras.losses.Loss):
@@ -42,12 +41,13 @@ class TripletLoss(tf.keras.losses.Loss):
 
         return distance_sum
 
+    @tf.function
     def call(self, y_true, y_pred):
         """
         Calculates the triplet loss of the given embeddings.
 
         :param y_true: the embeddings to calculate the triplet loss from. 3 items within the array.
-                        Structure: [0] anchor, [1] neighbour, [2] opposite.
+                        Structure: [0] anchor, [1] neighbour, [2] opposite. (not used)
         :param y_pred: the corresponding labels to the embeddings. 3 items within the array.
                         Structure: [0] anchor label, [1] neighbour label, [2] opposite label
         :return: the triplet loss.

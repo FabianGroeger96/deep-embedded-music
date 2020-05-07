@@ -23,27 +23,10 @@ class BaseDataset(ABC):
 
     def __init__(self, params: Params, log: bool = False):
         self.params = params
-
-        self.opposite_sample_buffer_size = params.opposite_sample_buffer_size
-
-        self.sample_rate = params.sample_rate
-        self.sample_size = params.sample_size
-
-        self.sample_tile_size = params.sample_tile_size
-        self.sample_tile_neighbourhood = params.sample_tile_neighbourhood
-
-        self.stereo_channels = params.stereo_channels
-        self.to_mono = params.to_mono
-
-        self.train_test_split = params.train_test_split
         self.log = log
 
         # set the dataset type (e.g. train, eval, test)
         self.dataset_type = DatasetType.TRAIN
-
-        # set the random seed
-        self.random_seed = params.random_seed
-        np.random.seed(self.random_seed)
 
         self.logger = None
 
@@ -52,8 +35,13 @@ class BaseDataset(ABC):
         self.df_eval = None
         self.df_test = None
 
+        self.dataset_path = None
+
         # defines the current index of the iterator
         self.current_index = 0
+
+        # set the random seed
+        np.random.seed(params.random_seed)
 
     @abstractmethod
     def __iter__(self):
@@ -111,7 +99,8 @@ class BaseDataset(ABC):
                 self.logger.info("Audio samples in {0}: {1}".format(label, label_counts[i]))
 
     def split_audio_in_segment(self, audio, segment_id):
-        segment = audio[segment_id * self.sample_rate:(segment_id + self.sample_tile_size) * self.sample_rate]
+        segment = audio[segment_id * self.params.sample_rate:
+                        (segment_id + self.params.sample_tile_size) * self.params.sample_rate]
 
         return segment
 
@@ -124,11 +113,11 @@ class BaseDataset(ABC):
 
     def compare_audio(self, audio_1, audio_2):
         # compute MFCC from audio1
-        audio_anchor, _ = librosa.load(os.path.join(self.dataset_path, audio_1.file_name), sr=self.sample_rate)
-        mfcc_anchor = librosa.feature.mfcc(audio_anchor, self.sample_rate)
+        audio_anchor, _ = librosa.load(os.path.join(self.dataset_path, audio_1.file_name), sr=self.params.sample_rate)
+        mfcc_anchor = librosa.feature.mfcc(audio_anchor, self.params.sample_rate)
         # compute MFCC from audio2
-        audio_neigh, _ = librosa.load(os.path.join(self.dataset_path, audio_2.file_name), sr=self.sample_rate)
-        mfcc_neigh = librosa.feature.mfcc(audio_neigh, self.sample_rate)
+        audio_neigh, _ = librosa.load(os.path.join(self.dataset_path, audio_2.file_name), sr=self.params.sample_rate)
+        mfcc_neigh = librosa.feature.mfcc(audio_neigh, self.params.sample_rate)
         # compute distance between mfccs with dynamic-time-wrapping (dtw)
         dist, cost, acc_cost, path = dtw(mfcc_anchor.T, mfcc_neigh.T, dist=lambda x, y: norm(x - y, ord=1))
 

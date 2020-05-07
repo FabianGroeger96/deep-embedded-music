@@ -3,11 +3,11 @@ from abc import ABC, abstractmethod
 
 import tensorflow as tf
 
-from src.models.residual_block import BasicBlock, BottleNeck
+from src.models_embedding.residual_block import BasicBlock, BottleNeck
 
 
 class BaseModel(tf.keras.Model, ABC):
-    """ The abstract base model. All models will inherit this base. """
+    """ The abstract base model. All models_embedding will inherit this base. """
 
     def __init__(self, embedding_dim, model_name, expand_dims, l2_amount=0.1):
         """
@@ -126,7 +126,7 @@ class BaseModel(tf.keras.Model, ABC):
         """
         Abstract method.
         The forward pass through the network.
-        Needs to be implemented in models which inherit the BaseModel.
+        Needs to be implemented in models_embedding which inherit the BaseModel.
 
         :param inputs: the input that will be passed through the model.
         :param training: if the model is training, for disabling dropout, batch norm. etc.
@@ -140,7 +140,7 @@ class BaseModel(tf.keras.Model, ABC):
         Abstract method.
         Logs the specific layers of the inherited model.
         Is used to log the architecture of the model.
-        Needs to be implemented in models which inherit the BaseModel.
+        Needs to be implemented in models_embedding which inherit the BaseModel.
 
         :return: None.
         """

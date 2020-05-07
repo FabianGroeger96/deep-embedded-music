@@ -1,7 +1,7 @@
 import tensorflow as tf
 
-from src.models.base_model import BaseModel
-from src.models.model_factory import ModelFactory
+from src.models_embedding.base_model import BaseModel
+from src.models_embedding.model_factory import ModelFactory
 
 
 @ModelFactory.register("GRUNet")

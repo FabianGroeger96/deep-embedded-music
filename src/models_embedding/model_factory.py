@@ -1,13 +1,13 @@
 import logging
 from typing import Callable
 
-from src.models.base_model import BaseModel
+from src.models_embedding.base_model import BaseModel
 
 
 class ModelFactory:
-    """ The factory class for creating various models. """
+    """ The factory class for creating various models_embedding. """
 
-    # internal registry for available models
+    # internal registry for available models_embedding
     registry = {}
     # logger for status information
     logger = logging.getLogger(__name__)
