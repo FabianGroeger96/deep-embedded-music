@@ -21,7 +21,7 @@ class BaseExtractor(ABC):
         pass
 
     def get_nyquist_frequency(self):
-        return self.params.sample_size / 2
+        return self.params.sample_rate / 2
 
     # compute STFT
     # INPUT : (sample_size, )
@@ -52,7 +52,7 @@ class BaseExtractor(ABC):
         linear_to_mel_weight_matrix = tf.signal.linear_to_mel_weight_matrix(
             num_mel_bins=self.params.n_mel_bin,
             num_spectrogram_bins=n_stft_bin,
-            sample_rate=self.params.sample_size,
+            sample_rate=self.params.sample_rate,
             lower_edge_hertz=self.lower_edge_hertz,
             upper_edge_hertz=self.upper_edge_hertz
         )

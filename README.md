@@ -63,6 +63,6 @@ The tensorboard can be used, to examine the results from the trained models. The
  executing the docker command below. The tensorboard is then available on [http://localhost:6006](http://localhost:6006). The `--logdir` specifies the location of the results to visualise.
 ```shell script
 docker run -it -p 6006:6006 --rm -v ${PWD}:/tf/ --name deep-embedded-music-tensorboard \
-tensorflow/tensorflow:2.1.0-gpu-py3 \
+tensorflow/tensorflow:2.1.0-py3 \
 tensorboard --bind_all --logdir tf/experiments/DCASE/results/
 ```
