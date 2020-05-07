@@ -49,7 +49,7 @@ def train_step(batch, model, loss_fn, optimizer):
 
 
 @tf.function
-def predict_triplets(model, anchor, neighbour, opposite):
+def embed_triplets(model, anchor, neighbour, opposite):
     """
     Predicts a triplet of features.
 
@@ -64,17 +64,3 @@ def predict_triplets(model, anchor, neighbour, opposite):
     emb_opposite = model(opposite, training=True)
 
     return emb_anchor, emb_neighbour, emb_opposite
-
-
-@tf.function
-def evaluation_step(feature, model):
-    """
-    Runs one evaluation step.
-
-    :param feature: the feature to feed to the model.
-    :param model: the model used for predicting.
-    :return: the predicted embedding.
-    """
-    embedding = model(feature, training=False)
-
-    return embedding

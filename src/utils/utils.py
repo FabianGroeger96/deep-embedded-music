@@ -47,7 +47,7 @@ class Utils:
         return path
 
     @staticmethod
-    def set_logger(log_path, log_level: str = "INFO"):
+    def set_logger(log_path: str, log_level: str = "INFO"):
         """
         Sets the logger to log info in terminal and file `log_path`.
 

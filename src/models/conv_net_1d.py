@@ -24,7 +24,6 @@ class ConvNet1D(BaseModel):
         self.conv_1 = tf.keras.layers.Conv1D(64, 2, input_shape=input_shape, padding="same", activation="relu")
         self.conv_2 = tf.keras.layers.Conv1D(64, 2, padding="same", activation="relu")
         self.conv_3 = tf.keras.layers.Conv1D(128, 3, padding="same", activation="relu")
-        self.conv_4 = tf.keras.layers.Conv1D(128, 3, padding="same", activation="relu")
 
         self.max_pooling = tf.keras.layers.MaxPool1D(2)
 
@@ -53,12 +52,6 @@ class ConvNet1D(BaseModel):
 
         # 3. Conv layer
         x = self.conv_3(x)
-        x = self.max_pooling(x)
-        if training:
-            x = self.dropout(x)
-
-        # 4. Conv layer
-        x = self.conv_4(x)
         x = self.max_pooling(x)
         if training:
             x = self.dropout(x)
@@ -95,10 +88,4 @@ class ConvNet1D(BaseModel):
         self.log_cnn_layer(self.conv_3, 3)
         self.log_max_pooling_layer(self.max_pooling, 3)
         self.log_dropout_layer(self.dropout, 3)
-        self.logger.info("---")
-
-        # 4. Conv layer
-        self.log_cnn_layer(self.conv_4, 4)
-        self.log_max_pooling_layer(self.max_pooling, 4)
-        self.log_dropout_layer(self.dropout, 4)
         self.logger.info("---")
