@@ -136,10 +136,10 @@ def main():
     # start of the training loop
     for epoch in range(params.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
-        dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
-                                                shuffle=params.shuffle_dataset)
+        dataset = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
+                                       shuffle=params.shuffle_dataset)
         # iterate over the batches of the dataset
-        for batch_index, (anchor, neighbour, opposite, _) in enumerate(dataset_iterator):
+        for batch_index, (anchor, neighbour, opposite, _) in enumerate(dataset):
             if print_model:
                 model.build(anchor.shape)
                 model.summary(print_fn=logger.info)

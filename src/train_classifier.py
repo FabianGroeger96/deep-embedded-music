@@ -23,7 +23,7 @@ parser.add_argument("--dataset_dir", default="DCASE",
 parser.add_argument("--model_to_load",
                     default="results/experiment_embedding_size/embeddings/ResNet18-LogMel-l1e5-b64-l201-ts5-ns5-m1-e16-20200501-154131",
                     help="Model to load")
-parser.add_argument("--classifier",
+parser.add_argument("--classifier_type",
                     default="Logistic",
                     help="Which classifier to use, dense or logistic")
 
@@ -197,9 +197,9 @@ if __name__ == "__main__":
     pipeline = TripletsInputPipeline(params=params_saved_model, dataset=dataset)
 
     # create the classifier model
-    if args.classifier == "Dense":
+    if args.classifier_type == "Dense":
         classifier = ClassifierDense("DenseClassifier", n_labels=len(dataset.LABELS))
-    elif args.classifier == "Logistic":
+    elif args.classifier_type == "Logistic":
         classifier = ClassifierLogistic("LogisticClassifier", n_labels=len(dataset.LABELS))
     else:
         raise ValueError("Wrong specified classifier")
