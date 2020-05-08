@@ -3,7 +3,7 @@ import os
 import librosa
 import tensorflow as tf
 
-from src.input_pipeline.music_dataset import MusicDataset
+from src.dataset.music_dataset import MusicDataset
 from src.utils.params import Params
 
 

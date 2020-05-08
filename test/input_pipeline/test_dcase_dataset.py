@@ -2,7 +2,7 @@ import os
 
 import tensorflow as tf
 
-from src.input_pipeline.dataset_factory import DatasetFactory
+from src.dataset.dataset_factory import DatasetFactory
 from src.utils.params import Params
 from src.utils.utils_audio import AudioUtils
 

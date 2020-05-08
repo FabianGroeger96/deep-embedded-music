@@ -1,0 +1,165 @@
+import logging
+import os
+
+import numpy as np
+import pandas as pd
+
+from src.dataset.base_dataset import BaseDataset
+from src.dataset.dataset_factory import DatasetFactory
+from src.utils.params import Params
+from src.utils.utils import Utils
+from src.utils.utils_audio import AudioUtils
+
+
+@DatasetFactory.register("DCASEDataset")
+class DCASEDataset(BaseDataset):
+    EXPERIMENT_FOLDER = "DCASE"
+    INFO_FILES_DIR = "evaluation_setup"
+    LABELS = ["absence", "cooking", "dishwashing", "eating", "other", "social_activity", "vacuum_cleaner",
+              "watching_tv", "working"]
+
+    def __init__(self, params: Params, log: bool = False):
+        super().__init__(params=params, log=log)
+
+        self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
+        self.fold = params.dcase_dataset_fold
+
+        self.initialise()
+        self.change_dataset_type(self.dataset_type)
+
+        self.logger = logging.getLogger(self.__class__.__name__)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        while True:
+            if self.current_index >= len(self.df):
+                raise StopIteration
+            else:
+                audio_entry = self.df.iloc[self.current_index]
+                self.current_index += 1
+
+                return audio_entry
+
+    def initialise(self):
+        # set current index to start
+        self.current_index = 0
+
+        # load the data frame
+        self.load_data_frame()
+
+        # add the full dataset path to the filename
+        self.df_train["file_name"] = str(self.dataset_path) + "/" + self.df_train["file_name"].astype(str)
+        self.df_eval["file_name"] = str(self.dataset_path) + "/" + self.df_eval["file_name"].astype(str)
+        self.df_test["file_name"] = str(self.dataset_path) + "/" + self.df_test["file_name"].astype(str)
+
+        # shuffle dataset
+        self.df_train = self.df_train.sample(frac=1).reset_index(drop=True)
+        self.df_eval = self.df_eval.sample(frac=1).reset_index(drop=True)
+        self.df_test = self.df_test.sample(frac=1).reset_index(drop=True)
+
+    def load_data_frame(self):
+        self.df_train = self.load_train_data_frame()
+        self.df_eval = self.load_eval_data_frame()
+        self.df_test = self.load_test_data_frame()
+
+    def load_train_data_frame(self):
+        # define name and path of the info file
+        train_file_name = "fold{0}_train.txt".format(self.fold)
+        train_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, train_file_name)
+        # read the eval file, which is tab separated
+        train_df = pd.read_csv(train_file_path, sep="\t", names=["file_name", "label", "session"])
+        # convert the activity labels into integers
+        train_df["label"] = train_df["label"].apply(self.LABELS.index)
+
+        return train_df
+
+    def load_eval_data_frame(self):
+        # define name and path of the info file
+        eval_file_name = "fold{0}_evaluate.txt".format(self.fold)
+        eval_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, eval_file_name)
+        # read the train file, which is tab separated
+        eval_df = pd.read_csv(eval_file_path, sep="\t", names=["file_name", "label"])
+        # convert the activity labels into integers
+        eval_df["label"] = eval_df["label"].apply(self.LABELS.index)
+
+        return eval_df
+
+    def load_test_data_frame(self):
+        # define name and path of the info file
+        test_file_name = "fold{0}_test.txt".format(self.fold)
+        test_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, test_file_name)
+        # read the train file, which is tab separated
+        test_df = pd.read_csv(test_file_path, sep="\t", names=["file_name"])
+
+        return test_df
+
+    def fill_opposite_selection(self, audio_id):
+        opposite_possible = np.arange(0, len(self.df), 1)
+        opposite_possible = opposite_possible[opposite_possible != audio_id]
+
+        opposite_indices = np.random.choice(opposite_possible, self.params.opposite_sample_buffer_size)
+        opposite_audios = []
+        for index in opposite_indices:
+            opposite_df = self.df.iloc[index]
+            opposite_audio = AudioUtils.load_audio_from_file(opposite_df.file_name, self.params.sample_rate,
+                                                             self.params.sample_size,
+                                                             self.params.stereo_channels,
+                                                             self.params.to_mono)
+            opposite_audios.append([opposite_audio, opposite_df.label])
+
+        return opposite_audios
+
+    def get_triplets(self, audio_id, audio_length, opposite_choices, trim: bool = True) -> np.ndarray:
+        try:
+            triplets = []
+            for anchor_id in range(0, audio_length, self.params.sample_tile_size):
+                a_seg = [audio_id, anchor_id]
+                n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length)
+                o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length,
+                                          opposite_choices=opposite_choices)
+
+                triplets.append([a_seg, n_seg, o_seg])
+
+            return np.asarray(triplets)
+
+        except ValueError as err:
+            self.logger.debug("Error during triplet computation: {}".format(err))
+            raise ValueError("Error during triplet computation")
+
+    def get_neighbour(self, audio_id: int, anchor_sample_id: id, audio_length: int):
+        # crate array of possible sample positions
+        sample_possible = np.arange(0, audio_length, self.params.sample_tile_size)
+
+        # delete the current anchors id
+        sample_possible = sample_possible[sample_possible != anchor_sample_id]
+
+        # delete the sample ids which are not in range of the neighbourhood
+        sample_possible = sample_possible[
+            (sample_possible <= anchor_sample_id + self.params.sample_tile_neighbourhood) & (
+                    sample_possible >= anchor_sample_id - self.params.sample_tile_neighbourhood)]
+
+        if len(sample_possible) > 0:
+            if self.log:
+                self.logger.debug("Selecting neighbour randomly from {} samples".format(len(sample_possible)))
+        else:
+            raise ValueError("No valid neighbour found")
+
+        # random choose neighbour in possible samples
+        neighbour_id = np.random.choice(sample_possible, 1)[0]
+
+        return [audio_id, neighbour_id]
+
+    def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int, opposite_choices):
+        # crate array of possible sample positions
+        opposite_possible = np.arange(0, len(opposite_choices), 1)
+        opposite = np.random.choice(opposite_possible, size=1)[0]
+
+        # crate array of possible sample positions
+        sample_possible = np.arange(0, audio_length, self.params.sample_tile_size)
+
+        # random choose neighbour in possible samples
+        opposite_id = np.random.choice(sample_possible, size=1)[0]
+
+        return [opposite, opposite_id]

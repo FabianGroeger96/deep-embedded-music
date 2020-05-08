@@ -8,7 +8,7 @@ import numpy as np
 import tensorflow as tf
 
 from src.feature_extractor.base_extractor import BaseExtractor
-from src.input_pipeline.base_dataset import BaseDataset, DatasetType
+from src.dataset.base_dataset import BaseDataset, DatasetType
 from src.utils.params import Params
 from src.utils.utils_audio import AudioUtils
 
@@ -47,6 +47,9 @@ class TripletsInputPipeline:
         self.dataset.current_index = gen_index
         for anchor in self.dataset:
             current_index = self.dataset.current_index - 1
+            if current_index >= len(self.dataset.df):
+                raise StopIteration
+
             if self.log:
                 self.logger.debug("{0}, {1}, index:{2}".format(gen_name, gen_index, current_index))
 
