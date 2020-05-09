@@ -2,8 +2,16 @@ import tensorflow as tf
 
 
 class BasicBlock(tf.keras.layers.Layer):
+    """ Implementation of a basic block layer used for the ResNet type I model. """
 
     def __init__(self, filter_num, stride=1, l2_amount=0.1):
+        """
+        Initialises the basic block by providing the number of filter, strides and l2 regularisation amount.
+
+        :param filter_num: the number of filters in both of the two dimensional convolution layers.
+        :param stride: the stride for the two dimensional convolution layers.
+        :param l2_amount: the l2 regularisation amount of the convolution layers.
+        """
         super(BasicBlock, self).__init__()
         self.l2_regularization = tf.keras.regularizers.l2(l2_amount)
         self.conv1 = tf.keras.layers.Conv2D(filters=filter_num,
@@ -33,6 +41,12 @@ class BasicBlock(tf.keras.layers.Layer):
 
     @tf.function
     def call(self, inputs, training=None, **kwargs):
+        """
+        Calls the forward pass through the basic block layer.
+
+        :param inputs: the inputs to the layer.
+        :param training: if the layers input is from the training process or not.
+        """
         residual = self.downsample(inputs)
 
         x = self.conv1(inputs)
@@ -47,7 +61,16 @@ class BasicBlock(tf.keras.layers.Layer):
 
 
 class BottleNeck(tf.keras.layers.Layer):
+    """ Implementation of a bottle neck layer used for the ResNet type II model. """
+
     def __init__(self, filter_num, stride=1, l2_amount=0.1):
+        """
+        Initialises the bottle neck layer by providing the number of filter, strides and l2 regularisation amount.
+
+        :param filter_num: the number of filters in both of the two dimensional convolution layers.
+        :param stride: the stride for the two dimensional convolution layers.
+        :param l2_amount: the l2 regularisation amount of the convolution layers.
+        """
         super(BottleNeck, self).__init__()
         self.l2_regularization = tf.keras.regularizers.l2(l2_amount)
         self.conv1 = tf.keras.layers.Conv2D(filters=filter_num,
@@ -82,6 +105,12 @@ class BottleNeck(tf.keras.layers.Layer):
 
     @tf.function
     def call(self, inputs, training=None, **kwargs):
+        """
+        Calls the forward pass through the bottle neck layer.
+
+        :param inputs: the inputs to the layer.
+        :param training: if the layers input is from the training process or not.
+        """
         residual = self.downsample(inputs)
 
         x = self.conv1(inputs)

@@ -14,6 +14,7 @@ from src.models_classifier.classifier_logistic import ClassifierLogistic
 from src.models_embedding.model_factory import ModelFactory
 from src.utils.params import Params
 from src.utils.utils import Utils
+from src.utils.utils_tensorflow import set_gpu_experimental_growth
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments",
@@ -144,17 +145,7 @@ def embed_triplet(anchor, neighbour, opposite):
 
 
 if __name__ == "__main__":
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    if gpus:
-        try:
-            # Currently, memory growth needs to be the same across GPUs
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-        except RuntimeError as e:
-            # Memory growth must be set before GPUs have been initialized
-            print(e)
+    set_gpu_experimental_growth()
 
     # load the arguments
     args = parser.parse_args()

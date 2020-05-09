@@ -2,8 +2,8 @@ import os
 
 import tensorflow as tf
 
-from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.dataset.dataset_factory import DatasetFactory
+from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
 from src.models_embedding.gru_net import GRUNet
@@ -11,11 +11,13 @@ from src.models_embedding.model_factory import ModelFactory
 from src.training.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils_audio import AudioUtils
+from src.utils.utils_tensorflow import set_gpu_experimental_growth
 
 
-class TestGRUNet(tf.test.TestCase):
+class TestDenseNet(tf.test.TestCase):
 
     def setUp(self):
+        set_gpu_experimental_growth()
         json_path = os.path.join("/tf/test_environment/", "config", "params.json")
         self.params = Params(json_path)
 
@@ -36,7 +38,7 @@ class TestGRUNet(tf.test.TestCase):
         self.triplet_loss_fn = TripletLoss(margin=self.params.margin)
 
     def create_model(self):
-        self.model = ModelFactory.create_model("GRUNet", embedding_dim=self.params.embedding_size,
+        self.model = ModelFactory.create_model("DenseNet", embedding_dim=self.params.embedding_size,
                                                l2_amount=self.params.l2_amount)
 
     def get_input_pipeline(self):
@@ -46,7 +48,6 @@ class TestGRUNet(tf.test.TestCase):
         return audio_pipeline
 
     def test_build_model(self):
-        self.create_model()
         self.model.build(self.audio_feature.shape)
 
         self.assertDTypeEqual(self.model, GRUNet)
@@ -59,14 +60,13 @@ class TestGRUNet(tf.test.TestCase):
         self.assertFalse(is_empty)
 
     def test_loss_not_zero(self):
-        self.create_model()
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)
         for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
-            batch = (anchor, neighbour, opposite, triplet_labels)
+            batch = (anchor, neighbour, opposite)
             losses = train_step(batch, model=self.model, loss_fn=self.triplet_loss_fn, optimizer=self.optimizer)
-            loss_triplet, dist_neighbour, dist_opposite = losses
+            loss_triplet = losses["triplet_loss"]
 
             self.assertNotEqual(loss_triplet, 0)
             break

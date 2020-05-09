@@ -5,15 +5,16 @@ from enum import Enum
 
 import tensorflow as tf
 
-from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.dataset.base_dataset import DatasetType
 from src.dataset.dataset_factory import DatasetFactory
+from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
 from src.models_embedding.model_factory import ModelFactory
 from src.training.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
+from src.utils.utils_tensorflow import set_gpu_experimental_growth
 from src.utils.utils_visualise import visualise_model_on_epoch_end, visualise_embedding_on_training_end
 
 parser = argparse.ArgumentParser()
@@ -52,17 +53,7 @@ def log_step(logger, epoch, batch_index, batch_size, result, log_level: LogLevel
 
 
 def main():
-    gpus = tf.config.experimental.list_physical_devices('GPU')
-    if gpus:
-        try:
-            # Currently, memory growth needs to be the same across GPUs
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-            logical_gpus = tf.config.experimental.list_logical_devices('GPU')
-            print(len(gpus), "Physical GPUs,", len(logical_gpus), "Logical GPUs")
-        except RuntimeError as e:
-            # Memory growth must be set before GPUs have been initialized
-            print(e)
+    set_gpu_experimental_growth()
 
     # load the parameters from json file
     args = parser.parse_args()

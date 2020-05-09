@@ -37,8 +37,6 @@ class ConvGRUNet(BaseModel):
         self.reshape = tf.keras.layers.Reshape((-1, 32))
         self.gru_1 = tf.keras.layers.GRU(32, return_sequences=True)
 
-        self.batch_normalisation = tf.keras.layers.BatchNormalization()
-
         self.dropout = tf.keras.layers.Dropout(0.3)
 
     @tf.function
@@ -54,31 +52,31 @@ class ConvGRUNet(BaseModel):
         x = self.conv_1(inputs)
         x = self.max_pooling_1(x)
         if training:
-            x = self.batch_normalisation(x)
+            x = tf.keras.layers.BatchNormalization()(x)
 
         # 2. Conv layer
         x = self.conv_2(x)
         x = self.max_pooling_2(x)
         if training:
-            x = self.batch_normalisation(x)
+            x = tf.keras.layers.BatchNormalization()(x)
 
         # 3. Conv layer
         x = self.conv_3(x)
         x = self.max_pooling_3(x)
         if training:
-            x = self.batch_normalisation(x)
+            x = tf.keras.layers.BatchNormalization()(x)
 
         # 4. Conv layer
         x = self.conv_4(x)
         x = self.max_pooling_4(x)
         if training:
-            x = self.batch_normalisation(x)
+            x = tf.keras.layers.BatchNormalization()(x)
 
         # GRU layer
         x = self.reshape(x)
         x = self.gru_1(x)
         if training:
-            x = self.batch_normalisation(x)
+            x = tf.keras.layers.BatchNormalization()(x)
 
         # Embedding layer
         x = self.flatten(x)

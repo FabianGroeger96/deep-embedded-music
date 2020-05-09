@@ -2,8 +2,8 @@ import os
 
 import tensorflow as tf
 
-from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.dataset.dataset_factory import DatasetFactory
+from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.loss.triplet_loss import TripletLoss
 from src.models_embedding.model_factory import ModelFactory
@@ -18,8 +18,6 @@ class TestTripletLoss(tf.test.TestCase):
 
         self.feature_extractor = ExtractorFactory.create_extractor("LogMelExtractor", params=self.params)
 
-        self.model = ModelFactory.create_model("ConvNet1D", embedding_dim=self.params.embedding_size)
-
         # create the optimizer for the model
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.params.learning_rate)
         # create the loss function for the model
@@ -32,7 +30,8 @@ class TestTripletLoss(tf.test.TestCase):
         return audio_pipeline
 
     def test_triplet_loss(self):
-        self.model = ModelFactory.create_model("ConvNet1D", embedding_dim=self.params.embedding_size)
+        self.model = ModelFactory.create_model("DenseNet", embedding_dim=self.params.embedding_size,
+                                               l2_amount=self.params.l2_amount)
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)
@@ -49,7 +48,8 @@ class TestTripletLoss(tf.test.TestCase):
             break
 
     def test_triplet_loss_distance(self):
-        self.model = ModelFactory.create_model("ConvNet1D", embedding_dim=self.params.embedding_size)
+        self.model = ModelFactory.create_model("DenseNet", embedding_dim=self.params.embedding_size,
+                                               l2_amount=self.params.l2_amount)
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)
