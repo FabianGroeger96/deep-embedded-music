@@ -208,9 +208,7 @@ if __name__ == "__main__":
     classifier_loss_fn = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True)
 
     # create the optimizer for the classifier
-    decay_lr = tf.keras.optimizers.schedules.ExponentialDecay(params_classifier.learning_rate, 1000, 0.95,
-                                                              staircase=True)
-    classifier_optimizer = tf.keras.optimizers.Adam(learning_rate=decay_lr)
+    classifier_optimizer = tf.keras.optimizers.Adam(learning_rate=params_classifier.learning_rate)
 
     # create folders for experiment results
     experiment_name = "{0}-{1}".format(classifier.model_name, params_classifier.experiment_name)

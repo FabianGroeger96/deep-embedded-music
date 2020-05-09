@@ -81,9 +81,9 @@ def main():
 
     # create model from factory and specified name within the params
     model = ModelFactory.create_model(params.model, embedding_dim=params.embedding_size, l2_amount=params.l2_amount)
-    # TODO train learning rate decay
     # create the optimizer for the model
-    optimizer = tf.keras.optimizers.Adam(learning_rate=params.learning_rate)
+    decay_lr = tf.keras.optimizers.schedules.ExponentialDecay(params.learning_rate, 7500, 0.95, staircase=True)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=decay_lr)
     # create the loss function for the model
     triplet_loss_fn = TripletLoss(margin=params.margin)
 
