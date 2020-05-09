@@ -85,13 +85,13 @@ class MusicDataset(BaseDataset):
 
         return opposite_audios
 
-    def get_triplets(self, audio_id, audio_length, opposite_choices, trim: bool = True) -> np.ndarray:
+    def get_triplets(self, anchor_id, anchor_length, opposite_choices, trim: bool = True) -> np.ndarray:
         try:
             triplets = []
-            for anchor_id in range(0, audio_length - self.params.sample_tile_size, self.params.sample_tile_size):
-                a_seg = [audio_id, anchor_id]
-                n_seg = self.get_neighbour(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length)
-                o_seg = self.get_opposite(audio_id, anchor_sample_id=anchor_id, audio_length=audio_length,
+            for anchor_id in range(0, anchor_length - self.params.sample_tile_size, self.params.sample_tile_size):
+                a_seg = [anchor_id, anchor_id]
+                n_seg = self.get_neighbour(anchor_id, anchor_segment_id=anchor_id, anchor_length=anchor_length)
+                o_seg = self.get_opposite(anchor_id, anchor_segment_id=anchor_id, anchor_length=anchor_length,
                                           opposite_choices=opposite_choices)
 
                 triplets.append([a_seg, n_seg, o_seg])
@@ -102,17 +102,17 @@ class MusicDataset(BaseDataset):
             self.logger.debug("Error during triplet computation: {}".format(err))
             raise ValueError("Error during triplet computation")
 
-    def get_neighbour(self, audio_id: int, anchor_sample_id: id, audio_length: int):
+    def get_neighbour(self, anchor_id: int, anchor_segment_id: id, anchor_length: int):
         # crate array of possible sample positions
-        sample_possible = np.arange(0, audio_length - self.params.sample_tile_size, self.params.sample_tile_size)
+        sample_possible = np.arange(0, anchor_length - self.params.sample_tile_size, self.params.sample_tile_size)
 
         # delete the current anchors id
-        sample_possible = sample_possible[sample_possible != anchor_sample_id]
+        sample_possible = sample_possible[sample_possible != anchor_segment_id]
 
         # delete the sample ids which are not in range of the neighbourhood
         sample_possible = sample_possible[
-            (sample_possible <= anchor_sample_id + self.params.sample_tile_neighbourhood) & (
-                    sample_possible >= anchor_sample_id - self.params.sample_tile_neighbourhood)]
+            (sample_possible <= anchor_segment_id + self.params.sample_tile_neighbourhood) & (
+                    sample_possible >= anchor_segment_id - self.params.sample_tile_neighbourhood)]
 
         if len(sample_possible) > 0:
             if self.log:
@@ -123,9 +123,9 @@ class MusicDataset(BaseDataset):
         # random choose neighbour in possible samples
         neighbour_id = np.random.choice(sample_possible, 1)[0]
 
-        return [audio_id, neighbour_id]
+        return [anchor_id, neighbour_id]
 
-    def get_opposite(self, audio_id, anchor_sample_id: id, audio_length: int, opposite_choices):
+    def get_opposite(self, anchor_id, anchor_segment_id: id, anchor_length: int, opposite_choices):
         # crate array of possible sample positions
         opposite_possible = np.arange(0, len(opposite_choices), 1)
         opposite = np.random.choice(opposite_possible, size=1)[0]

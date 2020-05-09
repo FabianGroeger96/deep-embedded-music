@@ -102,7 +102,7 @@ def main():
     params.print(json_path, logger=logger)
 
     # set the folder for the summary writer
-    train_summary_writer = tf.summary.create_file_writer(tensorb_path)
+    summary_writer = tf.summary.create_file_writer(tensorb_path)
 
     # define triplet loss metrics
     train_joint_loss_epochs = tf.keras.metrics.Mean("train_joint_loss_epochs", dtype=tf.float32)
@@ -162,7 +162,7 @@ def main():
             train_regularization_loss_epochs(loss_regularization)
 
             # write batch losses to summary writer
-            with train_summary_writer.as_default():
+            with summary_writer.as_default():
                 # write summary of batch losses
                 tf.summary.scalar("triplet_loss_train/loss_joint_batches", loss, step=int(ckpt.step))
                 tf.summary.scalar("triplet_loss_train/loss_triplet_batches", loss_triplet, step=int(ckpt.step))
@@ -174,7 +174,7 @@ def main():
             if int(ckpt.step) % 10 == 0 and params.use_profiler and profiling:
                 logger.info("Stopping profiler at batch: {}".format(int(ckpt.step)))
                 profiling = False
-                with train_summary_writer.as_default():
+                with summary_writer.as_default():
                     tf.summary.trace_export(name="training_loop", step=int(ckpt.step), profiler_outdir=tensorb_path)
 
             # log the current loss value of the batch
@@ -194,7 +194,7 @@ def main():
             logger.info("Saved checkpoint for epoch {0}: {1}".format(epoch, manager_save_path))
 
         # write epoch loss to summary writer
-        with train_summary_writer.as_default():
+        with summary_writer.as_default():
             # write summary of epoch loss
             tf.summary.scalar("triplet_loss_train/loss_joint_epochs", train_joint_loss_epochs.result(), step=epoch)
             tf.summary.scalar("triplet_loss_train/loss_triplet_epochs", train_triplet_loss_epochs.result(), step=epoch)
@@ -209,7 +209,7 @@ def main():
 
         # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
         visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
-                                     loss_fn=triplet_loss_fn, summary_writer=train_summary_writer,
+                                     loss_fn=triplet_loss_fn, summary_writer=summary_writer,
                                      tensorb_path=tensorb_path)
 
         # reinitialise pipeline after epoch

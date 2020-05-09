@@ -39,7 +39,7 @@ class TestDCASEDataset(tf.test.TestCase):
 
             opposite_audios = dataset.fill_opposite_selection(index)
 
-            triplets = dataset.get_triplets(index, audio_length=anchor_audio_length, opposite_choices=opposite_audios)
+            triplets = dataset.get_triplets(index, anchor_length=anchor_audio_length, opposite_choices=opposite_audios)
             for triplet in triplets:
                 self.assertEqual(len(triplet), 3)
 
