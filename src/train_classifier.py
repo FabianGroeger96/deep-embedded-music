@@ -6,8 +6,8 @@ import tensorflow as tf
 import tensorflow_addons as tfa
 
 from src.feature_extractor.extractor_factory import ExtractorFactory
-from src.input_pipeline.base_dataset import DatasetType
-from src.input_pipeline.dataset_factory import DatasetFactory
+from src.dataset.base_dataset import DatasetType
+from src.dataset.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.models_classifier.classifier_dense import ClassifierDense
 from src.models_classifier.classifier_logistic import ClassifierLogistic

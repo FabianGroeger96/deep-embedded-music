@@ -5,7 +5,7 @@ import numpy as np
 
 from src.feature_extractor.log_mel_extractor import LogMelBaseExtractor
 from src.feature_extractor.mfcc_extractor import MFCCBaseExtractor
-from src.input_pipeline.dataset_factory import DatasetFactory
+from src.dataset.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.utils.params import Params
 
@@ -20,7 +20,7 @@ class TestInputPipeline(tf.test.TestCase):
         self.set_dcase_dataset()
 
     def get_input_pipeline(self):
-        audio_pipeline = TripletsInputPipeline(params=self.params, dataset=self.dataset)
+        audio_pipeline = TripletsInputPipeline(params=self.params, dataset=self.dataset, log=True)
 
         return audio_pipeline
 

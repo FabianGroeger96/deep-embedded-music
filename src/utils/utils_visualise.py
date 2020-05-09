@@ -10,7 +10,7 @@ import tensorflow_addons as tfa
 from tensorboard.plugins import projector
 from sklearn import metrics
 
-from src.input_pipeline.base_dataset import DatasetType
+from src.dataset.base_dataset import DatasetType
 
 
 def save_labels_tsv(labels, filename, log_dir, dataset):

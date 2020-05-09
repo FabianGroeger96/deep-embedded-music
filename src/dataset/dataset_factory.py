@@ -1,7 +1,7 @@
 import logging
 from typing import Callable
 
-from src.input_pipeline.base_dataset import BaseDataset
+from src.dataset.base_dataset import BaseDataset
 
 
 class DatasetFactory:

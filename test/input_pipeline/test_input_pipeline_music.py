@@ -4,7 +4,7 @@ import tensorflow as tf
 
 from src.feature_extractor.log_mel_extractor import LogMelBaseExtractor
 from src.feature_extractor.mfcc_extractor import MFCCBaseExtractor
-from src.input_pipeline.dataset_factory import DatasetFactory
+from src.dataset.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.utils.params import Params
 
