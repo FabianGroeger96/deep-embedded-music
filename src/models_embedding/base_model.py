@@ -27,9 +27,6 @@ class BaseModel(tf.keras.Model, ABC):
         self.expand_dims = expand_dims
         self.l2_amount = l2_amount
 
-        # TODO try sigmoid activation for embedding layer
-        # max distance is then embedding dimension
-        # for looseless triplet loss
         self.dense = tf.keras.layers.Dense(embedding_dim, activation=None)
         self.flatten = tf.keras.layers.Flatten()
 

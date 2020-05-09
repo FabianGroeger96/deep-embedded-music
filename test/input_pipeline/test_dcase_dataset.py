@@ -29,7 +29,7 @@ class TestDCASEDataset(tf.test.TestCase):
         dataset = self.get_dataset()
 
         for index, audio_entry in enumerate(dataset):
-            anchor = dataset.df_train.iloc[index]
+            anchor = dataset.df.iloc[index]
             anchor_audio = AudioUtils.load_audio_from_file(anchor.file_name, self.params.sample_rate,
                                                            self.params.sample_size,
                                                            self.params.stereo_channels,

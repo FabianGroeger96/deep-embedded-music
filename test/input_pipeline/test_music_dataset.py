@@ -29,7 +29,7 @@ class TestMusicDataset(tf.test.TestCase):
         dataset = self.get_dataset()
 
         for index, audio_entry in enumerate(dataset):
-            anchor = dataset.df_train.iloc[index]
+            anchor = dataset.df.iloc[index]
             anchor_audio, _ = librosa.load(anchor.file_name, self.params.sample_rate)
             anchor_audio_length = int(len(anchor_audio) / self.params.sample_rate)
 

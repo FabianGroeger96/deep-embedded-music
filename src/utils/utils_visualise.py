@@ -181,7 +181,7 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, sum
         tf.summary.scalar("triplet_loss_eval/calinski_harabasz_score", calinski_harabasz_score, step=epoch)
         tf.summary.scalar("triplet_loss_eval/davies_bouldin_score", davies_bouldin_score, step=epoch)
 
-    # get used dataset from pipline
+    # get used dataset from pipeline
     dataset = pipeline.dataset
 
     # visualise the distance matrix with graph
@@ -230,7 +230,7 @@ def visualise_embedding_on_training_end(model, pipeline, extractor, tensorb_path
     embeddings = tf.concat(embeddings, axis=0)
     labels = tf.concat(labels, axis=0)
 
-    # get used dataset from pipline
+    # get used dataset from pipeline
     dataset = pipeline.dataset
 
     # visualise embeddings from the entire dataset

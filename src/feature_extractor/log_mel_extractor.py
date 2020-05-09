@@ -8,11 +8,25 @@ from src.utils.params import Params
 
 @ExtractorFactory.register("LogMelExtractor")
 class LogMelBaseExtractor(BaseExtractor):
+    """ The extractor for representing an audio in the form of the log Mel frequency spectrogram. """
+
     def __init__(self, params: Params):
+        """
+        Initialises the extractor, by passing in the global hyperparameters.
+
+        :param params: the global hyperparameters for initialising the dataset.
+        """
         super().__init__(params=params)
 
-    # OUTPUT: (frame_size, mel_bin_size, ?channels)
     def extract(self, audio):
+        """
+        Extracts the log Mel frequency spectrogram from the given audio.
+        Audio can be mono or contain multiple channels.
+
+        OUTPUT: (frame_size, mel_bin_size, ?channels)
+
+        :return: the extracted feature from the given audio.
+        """
         if len(audio.shape) == 1:
             log_mel_spectrogram = self.extract_log_mel_features(audio)
 
@@ -38,6 +52,11 @@ class LogMelBaseExtractor(BaseExtractor):
             raise ValueError("Audio has wrong shape.")
 
     def get_output_shape(self):
+        """
+        Returns the shape of the log Mel frequency  representation, by using the provided hyperparameters.
+
+        :return: the output shape of the extracted feature.
+        """
         # calculate the frame size
         data = np.zeros(self.params.sample_rate * self.params.sample_tile_size)
         # shape: (frame_size, frame_length)

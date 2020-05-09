@@ -13,12 +13,20 @@ from src.utils.utils_audio import AudioUtils
 
 @DatasetFactory.register("DCASEDataset")
 class DCASEDataset(BaseDataset):
+    """ Concrete implementation of the dataset from the DCASE Task 5 challenge, a noise detection dataset. """
+
     EXPERIMENT_FOLDER = "DCASE"
     INFO_FILES_DIR = "evaluation_setup"
     LABELS = ["absence", "cooking", "dishwashing", "eating", "other", "social_activity", "vacuum_cleaner",
               "watching_tv", "working"]
 
     def __init__(self, params: Params, log: bool = False):
+        """
+        Initialises the dataset.
+
+        :param params: the global hyperparameters for initialising the dataset.
+        :param log: if the dataset should provide a more detailed log.
+        """
         super().__init__(params=params, log=log)
 
         self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
@@ -30,9 +38,17 @@ class DCASEDataset(BaseDataset):
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def __iter__(self):
+        """
+        Returns an iterator for looping over the dataset.
+        Since the class itself is an iterator, `self` is returned.
+        """
         return self
 
     def __next__(self):
+        """
+        Specifies the retrieval of the next element in the dataset, by getting the entry of the datafame from the
+        global current index. If the index is bigger than the length of the dataset, a `StopIteration` is raised.
+        """
         while True:
             if self.current_index >= len(self.df):
                 raise StopIteration
@@ -43,6 +59,11 @@ class DCASEDataset(BaseDataset):
                 return audio_entry
 
     def initialise(self):
+        """
+        Initialises the model.
+        Loads the dataframes from the audio files and shuffles it.
+        Resets the current index of the dataset to zero.
+        """
         # set current index to start
         self.current_index = 0
 
@@ -60,45 +81,61 @@ class DCASEDataset(BaseDataset):
         # self.df_test = self.df_test.sample(frac=1).reset_index(drop=True)
 
     def load_data_frame(self):
-        self.df_train = self.load_train_data_frame()
-        self.df_eval = self.load_eval_data_frame()
+        """
+        Loads the different dataframes.
+        `df_train`: contains the training set.
+        `df_eval`: contains the evaluation set.
+        `df_text`: contains the test set. Will not be used, since it is only a replica of the evaluation
+            set without any labels.
+        """
+        self.__load_train_data_frame()
+        self.__load_eval_data_frame()
         # not using the test dataframe, since it does not have any labels
         self.df_test = pd.DataFrame()
 
-    def load_train_data_frame(self):
+    def __load_train_data_frame(self):
+        """
+        Loads the training dataset from the data, into a dataframe `df_train`.
+        """
         # define name and path of the info file
         train_file_name = "fold{0}_train.txt".format(self.fold)
         train_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, train_file_name)
         # read the eval file, which is tab separated
-        train_df = pd.read_csv(train_file_path, sep="\t", names=["file_name", "label", "session"])
+        self.df_train = pd.read_csv(train_file_path, sep="\t", names=["file_name", "label", "session"])
         # convert the activity labels into integers
-        train_df["label"] = train_df["label"].apply(self.LABELS.index)
+        self.df_train["label"] = self.df_train["label"].apply(self.LABELS.index)
 
-        return train_df
-
-    def load_eval_data_frame(self):
+    def __load_eval_data_frame(self):
+        """
+        Loads the evaluation dataset from the data, into a dataframe `df_eval`.
+        """
         # define name and path of the info file
         eval_file_name = "fold{0}_evaluate.txt".format(self.fold)
         eval_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, eval_file_name)
         # read the train file, which is tab separated
-        eval_df = pd.read_csv(eval_file_path, sep="\t", names=["file_name", "label"])
+        self.df_eval = pd.read_csv(eval_file_path, sep="\t", names=["file_name", "label"])
         # convert the activity labels into integers
-        eval_df["label"] = eval_df["label"].apply(self.LABELS.index)
+        self.df_eval["label"] = self.df_eval["label"].apply(self.LABELS.index)
 
-        return eval_df
-
-    def load_test_data_frame(self):
+    def __load_test_data_frame(self):
+        """
+        Loads the test dataset from the data, into a dataframe `df_test`.
+        """
         # define name and path of the info file
         test_file_name = "fold{0}_test.txt".format(self.fold)
         test_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, test_file_name)
         # read the train file, which is tab separated
-        test_df = pd.read_csv(test_file_path, sep="\t", names=["file_name"])
+        self.df_test = pd.read_csv(test_file_path, sep="\t", names=["file_name"])
 
-        return test_df
+    def fill_opposite_selection(self, anchor_id):
+        """
+        Fills up a list of opposite audio entries from a given anchor id `anchor_id`. The list will contain randomly
+        selected loaded audios, which must not contain the anchors audio entry.
 
-    def fill_opposite_selection(self, audio_id):
+        :param anchor_id: the id of the audio entry in the dataset, which the anchor is belongs to.
+        """
         opposite_possible = np.arange(0, len(self.df), 1)
-        opposite_possible = opposite_possible[opposite_possible != audio_id]
+        opposite_possible = opposite_possible[opposite_possible != anchor_id]
 
         opposite_indices = np.random.choice(opposite_possible, self.params.opposite_sample_buffer_size)
         opposite_audios = []
@@ -112,7 +149,20 @@ class DCASEDataset(BaseDataset):
 
         return opposite_audios
 
-    def get_triplets(self, anchor_id, anchor_length, opposite_choices, trim: bool = True) -> np.ndarray:
+    def get_triplets(self, anchor_id, anchor_length, opposite_choices) -> np.ndarray:
+        """
+        Calculates a triplet from a given anchor id.
+
+        :param anchor_id: the id of the audio entry in the dataset, which the anchor is belongs to.
+        :param anchor_length: the length of the audio file of the anchor.
+        :param opposite_choices: a list of loaded audio files to choose the opposite segment from. this is mainly used
+            to speed up the process of triplet selection in very large audio files.
+        :return: triplets of audio segments from the given anchor audio,
+            `[
+                [[anchor_segment], [neighbour_segment], [opposite_segment]],
+                [[anchor_segment], [neighbour_segment], [opposite_segment]]
+            ]`
+        """
         try:
             triplets = []
             for anchor_id in range(0, anchor_length, self.params.sample_tile_size):
@@ -129,7 +179,18 @@ class DCASEDataset(BaseDataset):
             self.logger.debug("Error during triplet computation: {}".format(err))
             raise ValueError("Error during triplet computation")
 
-    def get_neighbour(self, anchor_id: int, anchor_segment_id: id, anchor_length: int):
+    def get_neighbour(self, anchor_id: int, anchor_segment_id: id, anchor_length: int) -> []:
+        """
+        Gets the neighbour segment from a given anchor id and anchor segment id.
+
+        :param anchor_id: the id of the audio entry in the dataset, which the anchor is belongs to.
+        :param anchor_segment_id: the id of the audio segment of the audio file, which will be used as anchor.
+        :param anchor_length: the length of the anchor audio.
+        :return: neighbour segment from a given anchor audio and anchor id.
+            the segment consists of the audio the segment belongs to and the segment id.
+            the audio id of the neighbour segment is the same as for the anchor audio.
+            `[anchor_audio_id, neighbour_segment_id]`
+        """
         # crate array of possible sample positions
         sample_possible = np.arange(0, anchor_length, self.params.sample_tile_size)
 
@@ -148,19 +209,31 @@ class DCASEDataset(BaseDataset):
             raise ValueError("No valid neighbour found")
 
         # random choose neighbour in possible samples
-        neighbour_id = np.random.choice(sample_possible, 1)[0]
+        neighbour_segment_id = np.random.choice(sample_possible, 1)[0]
 
-        return [anchor_id, neighbour_id]
+        return [anchor_id, neighbour_segment_id]
 
-    def get_opposite(self, anchor_id, anchor_segment_id: id, anchor_length: int, opposite_choices):
+    def get_opposite(self, anchor_id, anchor_segment_id: id, anchor_length: int, opposite_choices) -> []:
+        """
+        Gets the opposite segment from a given anchor id and anchor segment id.
+
+        :param anchor_id: the id of the audio entry in the dataset, which the anchor is belongs to.
+        :param anchor_segment_id: the id of the audio segment of the audio file, which will be used as anchor.
+        :param anchor_length: the length of the anchor audio.
+        :param opposite_choices: a list of loaded audio files to choose the opposite segment from. this is mainly used
+            to speed up the process of selecting the opposite segment in very large audio files.
+        :return: opposite segment from a given anchor audio and anchor id.
+            the audio id of the opposite has to be different from the anchor audio id.
+            `[opposite_audio_id, opposite_segment_id]`
+        """
         # crate array of possible sample positions
         opposite_possible = np.arange(0, len(opposite_choices), 1)
-        opposite = np.random.choice(opposite_possible, size=1)[0]
+        opposite_audio_id = np.random.choice(opposite_possible, size=1)[0]
 
         # crate array of possible sample positions
         sample_possible = np.arange(0, anchor_length, self.params.sample_tile_size)
 
         # random choose neighbour in possible samples
-        opposite_id = np.random.choice(sample_possible, size=1)[0]
+        opposite_segment_id = np.random.choice(sample_possible, size=1)[0]
 
-        return [opposite, opposite_id]
+        return [opposite_audio_id, opposite_segment_id]

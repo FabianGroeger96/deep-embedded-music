@@ -1,7 +1,6 @@
 import os
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Tuple
 
 import librosa
 import numpy as np
@@ -34,7 +33,7 @@ class BaseDataset(ABC):
 
     def __init__(self, params: Params, log: bool = False):
         """
-        Initialises the data set. Default dataset type is TRAIN.
+        Initialises the dataset. Default dataset type is TRAIN.
 
         :param params: the global hyperparameters for initialising the dataset.
         :param log: if the dataset should provide a more detailed log.
@@ -91,16 +90,15 @@ class BaseDataset(ABC):
     @abstractmethod
     def fill_opposite_selection(self, anchor_id):
         """
-        Fills up a list of opposite audio entries from a given anchor id. The list will contain randomly selected
-        loaded audios, which must not contain the anchors audio entry.
+        Fills up a list of opposite audio entries from a given anchor id `anchor_id`. The list will contain randomly
+        selected loaded audios, which must not contain the anchors audio entry.
 
         :param anchor_id: the id of the audio entry in the dataset, which the anchor is belongs to.
         """
         pass
 
     @abstractmethod
-    def get_triplets(self, anchor_id, anchor_length, opposite_choices, trim: bool = True) -> Tuple[
-        np.ndarray, np.ndarray]:
+    def get_triplets(self, anchor_id, anchor_length, opposite_choices) -> np.ndarray:
         """
         Calculates a triplet from a given anchor id.
 
@@ -108,17 +106,26 @@ class BaseDataset(ABC):
         :param anchor_length: the length of the audio file of the anchor.
         :param opposite_choices: a list of loaded audio files to choose the opposite segment from. this is mainly used
             to speed up the process of triplet selection in very large audio files.
+        :return: triplets of audio segments from the given anchor audio,
+            `[
+                [[anchor_segment], [neighbour_segment], [opposite_segment]],
+                [[anchor_segment], [neighbour_segment], [opposite_segment]]
+            ]`
         """
         pass
 
     @abstractmethod
-    def get_neighbour(self, anchor_id: int, anchor_segment_id: id, anchor_length: int):
+    def get_neighbour(self, anchor_id: int, anchor_segment_id: id, anchor_length: int) -> []:
         """
         Gets the neighbour segment from a given anchor id and anchor segment id.
-        
+
         :param anchor_id: the id of the audio entry in the dataset, which the anchor is belongs to.
         :param anchor_segment_id: the id of the audio segment of the audio file, which will be used as anchor.
         :param anchor_length: the length of the anchor audio.
+        :return: neighbour segment from a given anchor audio and anchor id.
+            the segment consists of the audio the segment belongs to and the segment id.
+            the audio id of the neighbour segment is the same as for the anchor audio.
+            `[anchor_audio_id, neighbour_segment_id]`
         """
         pass
 
@@ -132,6 +139,9 @@ class BaseDataset(ABC):
         :param anchor_length: the length of the anchor audio.
         :param opposite_choices: a list of loaded audio files to choose the opposite segment from. this is mainly used
             to speed up the process of selecting the opposite segment in very large audio files.
+        :return: opposite segment from a given anchor audio and anchor id.
+            the audio id of the opposite has to be different from the anchor audio id.
+            `[opposite_audio_id, opposite_segment_id]`
         """
         pass
 
@@ -161,14 +171,14 @@ class BaseDataset(ABC):
         if self.log:
             self.logger.debug(self.df.head())
 
-        self.count_classes()
-        self.logger.info("Total audio samples: {}".format(self.df_train["file_name"].count()))
+        self.__count_classes()
+        self.logger.info("Total audio samples: {}".format(self.df["file_name"].count()))
 
-    def count_classes(self):
+    def __count_classes(self):
         """
         Counts the number of classes in the dataset and logs it.
         """
-        label_counts = self.df_train["label"].value_counts()
+        label_counts = self.df["label"].value_counts()
         for i, label in enumerate(self.LABELS):
             if i < len(label_counts):
                 self.logger.info("Audio samples in {0}: {1}".format(label, label_counts[i]))
@@ -207,10 +217,12 @@ class BaseDataset(ABC):
         :param audio_2: the second audio to compare.
         """
         # compute MFCC from audio1
-        audio_anchor, _ = librosa.load(os.path.join(self.dataset_path, audio_1.file_name), sr=self.params.sample_rate)
+        audio_anchor, _ = librosa.load(os.path.join(self.dataset_path, audio_1.file_name),
+                                       sr=self.params.sample_rate)
         mfcc_anchor = librosa.feature.mfcc(audio_anchor, self.params.sample_rate)
         # compute MFCC from audio2
-        audio_neigh, _ = librosa.load(os.path.join(self.dataset_path, audio_2.file_name), sr=self.params.sample_rate)
+        audio_neigh, _ = librosa.load(os.path.join(self.dataset_path, audio_2.file_name),
+                                      sr=self.params.sample_rate)
         mfcc_neigh = librosa.feature.mfcc(audio_neigh, self.params.sample_rate)
         # compute distance between mfccs with dynamic-time-wrapping (dtw)
         dist, cost, acc_cost, path = dtw(mfcc_anchor.T, mfcc_neigh.T, dist=lambda x, y: norm(x - y, ord=1))

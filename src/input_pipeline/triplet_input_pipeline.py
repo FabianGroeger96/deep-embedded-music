@@ -7,8 +7,8 @@ import librosa
 import numpy as np
 import tensorflow as tf
 
-from src.feature_extractor.base_extractor import BaseExtractor
 from src.dataset.base_dataset import BaseDataset, DatasetType
+from src.feature_extractor.base_extractor import BaseExtractor
 from src.utils.params import Params
 from src.utils.utils_audio import AudioUtils
 
@@ -35,11 +35,23 @@ class TripletsInputPipeline:
         self.logger = logging.getLogger(self.__class__.__name__)
 
     def reinitialise(self):
+        """
+        Reinitialises the input pipeline.
+        Is used to reset the dataset iterator after it is processed fully.
+        """
         self.logger.info("Reinitialising the input pipeline")
         self.dataset.initialise()
 
-    def __generate_samples(self, gen_name: str, trim: bool, return_labels: bool) -> Tuple[np.ndarray, np.ndarray,
-                                                                                          np.ndarray, np.ndarray]:
+    def __generate_triplets(self, gen_name: str, return_labels: bool) -> Tuple[np.ndarray, np.ndarray,
+                                                                               np.ndarray, np.ndarray]:
+        """
+        Generates triplets of audio segments.
+        Method will be called from each generator and loops parallel through the dataset.
+
+        :param gen_name: name of the generator to call the method.
+        :param return_labels: if the labels of the triplets should be returned, used for evaluation otherwise false.
+        :return: yields the triplet of audios from the segments.
+        """
 
         gen_name = gen_name.decode("utf-8")
         gen_index = int(re.findall('[0-9]+', gen_name)[0])
@@ -70,7 +82,7 @@ class TripletsInputPipeline:
             anchor_audio_length = int(len(anchor_audio) / self.params.sample_rate)
 
             try:
-                triplets = self.dataset.get_triplets(current_index, anchor_audio_length, trim=trim,
+                triplets = self.dataset.get_triplets(current_index, anchor_audio_length,
                                                      opposite_choices=opposite_audios)
             except ValueError as err:
                 self.logger.debug("Error during triplet creation: {}".format(err))
@@ -90,7 +102,7 @@ class TripletsInputPipeline:
                 neighbour_audio_seg = self.dataset.split_audio_in_segment(anchor_audio, neighbour_seg[1])
                 opposite_audio_seg = self.dataset.split_audio_in_segment(opposite_audio, opposite_seg[1])
 
-                if self.dataset_type == DatasetType.EVAL or return_labels:
+                if self.dataset_type == DatasetType.EVAL or self.dataset_type == DatasetType.FULL or return_labels:
                     labels = [anchor.label, anchor.label, opposite_entry[1]]
                 else:
                     labels = [-1, -1, -1]
@@ -106,7 +118,16 @@ class TripletsInputPipeline:
                 yield anchor_audio_seg, neighbour_audio_seg, opposite_audio_seg, labels
 
     def get_dataset(self, feature_extractor: Union[BaseExtractor, None], dataset_type: DatasetType = DatasetType.TRAIN,
-                    shuffle: bool = True, trim: bool = True, return_labels: bool = False):
+                    shuffle: bool = True, return_labels: bool = False):
+        """
+        Gets a dataset iterator to loop over the dataset in batches.
+
+        :param feature_extractor: the feature extractor to represent the loaded audio.
+        :param dataset_type: type of dataset to return (e.g. TRAIN: training dataset).
+        :param shuffle: if each batch should be shuffled before returning it.
+        :param return_labels: if the labels of the triplets should be returned, used for evaluation otherwise false.
+        :return: dataset iterator to loop over the dataset in batches.
+        """
 
         self.dataset_type = dataset_type
         self.dataset.change_dataset_type(dataset_type)
@@ -118,9 +139,8 @@ class TripletsInputPipeline:
 
         gen_arr = ["Gen_{}".format(x) for x in range(self.params.gen_count)]
         dataset = tf.data.Dataset.from_tensor_slices(gen_arr)
-        dataset = dataset.interleave(lambda gen_name: tf.data.Dataset.from_generator(self.__generate_samples,
-                                                                                     args=[gen_name, trim,
-                                                                                           return_labels],
+        dataset = dataset.interleave(lambda gen_name: tf.data.Dataset.from_generator(self.__generate_triplets,
+                                                                                     args=[gen_name, return_labels],
                                                                                      output_shapes=(
                                                                                          tf.TensorShape(audio_shape),
                                                                                          tf.TensorShape(audio_shape),
