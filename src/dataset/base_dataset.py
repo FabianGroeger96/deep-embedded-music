@@ -5,6 +5,7 @@ from typing import Tuple
 
 import librosa
 import numpy as np
+import pandas as pd
 from dtw import dtw
 from numpy.linalg import norm
 
@@ -15,6 +16,7 @@ class DatasetType(Enum):
     TRAIN = 0
     EVAL = 1
     TEST = 2
+    FULL = 3
 
 
 class BaseDataset(ABC):
@@ -82,8 +84,12 @@ class BaseDataset(ABC):
             self.df = self.df_train
         elif dataset_type == DatasetType.EVAL:
             self.df = self.df_eval
-        elif dataset_type == DatasetType.TRAIN:
-            self.df = self.df_train
+        elif dataset_type == DatasetType.TEST:
+            self.df = self.df_test
+        elif dataset_type == DatasetType.FULL:
+            self.df = pd.concat([self.df_train, self.df_eval, self.df_test])
+
+        self.df = self.df.sample(frac=1).reset_index(drop=True)
 
     def print_dataset_info(self):
         if self.log:

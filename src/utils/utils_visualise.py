@@ -105,9 +105,9 @@ def save_graph(tensorboard_path, execute_callback, **args):
 
 
 def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, summary_writer, tensorb_path,
-                                 reinitialise=True, visualise_graphs=True, save_checkpoint=True):
+                                 visualise_graphs=True, save_checkpoint=True):
     """
-    Visualises the model at the end of an epoch on the entire dataset.
+    Visualises the model at the end of an epoch on the evaluation dataset.
 
     It visualises the embedding space along with the projected embeddings.
     It visualises the distance between each label centroid as a distance matrix and as graphs.
@@ -119,15 +119,13 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, sum
     :param loss_fn: the triplet loss function, to calculate the loss on eval set.
     :param summary_writer: the summary writer of the tensorboard.
     :param tensorb_path: the path of the tensorboard files from the current experiment.
-    :param reinitialise: if the pipeline should be reinitialised or not.
     :param visualise_graphs: if the graphs of the distances between clusters should be visualised.
     :param save_checkpoint: if the checkpoint of the embeddings should be saved.
     :return: None.
     """
 
     # reinitialise pipeline for visualisation
-    if reinitialise:
-        pipeline.reinitialise()
+    pipeline.reinitialise()
     dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, dataset_type=DatasetType.EVAL)
 
     # define triplet loss metrics
@@ -192,6 +190,52 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, sum
     # visualise embeddings from the entire dataset
     visualise_embeddings(embeddings, labels=labels, dataset=dataset, tensorboard_path=tensorb_path,
                          save_checkpoint=save_checkpoint)
+
+    # delete unused lists of entire dataset
+    del embeddings
+    del labels
+
+
+def visualise_embedding_on_training_end(model, pipeline, extractor, tensorb_path):
+    """
+    Visualises the embedding space at the end of the training over the entire dataset.
+
+    :param model: the model to visualise.
+    :param pipeline: the input pipeline to provide the data.
+    :param extractor: the extractor used to extract the features from the data.
+    :param tensorb_path: the path of the tensorboard files from the current experiment.
+    :return: None.
+    """
+    pipeline.reinitialise()
+    dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, dataset_type=DatasetType.FULL)
+
+    # lists for embeddings and labels from entire dataset
+    embeddings = []
+    labels = []
+    # iterate over the batches of the dataset and feed batch to model
+    for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
+        emb_anchor = model(anchor, training=False)
+        emb_neighbour = model(neighbour, training=False)
+        emb_opposite = model(opposite, training=False)
+
+        embeddings.append(emb_anchor)
+        embeddings.append(emb_neighbour)
+        embeddings.append(emb_opposite)
+
+        labels.append(triplet_labels[:, 0])
+        labels.append(triplet_labels[:, 1])
+        labels.append(triplet_labels[:, 2])
+
+    # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
+    embeddings = tf.concat(embeddings, axis=0)
+    labels = tf.concat(labels, axis=0)
+
+    # get used dataset from pipline
+    dataset = pipeline.dataset
+
+    # visualise embeddings from the entire dataset
+    visualise_embeddings(embeddings, labels=labels, dataset=dataset, tensorboard_path=tensorb_path,
+                         save_checkpoint=True)
 
     # delete unused lists of entire dataset
     del embeddings

@@ -52,17 +52,18 @@ class DCASEDataset(BaseDataset):
         # add the full dataset path to the filename
         self.df_train["file_name"] = str(self.dataset_path) + "/" + self.df_train["file_name"].astype(str)
         self.df_eval["file_name"] = str(self.dataset_path) + "/" + self.df_eval["file_name"].astype(str)
-        self.df_test["file_name"] = str(self.dataset_path) + "/" + self.df_test["file_name"].astype(str)
+        # self.df_test["file_name"] = str(self.dataset_path) + "/" + self.df_test["file_name"].astype(str)
 
         # shuffle dataset
         self.df_train = self.df_train.sample(frac=1).reset_index(drop=True)
         self.df_eval = self.df_eval.sample(frac=1).reset_index(drop=True)
-        self.df_test = self.df_test.sample(frac=1).reset_index(drop=True)
+        # self.df_test = self.df_test.sample(frac=1).reset_index(drop=True)
 
     def load_data_frame(self):
         self.df_train = self.load_train_data_frame()
         self.df_eval = self.load_eval_data_frame()
-        self.df_test = self.load_test_data_frame()
+        # not using the test dataframe, since it does not have any labels
+        self.df_test = pd.DataFrame()
 
     def load_train_data_frame(self):
         # define name and path of the info file

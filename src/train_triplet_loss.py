@@ -14,7 +14,7 @@ from src.models_embedding.model_factory import ModelFactory
 from src.training.train_model import train_step
 from src.utils.params import Params
 from src.utils.utils import Utils
-from src.utils.utils_visualise import visualise_model_on_epoch_end
+from src.utils.utils_visualise import visualise_model_on_epoch_end, visualise_embedding_on_training_end
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--experiment_dir", default="experiments",
@@ -214,8 +214,10 @@ def main():
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
-
         logger.info("Epoch ended")
+
+    # visualise the entire embedding space after finishing training
+    visualise_embedding_on_training_end(model, pipeline=pipeline, extractor=extractor, tensorb_path=tensorb_path)
 
 
 if __name__ == "__main__":

@@ -37,15 +37,6 @@ class MusicDataset(BaseDataset):
                 raise StopIteration
             else:
                 audio_entry = self.df.iloc[self.current_index]
-
-                if self.current_index % 20 == 0 and self.log:
-                    self.logger.debug(
-                        "Entry {0}: audio file: {1}, audio path: {2}, label: {3}".format(
-                            self.current_index,
-                            audio_entry.name,
-                            audio_entry.path,
-                            audio_entry.label))
-
                 self.current_index += 1
 
                 return audio_entry
