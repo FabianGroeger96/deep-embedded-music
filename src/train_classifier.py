@@ -211,6 +211,14 @@ if __name__ == "__main__":
     Utils.set_logger(log_path, params_classifier.log_level)
     logger = logging.getLogger("Main ({})".format(params_classifier.experiment_name))
 
+    # print params
+    logger.info("PARAMS LOADED MODEL:")
+    params_saved_model.print(json_path, logger=logger)
+    logger.info("PARAMS CLASSIFIER:")
+    params_classifier.print(json_path, logger=logger)
+
+    logger.info("Model loaded: {}".format(args.model_to_load))
+
     # set the folder for the summary writer
     train_summary_writer = tf.summary.create_file_writer(tensorb_path)
 
