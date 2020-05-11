@@ -42,8 +42,8 @@ class TripletsInputPipeline:
         self.logger.info("Reinitialising the input pipeline")
         self.dataset.initialise()
 
-    def __generate_triplets(self, gen_name: str, return_labels: bool) -> Tuple[np.ndarray, np.ndarray,
-                                                                               np.ndarray, np.ndarray]:
+    def generate_triplets(self, gen_name: str, return_labels: bool) -> Tuple[np.ndarray, np.ndarray,
+                                                                             np.ndarray, np.ndarray]:
         """
         Generates triplets of audio segments.
         Method will be called from each generator and loops parallel through the dataset.
@@ -139,7 +139,7 @@ class TripletsInputPipeline:
 
         gen_arr = ["Gen_{}".format(x) for x in range(self.params.gen_count)]
         dataset = tf.data.Dataset.from_tensor_slices(gen_arr)
-        dataset = dataset.interleave(lambda gen_name: tf.data.Dataset.from_generator(self.__generate_triplets,
+        dataset = dataset.interleave(lambda gen_name: tf.data.Dataset.from_generator(self.generate_triplets,
                                                                                      args=[gen_name, return_labels],
                                                                                      output_shapes=(
                                                                                          tf.TensorShape(audio_shape),
