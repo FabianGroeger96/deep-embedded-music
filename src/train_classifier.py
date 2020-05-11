@@ -213,11 +213,8 @@ if __name__ == "__main__":
     logger = logging.getLogger("Main ({})".format(params_classifier.experiment_name))
 
     # print params
-    logger.info("PARAMS LOADED MODEL:")
-    params_saved_model.print(json_path, logger=logger)
     logger.info("PARAMS CLASSIFIER:")
-    params_classifier.print(json_path, logger=logger)
-
+    params_classifier.print(json_classifier, logger=logger)
     logger.info("Model loaded: {}".format(args.model_to_load))
 
     # set the folder for the summary writer
