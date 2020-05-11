@@ -38,8 +38,7 @@ class TestGRUNet(tf.test.TestCase):
         self.triplet_loss_fn = TripletLoss(margin=self.params.margin)
 
     def create_model(self):
-        self.model = ModelFactory.create_model("GRUNet", embedding_dim=self.params.embedding_size,
-                                               l2_amount=self.params.l2_amount)
+        self.model = ModelFactory.create_model("GRUNet", params=self.params)
 
     def get_input_pipeline(self):
         dataset = DatasetFactory.create_dataset("DCASEDataset", params=self.params)

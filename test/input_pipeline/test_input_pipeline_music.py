@@ -2,8 +2,8 @@ import os
 
 import tensorflow as tf
 
-from src.feature_extractor.log_mel_extractor import LogMelBaseExtractor
-from src.feature_extractor.mfcc_extractor import MFCCBaseExtractor
+from src.feature_extractor.log_mel_extractor import LogMelExtractor
+from src.feature_extractor.mfcc_extractor import MFCCExtractor
 from src.dataset.dataset_factory import DatasetFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.utils.params import Params
@@ -50,7 +50,7 @@ class TestInputPipeline(tf.test.TestCase):
             break
 
     def test_dataset_generator_mfcc_extractor(self):
-        feature_extractor = MFCCBaseExtractor(params=self.params)
+        feature_extractor = MFCCExtractor(params=self.params)
         # get the output shape of the extractor to check the sizes
         frame_size, n_mfcc_bin = feature_extractor.get_output_shape()
 
@@ -70,7 +70,7 @@ class TestInputPipeline(tf.test.TestCase):
             break
 
     def test_dataset_generator_log_mel_extractor(self):
-        feature_extractor = LogMelBaseExtractor(params=self.params)
+        feature_extractor = LogMelExtractor(params=self.params)
         # get the output shape of the extractor to check the sizes
         frame_size, n_mel_bin = feature_extractor.get_output_shape()
 

@@ -7,7 +7,7 @@ from src.utils.params import Params
 
 
 @ExtractorFactory.register("LogMelExtractor")
-class LogMelBaseExtractor(BaseExtractor):
+class LogMelExtractor(BaseExtractor):
     """ The extractor for representing an audio in the form of the log Mel frequency spectrogram. """
 
     def __init__(self, params: Params):

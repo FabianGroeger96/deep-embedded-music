@@ -4,30 +4,33 @@ from abc import ABC, abstractmethod
 import tensorflow as tf
 
 from src.models_embedding.residual_block import BasicBlock, BottleNeck
+from src.utils.params import Params
 
 
 class BaseModel(tf.keras.Model, ABC):
     """ The abstract base model. All models_embedding will inherit this base. """
 
-    def __init__(self, embedding_dim, model_name, expand_dims, l2_amount=0.1):
+    def __init__(self, params: Params, model_name: str, expand_dims: bool):
         """
         Initialises the model.
 
-        :param embedding_dim: the dimension for the embedding space.
+        :param params: the global hyperparameters for initialising the model.
         :param model_name: the name of the model.
         :param expand_dims: if the model should expand its dimension.
-        :param l2_amount: the amount of l2 regularization.
         """
         super(BaseModel, self).__init__()
 
         self.logger = logging.getLogger(model_name)
 
-        self.embedding_dim = embedding_dim
+        self.params = params
+
+        self.embedding_dim = params.embedding_size
+        self.l2_amount = params.l2_amount
+
         self.model_name = model_name
         self.expand_dims = expand_dims
-        self.l2_amount = l2_amount
 
-        self.dense = tf.keras.layers.Dense(embedding_dim, activation=None)
+        self.dense = tf.keras.layers.Dense(params.embedding_size, activation=None)
         self.flatten = tf.keras.layers.Flatten()
 
         self.l2_normalisation = tf.keras.layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=1))

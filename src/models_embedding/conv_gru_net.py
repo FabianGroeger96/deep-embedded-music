@@ -8,31 +8,33 @@ from src.models_embedding.model_factory import ModelFactory
 class ConvGRUNet(BaseModel):
     """ A 2-dimensional CNN model with an additional GRU layer before the fully connected one. """
 
-    def __init__(self, embedding_dim, l2_amount, model_name="ConvGRUNet"):
+    def __init__(self, params, model_name="ConvGRUNet"):
         """
        Initialises the model.
        Calls the initialise method of the super class.
 
-       :param embedding_dim: the dimension for the embedding space.
-       :param l2_amount: the amount of l2 regularization.
+       :param params: the global hyperparameters for initialising the model.
        :param model_name: the name of the model.
        """
 
-        super(ConvGRUNet, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=True,
-                                         l2_amount=l2_amount)
+        super(ConvGRUNet, self).__init__(params=params, model_name=model_name, expand_dims=True)
 
         input_shape = (None, None, None, None)
         self.conv_1 = tf.keras.layers.Conv2D(16, (7, 7), padding="same", input_shape=input_shape, activation="relu")
         self.max_pooling_1 = tf.keras.layers.MaxPool2D((3, 3), strides=(2, 1), padding="same")
+        self.bn_1 = tf.keras.layers.BatchNormalization()
 
         self.conv_2 = tf.keras.layers.Conv2D(32, (5, 5), padding="same", activation="relu")
         self.max_pooling_2 = tf.keras.layers.MaxPool2D((3, 3), strides=(2, 1), padding="same")
+        self.bn_2 = tf.keras.layers.BatchNormalization()
 
         self.conv_3 = tf.keras.layers.Conv2D(32, (3, 3), padding="same", activation="relu")
         self.max_pooling_3 = tf.keras.layers.MaxPool2D((3, 3), strides=(2, 1), padding="same")
+        self.bn_3 = tf.keras.layers.BatchNormalization()
 
         self.conv_4 = tf.keras.layers.Conv2D(32, (3, 3), padding="same", activation="relu")
         self.max_pooling_4 = tf.keras.layers.MaxPool2D((3, 3), strides=(2, 1), padding="same")
+        self.bn_4 = tf.keras.layers.BatchNormalization()
 
         self.reshape = tf.keras.layers.Reshape((-1, 32))
         self.gru_1 = tf.keras.layers.GRU(32, return_sequences=True)
@@ -52,31 +54,29 @@ class ConvGRUNet(BaseModel):
         x = self.conv_1(inputs)
         x = self.max_pooling_1(x)
         if training:
-            x = tf.keras.layers.BatchNormalization()(x)
+            x = self.bn_1(x)
 
         # 2. Conv layer
         x = self.conv_2(x)
         x = self.max_pooling_2(x)
         if training:
-            x = tf.keras.layers.BatchNormalization()(x)
+            x = self.bn_2(x)
 
         # 3. Conv layer
         x = self.conv_3(x)
         x = self.max_pooling_3(x)
         if training:
-            x = tf.keras.layers.BatchNormalization()(x)
+            x = self.bn_3(x)
 
         # 4. Conv layer
         x = self.conv_4(x)
         x = self.max_pooling_4(x)
         if training:
-            x = tf.keras.layers.BatchNormalization()(x)
+            x = self.bn_4(x)
 
         # GRU layer
         x = self.reshape(x)
         x = self.gru_1(x)
-        if training:
-            x = tf.keras.layers.BatchNormalization()(x)
 
         # Embedding layer
         x = self.flatten(x)

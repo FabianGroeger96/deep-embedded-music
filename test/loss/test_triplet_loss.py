@@ -30,8 +30,7 @@ class TestTripletLoss(tf.test.TestCase):
         return audio_pipeline
 
     def test_triplet_loss(self):
-        self.model = ModelFactory.create_model("DenseNet", embedding_dim=self.params.embedding_size,
-                                               l2_amount=self.params.l2_amount)
+        self.model = ModelFactory.create_model("DenseNet", params=self.params)
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)
@@ -48,8 +47,7 @@ class TestTripletLoss(tf.test.TestCase):
             break
 
     def test_triplet_loss_distance(self):
-        self.model = ModelFactory.create_model("DenseNet", embedding_dim=self.params.embedding_size,
-                                               l2_amount=self.params.l2_amount)
+        self.model = ModelFactory.create_model("DenseNet", params=self.params)
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)

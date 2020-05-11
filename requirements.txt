@@ -12,5 +12,4 @@ scikit-learn
 librosa
 tqdm
 pydub
-pytest
 soundfile

@@ -47,8 +47,7 @@ if __name__ == "__main__":
     params_saved_model = Params(os.path.join(experiment_path, "logs", "params.json"))
 
     # load the embedding model
-    model_embedding = ModelFactory.create_model(params_saved_model.model,
-                                                embedding_dim=params_saved_model.embedding_size)
+    model_embedding = ModelFactory.create_model(params_saved_model.model, params=params_saved_model)
     # define checkpoint and checkpoint manager
     ckpt = tf.train.Checkpoint(net=model_embedding)
     manager = tf.train.CheckpointManager(ckpt, saved_model_path, max_to_keep=3)

@@ -20,7 +20,7 @@ class ResNetType(Enum):
 class ResNet(BaseModel, ABC):
     """ Abstract implementation for creating different ResNet models_embedding. """
 
-    def __init__(self, layer_params, resnet_type, embedding_dim, l2_amount, model_name="ResNet"):
+    def __init__(self, layer_params, resnet_type, params, model_name="ResNet"):
         """
         Initialises a ResNet model.
 
@@ -28,12 +28,10 @@ class ResNet(BaseModel, ABC):
         :param resnet_type: the type of ResNet, determines which layers to use.
             TypeI: uses basic blocks as layers.
             TypeII: uses bottle neck as layers.
-        :param embedding_dim: the dimension of the last dense layer (embedding layer).
-        :param l2_amount: the weight of the l2 regularisation for each layer.
+        :param params: the global hyperparameters for initialising the model.
         :param model_name: the name of the model.
         """
-        super(ResNet, self).__init__(embedding_dim=embedding_dim, model_name=model_name, expand_dims=True,
-                                     l2_amount=l2_amount)
+        super(ResNet, self).__init__(params=params, model_name=model_name, expand_dims=True)
 
         self.l2_regularization = tf.keras.regularizers.l2(self.l2_amount)
 
@@ -127,38 +125,43 @@ class ResNet(BaseModel, ABC):
 @ModelFactory.register("ResNet18")
 class ResNet18(ResNet):
     """ Concrete implementation of the standard ResNet18 architecture. """
-    def __init__(self, embedding_dim, l2_amount=0.1, model_name="ResNet18"):
+
+    def __init__(self, params, model_name="ResNet18"):
         super(ResNet18, self).__init__(layer_params=[2, 2, 2, 2], resnet_type=ResNetType.TypeI,
-                                       embedding_dim=embedding_dim, l2_amount=l2_amount, model_name=model_name)
+                                       params=params, model_name=model_name)
 
 
 @ModelFactory.register("ResNet34")
 class ResNet34(ResNet):
     """ Concrete implementation of the standard ResNet34 architecture. """
-    def __init__(self, embedding_dim, l2_amount=0.1, model_name="ResNet34"):
+
+    def __init__(self, params, model_name="ResNet34"):
         super(ResNet34, self).__init__(layer_params=[3, 4, 6, 3], resnet_type=ResNetType.TypeI,
-                                       embedding_dim=embedding_dim, l2_amount=l2_amount, model_name=model_name)
+                                       params=params, model_name=model_name)
 
 
 @ModelFactory.register("ResNet50")
 class ResNet50(ResNet):
     """ Concrete implementation of the standard ResNet50 architecture. """
-    def __init__(self, embedding_dim, l2_amount=0.1, model_name="ResNet50"):
+
+    def __init__(self, params, model_name="ResNet50"):
         super(ResNet50, self).__init__(layer_params=[3, 4, 6, 3], resnet_type=ResNetType.TypeII,
-                                       embedding_dim=embedding_dim, l2_amount=l2_amount, model_name=model_name)
+                                       params=params, model_name=model_name)
 
 
 @ModelFactory.register("ResNet101")
 class ResNet101(ResNet):
     """ Concrete implementation of the standard ResNet101 architecture. """
-    def __init__(self, embedding_dim, l2_amount=0.1, model_name="ResNet101"):
+
+    def __init__(self, params, model_name="ResNet101"):
         super(ResNet101, self).__init__(layer_params=[3, 4, 23, 3], resnet_type=ResNetType.TypeII,
-                                        embedding_dim=embedding_dim, l2_amount=l2_amount, model_name=model_name)
+                                        params=params, model_name=model_name)
 
 
 @ModelFactory.register("ResNet152")
 class ResNet152(ResNet):
     """ Concrete implementation of the standard ResNet152 architecture. """
-    def __init__(self, embedding_dim, l2_amount=0.1, model_name="ResNet152"):
+
+    def __init__(self, params, model_name="ResNet152"):
         super(ResNet152, self).__init__(layer_params=[3, 8, 36, 3], resnet_type=ResNetType.TypeII,
-                                        embedding_dim=embedding_dim, l2_amount=l2_amount, model_name=model_name)
+                                        params=params, model_name=model_name)

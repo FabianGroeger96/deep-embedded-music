@@ -151,7 +151,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # load default config file for classifier
-    params_classifier = Params(os.path.join(args.experiment_dir, "config", "params.json"))
+    json_classifier = os.path.join(args.experiment_dir, "config", "params.json")
+    params_classifier = Params(json_classifier)
 
     if args.model_to_load != "None":
         # load the parameters of the model to train
@@ -161,11 +162,11 @@ if __name__ == "__main__":
         saved_model_path = os.path.join(experiment_path, "saved_model")
 
         # get the parameters from the json file
-        params_saved_model = Params(os.path.join(experiment_path, "logs", "params.json"))
+        json_saved_model = os.path.join(experiment_path, "logs", "params.json")
+        params_saved_model = Params(json_saved_model)
 
         # load the embedding model
-        model_embedding = ModelFactory.create_model(params_saved_model.model,
-                                                    embedding_dim=params_saved_model.embedding_size)
+        model_embedding = ModelFactory.create_model(params_saved_model.model, params=params_saved_model)
         # define checkpoint and checkpoint manager
         ckpt = tf.train.Checkpoint(net=model_embedding)
         manager = tf.train.CheckpointManager(ckpt, saved_model_path, max_to_keep=3)
