@@ -4,10 +4,12 @@ import os
 
 import tensorflow as tf
 import tensorflow_addons as tfa
+import numpy as np
+from sklearn.metrics import classification_report
 
-from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.dataset.base_dataset import DatasetType
 from src.dataset.dataset_factory import DatasetFactory
+from src.feature_extractor.extractor_factory import ExtractorFactory
 from src.input_pipeline.triplet_input_pipeline import TripletsInputPipeline
 from src.models_classifier.classifier_dense import ClassifierDense
 from src.models_classifier.classifier_logistic import ClassifierLogistic
@@ -22,7 +24,7 @@ parser.add_argument("--experiment_dir", default="experiments",
 parser.add_argument("--dataset_dir", default="DCASE",
                     help="Dataset directory containing the model")
 parser.add_argument("--model_to_load",
-                    default="results/experiment_embedding_size/embeddings/ResNet18-LogMel-l1e5-b64-l201-ts5-ns5-m1-e16-20200501-154131",
+                    default="results/ResNet18-LogMel-l1e5-b128-l201-d95-7500-ts5-ns5-m1-e64-20200509-055859",
                     help="Model to load")
 parser.add_argument("--classifier_type",
                     default="Logistic",
@@ -102,6 +104,11 @@ def evaluate():
     pipeline.reinitialise()
     dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.EVAL,
                                             shuffle=params_classifier.shuffle_dataset, return_labels=True)
+
+    # arrays to save the labels and predictions over the entire eval set
+    global_labels = []
+    global_predictions = []
+
     # iterate over the batches of the dataset
     for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
         # embed the triplets into the embedding space
@@ -115,6 +122,9 @@ def evaluate():
         pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
         labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
         labels = tf.dtypes.cast(labels, tf.int32)
+
+        global_labels.append(labels)
+        global_predictions.append(np.argmax(pred.numpy(), axis=1))
 
         loss = classifier_loss_fn(y_true=labels, y_pred=pred)
 
@@ -130,6 +140,11 @@ def evaluate():
         tf.summary.scalar("classifier/eval_loss_epochs", metric_eval_loss_epochs.result(), step=epoch)
         tf.summary.scalar("classifier/eval_accuracy_epochs", metric_eval_accuracy_epochs.result(), step=epoch)
         tf.summary.scalar("classifier/eval_f1_epochs", metric_eval_f1_epochs.result(), step=epoch)
+
+    global_labels = tf.concat(global_labels, axis=0)
+    global_predictions = tf.concat(global_predictions, axis=0)
+    class_report = classification_report(global_labels, global_predictions, target_names=dataset.LABELS)
+    logger.info("Classification Report:\n{}".format(class_report))
 
 
 def embed_triplet(anchor, neighbour, opposite):
