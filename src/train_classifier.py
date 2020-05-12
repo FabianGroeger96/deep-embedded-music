@@ -77,7 +77,7 @@ def train():
                               step=int(ckpt_classifier.step))
 
         logger.info("TRAIN - epoch: {0}, batch index: {1}, loss: {2:.2f}, acc: {3:.2f}, f1: {4:.2f}".format(
-            epoch,
+            epoch + 1,
             batch_index,
             metric_train_loss_batches.result(),
             metric_train_accuracy_batches.result(),
@@ -132,7 +132,7 @@ def evaluate():
         metric_eval_accuracy_epochs(labels, pred)
         metric_eval_f1_epochs.update_state(tf.one_hot(labels, len(dataset.LABELS)), pred)
 
-        logger.info("EVAL - epoch: {0}, batch index: {1}, loss: {2:.2f}".format(epoch, batch_index, loss))
+        logger.info("EVAL - epoch: {0}, batch index: {1}, loss: {2:.2f}".format(epoch + 1, batch_index, loss))
 
     # write epoch loss to summary writer
     with train_summary_writer.as_default():
