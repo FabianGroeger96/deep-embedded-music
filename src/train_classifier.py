@@ -35,9 +35,12 @@ def train():
     dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
                                             shuffle=params_classifier.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
-    for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
+    for batch_index, (anchor, neighbour, opposite, triplet_metadata) in enumerate(dataset_iterator):
         # embed the triplets into the embedding space
         emb_anchor, emb_neighbour, emb_opposite = embed_triplet(anchor, neighbour, opposite)
+
+        # retrieve labels from metadata
+        triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
 
         # record the operations run during the forward pass, which enables auto differentiation
         with tf.GradientTape() as tape:
@@ -110,9 +113,12 @@ def evaluate():
     global_predictions = []
 
     # iterate over the batches of the dataset
-    for batch_index, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
+    for batch_index, (anchor, neighbour, opposite, triplet_metadata) in enumerate(dataset_iterator):
         # embed the triplets into the embedding space
         emb_anchor, emb_neighbour, emb_opposite = embed_triplet(anchor, neighbour, opposite)
+
+        # retrieve labels from metadata
+        triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
 
         # run the forward pass of the layer
         pred_anchor = classifier(emb_anchor)

@@ -71,9 +71,15 @@ class DCASEDataset(BaseDataset):
         self.load_data_frame()
 
         # add the full dataset path to the filename
-        self.df_train["file_name"] = str(self.dataset_path) + "/" + self.df_train["file_name"].astype(str)
-        self.df_eval["file_name"] = str(self.dataset_path) + "/" + self.df_eval["file_name"].astype(str)
+        self.df_train["file_name"] = str(self.dataset_path) + "/" + self.df_train["name"].astype(str)
+        self.df_eval["file_name"] = str(self.dataset_path) + "/" + self.df_eval["name"].astype(str)
         # self.df_test["file_name"] = str(self.dataset_path) + "/" + self.df_test["file_name"].astype(str)
+
+        self.df_train["name"] = self.df_train["name"].str.split("/", n=1, expand=True)[1]
+        self.df_train["name"] = self.df_train["name"].str.split(".", n=1, expand=True)[0]
+
+        self.df_eval["name"] = self.df_eval["name"].str.split("/", n=1, expand=True)[1]
+        self.df_eval["name"] = self.df_eval["name"].str.split(".", n=1, expand=True)[0]
 
         # shuffle dataset
         self.df_train = self.df_train.sample(frac=1).reset_index(drop=True)
@@ -101,7 +107,7 @@ class DCASEDataset(BaseDataset):
         train_file_name = "fold{0}_train.txt".format(self.fold)
         train_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, train_file_name)
         # read the eval file, which is tab separated
-        self.df_train = pd.read_csv(train_file_path, sep="\t", names=["file_name", "label", "session"])
+        self.df_train = pd.read_csv(train_file_path, sep="\t", names=["name", "label", "session"])
         # convert the activity labels into integers
         self.df_train["label"] = self.df_train["label"].apply(self.LABELS.index)
 
@@ -113,7 +119,7 @@ class DCASEDataset(BaseDataset):
         eval_file_name = "fold{0}_evaluate.txt".format(self.fold)
         eval_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, eval_file_name)
         # read the train file, which is tab separated
-        self.df_eval = pd.read_csv(eval_file_path, sep="\t", names=["file_name", "label"])
+        self.df_eval = pd.read_csv(eval_file_path, sep="\t", names=["name", "label"])
         # convert the activity labels into integers
         self.df_eval["label"] = self.df_eval["label"].apply(self.LABELS.index)
 
@@ -125,7 +131,7 @@ class DCASEDataset(BaseDataset):
         test_file_name = "fold{0}_test.txt".format(self.fold)
         test_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, test_file_name)
         # read the train file, which is tab separated
-        self.df_test = pd.read_csv(test_file_path, sep="\t", names=["file_name"])
+        self.df_test = pd.read_csv(test_file_path, sep="\t", names=["name"])
 
     def fill_opposite_selection(self, anchor_id):
         """
@@ -145,7 +151,7 @@ class DCASEDataset(BaseDataset):
                                                              self.params.sample_size,
                                                              self.params.stereo_channels,
                                                              self.params.to_mono)
-            opposite_audios.append([opposite_audio, opposite_df.label])
+            opposite_audios.append([opposite_audio, opposite_df.label, opposite_df["name"]])
 
         return opposite_audios
 

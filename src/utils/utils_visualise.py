@@ -29,6 +29,22 @@ def save_labels_tsv(labels, filename, log_dir, dataset):
             f.write('{}\n'.format(dataset.LABELS[int(label)]))
 
 
+def save_names_tsv(names, filename, log_dir):
+    """
+    Saves the names of the features to a given path as a *.tsv file.
+    The file can be used to examine the embedding space.
+
+    :param names: the labels to save.
+    :param filename: the name of the file.
+    :param log_dir: the path of the file.
+    :param dataset: the dataset of the input pipeline.
+    :return: None.
+    """
+    with open(os.path.join(log_dir, filename), 'w') as f:
+        for name in names.numpy():
+            f.write('{}\n'.format(str(name, encoding="utf-8")))
+
+
 def save_embeddings_tsv(embeddings, filename, log_dir):
     """
     Saves the embeddings of the features to a given path as a *.tsv file.
@@ -46,12 +62,13 @@ def save_embeddings_tsv(embeddings, filename, log_dir):
             f.write('\n')
 
 
-def visualise_embeddings(embeddings, labels, dataset, tensorboard_path, save_checkpoint=True):
+def visualise_embeddings(embeddings, labels, names, dataset, tensorboard_path, save_checkpoint=True):
     """
     Visualises the embeddings with its corresponding labels with the projector of the tensorboard.
 
     :param embeddings: the embeddings to visualise.
     :param labels: the labels to visualise.
+    :param names: then names of the segments they belong to.
     :param dataset: the dataset of the input pipeline.
     :param tensorboard_path: the path of the tensorboard files from the current experiment.
     :param save_checkpoint: if the embedding checkpoint should be saved or only the *.tsv files.
@@ -63,6 +80,7 @@ def visualise_embeddings(embeddings, labels, dataset, tensorboard_path, save_che
 
     # save labels and embeddings to .tsv, to assign each embedding a label
     save_labels_tsv(labels, 'labels.tsv', tensorboard_path, dataset=dataset)
+    save_names_tsv(names, 'names.tsv', tensorboard_path)
     save_embeddings_tsv(embeddings, 'embeddings.tsv', tensorboard_path)
 
     # save the embeddings to a checkpoint file, which will then be loaded by the projector
@@ -136,8 +154,10 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, sum
     # lists for embeddings and labels from entire dataset
     embeddings = []
     labels = []
+    names = []
+
     # iterate over the batches of the dataset and feed batch to model
-    for i, (anchor, neighbour, opposite, triplet_labels) in enumerate(dataset_iterator):
+    for i, (anchor, neighbour, opposite, triplet_metadata) in enumerate(dataset_iterator):
         emb_anchor = model(anchor, training=False)
         emb_neighbour = model(neighbour, training=False)
         emb_opposite = model(opposite, training=False)
@@ -157,13 +177,22 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, sum
         embeddings.append(emb_neighbour)
         embeddings.append(emb_opposite)
 
+        # retrieve labels from metadata
+        triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
+        triplet_names = triplet_metadata[:, 1]
+
         labels.append(triplet_labels[:, 0])
         labels.append(triplet_labels[:, 1])
         labels.append(triplet_labels[:, 2])
 
+        names.append(triplet_names[:, 0])
+        names.append(triplet_names[:, 1])
+        names.append(triplet_names[:, 2])
+
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
     embeddings = tf.concat(embeddings, axis=0)
     labels = tf.concat(labels, axis=0)
+    names = tf.concat(names, axis=0)
 
     # clustering metrics
     silhouette_score = metrics.silhouette_score(embeddings, labels, metric="euclidean")
@@ -188,7 +217,7 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, sum
     visualise_distance_matrix(embeddings, labels=labels, dataset=dataset, epoch=epoch, summary_writer=summary_writer,
                               visualise_graphs=visualise_graphs)
     # visualise embeddings from the entire dataset
-    visualise_embeddings(embeddings, labels=labels, dataset=dataset, tensorboard_path=tensorb_path,
+    visualise_embeddings(embeddings, labels=labels, names=names, dataset=dataset, tensorboard_path=tensorb_path,
                          save_checkpoint=save_checkpoint)
 
     # delete unused lists of entire dataset
@@ -212,8 +241,10 @@ def visualise_embedding_on_training_end(model, pipeline, extractor, tensorb_path
     # lists for embeddings and labels from entire dataset
     embeddings = []
     labels = []
+    names = []
+
     # iterate over the batches of the dataset and feed batch to model
-    for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
+    for batch_index, (anchor, neighbour, opposite, triplet_metadata) in enumerate(dataset_iterator):
         emb_anchor = model(anchor, training=False)
         emb_neighbour = model(neighbour, training=False)
         emb_opposite = model(opposite, training=False)
@@ -222,19 +253,28 @@ def visualise_embedding_on_training_end(model, pipeline, extractor, tensorb_path
         embeddings.append(emb_neighbour)
         embeddings.append(emb_opposite)
 
+        # retrieve labels from metadata
+        triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
+        triplet_names = triplet_metadata[:, 1]
+
         labels.append(triplet_labels[:, 0])
         labels.append(triplet_labels[:, 1])
         labels.append(triplet_labels[:, 2])
 
+        names.append(triplet_names[:, 0])
+        names.append(triplet_names[:, 1])
+        names.append(triplet_names[:, 2])
+
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
     embeddings = tf.concat(embeddings, axis=0)
     labels = tf.concat(labels, axis=0)
+    names = tf.concat(names, axis=0)
 
     # get used dataset from pipeline
     dataset = pipeline.dataset
 
     # visualise embeddings from the entire dataset
-    visualise_embeddings(embeddings, labels=labels, dataset=dataset, tensorboard_path=tensorb_path,
+    visualise_embeddings(embeddings, labels=labels, names=names, dataset=dataset, tensorboard_path=tensorb_path,
                          save_checkpoint=True)
 
     # delete unused lists of entire dataset

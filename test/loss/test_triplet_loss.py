@@ -34,13 +34,13 @@ class TestTripletLoss(tf.test.TestCase):
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)
-        for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
+        for anchor, neighbour, opposite, _ in dataset_iterator:
             emb_anchor = self.model(anchor, training=True)
             emb_neighbour = self.model(neighbour, training=True)
             emb_opposite = self.model(opposite, training=True)
 
             # compute the triplet loss value for the batch
-            triplet_loss = self.triplet_loss_fn(triplet_labels, [emb_anchor, emb_neighbour, emb_opposite])
+            triplet_loss = self.triplet_loss_fn(None, [emb_anchor, emb_neighbour, emb_opposite])
 
             self.assertNotEqual(triplet_loss, 0)
 
@@ -51,7 +51,7 @@ class TestTripletLoss(tf.test.TestCase):
         # instantiate input pipeline
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)
-        for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
+        for anchor, neighbour, opposite, _ in dataset_iterator:
             emb_anchor = self.model(anchor, training=True)
             emb_neighbour = self.model(neighbour, training=True)
             emb_opposite = self.model(opposite, training=True)

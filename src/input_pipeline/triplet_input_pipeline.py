@@ -103,9 +103,11 @@ class TripletsInputPipeline:
                 opposite_audio_seg = self.dataset.split_audio_in_segment(opposite_audio, opposite_seg[1])
 
                 if self.dataset_type == DatasetType.EVAL or self.dataset_type == DatasetType.FULL or return_labels:
-                    labels = [anchor.label, anchor.label, opposite_entry[1]]
+                    labels = [[anchor.label, anchor.label, opposite_entry[1]],
+                              [anchor["name"], anchor["name"], opposite_entry[2]]]
                 else:
-                    labels = [-1, -1, -1]
+                    labels = [["None", "None", "None"],
+                              ["None", "None", "None"]]
                 labels = np.asarray(labels)
 
                 if current_index % 1000 == 0 and current_index is not 0 and self.log:
@@ -145,10 +147,10 @@ class TripletsInputPipeline:
                                                                                          tf.TensorShape(audio_shape),
                                                                                          tf.TensorShape(audio_shape),
                                                                                          tf.TensorShape(audio_shape),
-                                                                                         tf.TensorShape(3)),
+                                                                                         tf.TensorShape([2, 3])),
                                                                                      output_types=(
                                                                                          tf.float32, tf.float32,
-                                                                                         tf.float32, tf.float32)),
+                                                                                         tf.float32, tf.string)),
                                      cycle_length=self.params.gen_count,
                                      block_length=1,
                                      num_parallel_calls=self.params.num_parallel_calls)

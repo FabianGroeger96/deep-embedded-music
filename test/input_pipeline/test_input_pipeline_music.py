@@ -30,12 +30,12 @@ class TestInputPipeline(tf.test.TestCase):
         self.set_music_dataset()
         audio_pipeline = self.get_input_pipeline()
         dataset_iterator = audio_pipeline.get_dataset(feature_extractor=None, shuffle=True)
-        for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
+        for anchor, neighbour, opposite, triplet_metadata in dataset_iterator:
             # check if there are the same number of samples as requested (batch_size)
             self.assertEqual(self.params.batch_size, anchor.shape[0])
             self.assertEqual(self.params.batch_size, neighbour.shape[0])
             self.assertEqual(self.params.batch_size, opposite.shape[0])
-            self.assertEqual(self.params.batch_size, triplet_labels.shape[0])
+            self.assertEqual(self.params.batch_size, triplet_metadata.shape[0])
             break
 
     def test_dataset_generator_sample_rate_audios(self):

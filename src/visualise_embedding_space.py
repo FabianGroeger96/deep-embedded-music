@@ -16,7 +16,7 @@ parser.add_argument("--experiment_dir", default="experiments",
 parser.add_argument("--dataset_dir", default="DCASE",
                     help="Dataset directory containing the model")
 parser.add_argument("--model_to_load",
-                    default="results/experiment_embedding_size/embeddings/ResNet18-LogMel-l1e5-b64-l201-ts5-ns5-m1-e16-20200501-154131",
+                    default="results/ResNet18-LogMel-l1e5-b128-l201-d95-7500-ts5-ns5-m1-e64-20200509-055859",
                     help="Model to load")
 
 if __name__ == "__main__":

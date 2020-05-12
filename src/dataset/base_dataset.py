@@ -172,7 +172,7 @@ class BaseDataset(ABC):
             self.logger.debug(self.df.head())
 
         self.__count_classes()
-        self.logger.info("Total audio samples: {}".format(self.df["file_name"].count()))
+        self.logger.info("Total audio samples: {}".format(self.df["name"].count()))
 
     def __count_classes(self):
         """

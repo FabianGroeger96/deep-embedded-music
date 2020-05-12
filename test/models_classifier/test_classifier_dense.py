@@ -52,7 +52,7 @@ class TestClassifierDense(tf.test.TestCase):
 
     def test_loss_not_zero(self):
         dataset_iterator = self.audio_pipeline.get_dataset(feature_extractor=self.feature_extractor)
-        for anchor, neighbour, opposite, triplet_labels in dataset_iterator:
+        for anchor, neighbour, opposite, _ in dataset_iterator:
             batch = (anchor, neighbour, opposite)
             losses = train_step(batch, model=self.classifier, loss_fn=self.triplet_loss_fn, optimizer=self.optimizer)
             loss_triplet = losses["triplet_loss"]

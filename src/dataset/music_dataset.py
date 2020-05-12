@@ -118,7 +118,7 @@ class MusicDataset(BaseDataset):
             opposite_df = self.df.iloc[index]
             opposite_audio, _ = librosa.load(opposite_df.file_name, self.params.sample_rate)
             opposite_audio, _ = librosa.effects.trim(opposite_audio)
-            opposite_audios.append([opposite_audio, opposite_df.label])
+            opposite_audios.append([opposite_audio, opposite_df.label, opposite_df["name"]])
 
         return opposite_audios
 
