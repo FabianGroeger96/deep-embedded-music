@@ -255,7 +255,9 @@ if __name__ == "__main__":
     metric_eval_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS), average="macro")
     metric_eval_loss_epochs = tf.keras.metrics.Mean("eval_loss_epochs", dtype=tf.float32)
 
-    ckpt_classifier = tf.train.Checkpoint(step=tf.Variable(1), net=classifier)
+    # define checkpoint and checkpoint manager
+    ckpt_classifier = tf.train.Checkpoint(optimizer=classifier_optimizer, step=tf.Variable(1), net=classifier)
+    manager_classifier = tf.train.CheckpointManager(ckpt_classifier, save_path, max_to_keep=3)
 
     for epoch in range(params_classifier.epochs):
         logger.info("Starting epoch {0} from {1}".format(epoch + 1, params_classifier.epochs))
@@ -277,6 +279,10 @@ if __name__ == "__main__":
         metric_train_f1_batches.reset_states()
         metric_train_f1_epochs.reset_states()
         metric_eval_f1_epochs.reset_states()
+
+        # save model after each epoch
+        manager_save_path = manager_classifier.save()
+        logger.info("Saved checkpoint for epoch {0}: {1}".format(epoch + 1, manager_save_path))
 
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
