@@ -108,8 +108,11 @@ def main():
     ckpt.restore(manager.latest_checkpoint)
     if manager.latest_checkpoint:
         logger.info("Restored models_embedding from {}".format(manager.latest_checkpoint))
+        # calculate the overall trained epochs
+        epochs_overall = int(ckpt.save_counter) * params.save_frequency
     else:
         logger.info("Initializing models_embedding from scratch.")
+        epochs_overall = 0
 
     # log the current dataset information
     dataset.print_dataset_info()
@@ -126,7 +129,8 @@ def main():
 
     # start of the training loop
     for epoch in range(params.epochs):
-        logger.info("Starting epoch {0} from {1}".format(epoch + 1, params.epochs))
+        epochs_overall = epoch + epochs_overall
+        logger.info("Starting epoch {0} from {1}".format(epochs_overall + 1, params.epochs + epochs_overall))
         dataset = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
                                        shuffle=params.shuffle_dataset)
         # iterate over the batches of the dataset
@@ -170,10 +174,10 @@ def main():
 
             # log the current loss value of the batch
             if int(ckpt.step) % 500 == 0:
-                log_step(logger, epoch, batch_index=batch_index, batch_size=params.batch_size,
+                log_step(logger, epochs_overall, batch_index=batch_index, batch_size=params.batch_size,
                          result=losses, log_level=LogLevel.INFO)
             else:
-                log_step(logger, epoch, batch_index=batch_index, batch_size=params.batch_size,
+                log_step(logger, epochs_overall, batch_index=batch_index, batch_size=params.batch_size,
                          result=losses, log_level=LogLevel.DEBUG)
 
             # add one step to checkpoint
@@ -182,16 +186,18 @@ def main():
         # save the current model after a specified amount of epochs
         if epoch % params.save_frequency == 0 and bool(params.save_model):
             manager_save_path = manager.save()
-            logger.info("Saved checkpoint for epoch {0}: {1}".format(epoch, manager_save_path))
+            logger.info("Saved checkpoint for epoch {0}: {1}".format(epochs_overall + 1, manager_save_path))
 
         # write epoch loss to summary writer
         with summary_writer.as_default():
             # write summary of epoch loss
-            tf.summary.scalar("triplet_loss_train/loss_joint_epochs", train_joint_loss_epochs.result(), step=epoch)
-            tf.summary.scalar("triplet_loss_train/loss_triplet_epochs", train_triplet_loss_epochs.result(), step=epoch)
+            tf.summary.scalar("triplet_loss_train/loss_joint_epochs", train_joint_loss_epochs.result(),
+                              step=epochs_overall)
+            tf.summary.scalar("triplet_loss_train/loss_triplet_epochs", train_triplet_loss_epochs.result(),
+                              step=epochs_overall)
             tf.summary.scalar("triplet_loss_train/loss_regularization_epochs",
                               train_regularization_loss_epochs.result(),
-                              step=epoch)
+                              step=epochs_overall)
 
         # reset metrics every epoch
         train_joint_loss_epochs.reset_states()
@@ -199,7 +205,7 @@ def main():
         train_regularization_loss_epochs.reset_states()
 
         # visualise model on the end of a epoch, visualise embeddings, distance matrix, distance graphs
-        visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epoch,
+        visualise_model_on_epoch_end(model, pipeline=pipeline, extractor=extractor, epoch=epochs_overall,
                                      loss_fn=triplet_loss_fn, summary_writer=summary_writer,
                                      tensorb_path=tensorb_path)
 
