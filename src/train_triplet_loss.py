@@ -109,10 +109,10 @@ def main():
     if manager.latest_checkpoint:
         logger.info("Restored models_embedding from {}".format(manager.latest_checkpoint))
         # calculate the overall trained epochs
-        epochs_overall = int(ckpt.save_counter) * params.save_frequency
+        epochs_before = int(ckpt.save_counter) * params.save_frequency
     else:
         logger.info("Initializing models_embedding from scratch.")
-        epochs_overall = 0
+        epochs_before = 0
 
     # log the current dataset information
     dataset.print_dataset_info()
@@ -129,7 +129,7 @@ def main():
 
     # start of the training loop
     for epoch in range(params.epochs):
-        epochs_overall = epoch + epochs_overall
+        epochs_overall = epoch + epochs_before
         logger.info("Starting epoch {0} from {1}".format(epochs_overall + 1, params.epochs + epochs_overall))
         dataset = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
                                        shuffle=params.shuffle_dataset)
