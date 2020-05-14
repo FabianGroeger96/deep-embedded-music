@@ -130,7 +130,7 @@ def main():
     # start of the training loop
     for epoch in range(params.epochs):
         epochs_overall = epoch + epochs_before
-        logger.info("Starting epoch {0} from {1}".format(epochs_overall + 1, params.epochs + epochs_overall))
+        logger.info("Starting epoch {0} from {1}".format(epochs_overall + 1, params.epochs + epochs_before))
         dataset = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
                                        shuffle=params.shuffle_dataset)
         # iterate over the batches of the dataset

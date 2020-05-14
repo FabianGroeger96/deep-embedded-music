@@ -238,24 +238,14 @@ def visualise_embedding_on_training_end(model, pipeline, extractor, tensorb_path
     # iterate over the batches of the dataset and feed batch to model
     for batch_index, (anchor, neighbour, opposite, triplet_metadata) in enumerate(dataset_iterator):
         emb_anchor = model(anchor, training=False)
-        emb_neighbour = model(neighbour, training=False)
-        emb_opposite = model(opposite, training=False)
-
-        embeddings.append(emb_anchor)
-        embeddings.append(emb_neighbour)
-        embeddings.append(emb_opposite)
 
         # retrieve labels from metadata
         triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
         triplet_names = triplet_metadata[:, 1]
 
+        embeddings.append(emb_anchor)
         labels.append(triplet_labels[:, 0])
-        labels.append(triplet_labels[:, 1])
-        labels.append(triplet_labels[:, 2])
-
         names.append(triplet_names[:, 0])
-        names.append(triplet_names[:, 1])
-        names.append(triplet_names[:, 2])
 
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
     embeddings = tf.concat(embeddings, axis=0)

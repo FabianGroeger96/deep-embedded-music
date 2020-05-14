@@ -49,11 +49,16 @@ def training():
         with tf.GradientTape() as tape:
             # run the forward pass of the layer
             pred_anchor = classifier(emb_anchor)
-            pred_neighbour = classifier(emb_neighbour)
-            pred_opposite = classifier(emb_opposite)
 
-            pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
-            labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
+            #pred_neighbour = classifier(emb_neighbour)
+            #pred_opposite = classifier(emb_opposite)
+
+            #pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
+            #labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
+            #labels = tf.dtypes.cast(labels, tf.int32)
+
+            pred = tf.concat([pred_anchor], axis=0)
+            labels = tf.concat([triplet_labels[:, 0]], axis=0)
             labels = tf.dtypes.cast(labels, tf.int32)
 
             loss = classifier_loss_fn(y_true=labels, y_pred=pred)
@@ -118,7 +123,28 @@ def evaluating():
     # iterate over the batches of the dataset
     for batch_index, batch in enumerate(dataset_iterator):
         # embed the triplets into the embedding space
-        pred, labels = get_predictions_from_triplet(batch)
+        #pred, labels = get_predictions_from_triplet(batch)
+
+        anchor, neighbour, opposite, triplet_metadata = batch
+        # embed the triplets into the embedding space
+        emb_anchor, emb_neighbour, emb_opposite = embed_triplet(anchor, neighbour, opposite)
+
+        # retrieve labels from metadata
+        triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
+
+        # run the forward pass of the layer
+        pred_anchor = classifier(emb_anchor)
+
+        # pred_neighbour = classifier(emb_neighbour)
+        # pred_opposite = classifier(emb_opposite)
+
+        # pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
+        # labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
+        # labels = tf.dtypes.cast(labels, tf.int32)
+
+        pred = tf.concat([pred_anchor], axis=0)
+        labels = tf.concat([triplet_labels[:, 0]], axis=0)
+        labels = tf.dtypes.cast(labels, tf.int32)
 
         global_labels.append(labels)
         global_predictions.append(np.argmax(pred.numpy(), axis=1))
@@ -157,7 +183,28 @@ def testing():
     # iterate over the batches of the dataset
     for batch_index, batch in enumerate(dataset_iterator):
         # embed the triplets into the embedding space
-        pred, labels = get_predictions_from_triplet(batch)
+        # pred, labels = get_predictions_from_triplet(batch)
+
+        anchor, neighbour, opposite, triplet_metadata = batch
+        # embed the triplets into the embedding space
+        emb_anchor, emb_neighbour, emb_opposite = embed_triplet(anchor, neighbour, opposite)
+
+        # retrieve labels from metadata
+        triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
+
+        # run the forward pass of the layer
+        pred_anchor = classifier(emb_anchor)
+
+        # pred_neighbour = classifier(emb_neighbour)
+        # pred_opposite = classifier(emb_opposite)
+
+        # pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
+        # labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
+        # labels = tf.dtypes.cast(labels, tf.int32)
+
+        pred = tf.concat([pred_anchor], axis=0)
+        labels = tf.concat([triplet_labels[:, 0]], axis=0)
+        labels = tf.dtypes.cast(labels, tf.int32)
 
         global_labels.append(labels)
         global_predictions.append(np.argmax(pred.numpy(), axis=1))
