@@ -3,6 +3,7 @@
 
   "dcase_dataset_path": "/tf/data/DCASE18-Task5-development/",
   "dcase_dataset_fold": 1,
+  "dcase_eval_dataset_path": "/tf/data/DCASE18-Task5-evaluation/",
 
   "music_dataset_path": "/tf/data/dj-set/MusicDataset/",
 

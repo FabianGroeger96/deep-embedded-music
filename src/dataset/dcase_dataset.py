@@ -31,6 +31,7 @@ class DCASEDataset(BaseDataset):
 
         self.dataset_path = Utils.check_if_path_exists(params.dcase_dataset_path)
         self.fold = params.dcase_dataset_fold
+        self.eval_dataset_path = Utils.check_if_path_exists(params.dcase_eval_dataset_path)
 
         self.initialise()
         self.change_dataset_type(self.dataset_type)
@@ -73,7 +74,7 @@ class DCASEDataset(BaseDataset):
         # add the full dataset path to the filename
         self.df_train["file_name"] = str(self.dataset_path) + "/" + self.df_train["name"].astype(str)
         self.df_eval["file_name"] = str(self.dataset_path) + "/" + self.df_eval["name"].astype(str)
-        # self.df_test["file_name"] = str(self.dataset_path) + "/" + self.df_test["file_name"].astype(str)
+        self.df_test["file_name"] = str(self.eval_dataset_path) + "/" + self.df_test["name"].astype(str)
 
         self.df_train["name"] = self.df_train["name"].str.split("/", n=1, expand=True)[1]
         self.df_train["name"] = self.df_train["name"].str.split(".", n=1, expand=True)[0]
@@ -81,23 +82,24 @@ class DCASEDataset(BaseDataset):
         self.df_eval["name"] = self.df_eval["name"].str.split("/", n=1, expand=True)[1]
         self.df_eval["name"] = self.df_eval["name"].str.split(".", n=1, expand=True)[0]
 
+        self.df_test["name"] = self.df_test["name"].str.split("/", n=1, expand=True)[1]
+        self.df_test["name"] = self.df_test["name"].str.split(".", n=1, expand=True)[0]
+
         # shuffle dataset
         self.df_train = self.df_train.sample(frac=1).reset_index(drop=True)
         self.df_eval = self.df_eval.sample(frac=1).reset_index(drop=True)
-        # self.df_test = self.df_test.sample(frac=1).reset_index(drop=True)
+        self.df_test = self.df_test.sample(frac=1).reset_index(drop=True)
 
     def load_data_frame(self):
         """
         Loads the different dataframes.
         `df_train`: contains the training set.
         `df_eval`: contains the evaluation set.
-        `df_text`: contains the test set. Will not be used, since it is only a replica of the evaluation
-            set without any labels.
+        `df_test`: contains the test set (eval set from challenge)
         """
         self.__load_train_data_frame()
         self.__load_eval_data_frame()
-        # not using the test dataframe, since it does not have any labels
-        self.df_test = pd.DataFrame()
+        self.__load_test_data_frame()
 
     def __load_train_data_frame(self):
         """
@@ -126,12 +128,16 @@ class DCASEDataset(BaseDataset):
     def __load_test_data_frame(self):
         """
         Loads the test dataset from the data, into a dataframe `df_test`.
+        This is the "evaluation" dataset from the challenge, which was used to compare the different models with
+        each other.
         """
         # define name and path of the info file
-        test_file_name = "fold{0}_test.txt".format(self.fold)
-        test_file_path = os.path.join(self.dataset_path, self.INFO_FILES_DIR, test_file_name)
+        test_file_name = "evaluate.txt"
+        test_file_path = os.path.join(self.eval_dataset_path, self.INFO_FILES_DIR, test_file_name)
         # read the train file, which is tab separated
-        self.df_test = pd.read_csv(test_file_path, sep="\t", names=["name"])
+        self.df_test = pd.read_csv(test_file_path, sep="\t", names=["name", "label", "session"])
+        # convert the activity labels into integers
+        self.df_test["label"] = self.df_test["label"].apply(self.LABELS.index)
 
     def fill_opposite_selection(self, anchor_id):
         """

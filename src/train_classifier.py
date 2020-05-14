@@ -24,14 +24,17 @@ parser.add_argument("--experiment_dir", default="experiments",
 parser.add_argument("--dataset_dir", default="DCASE",
                     help="Dataset directory containing the model")
 parser.add_argument("--model_to_load",
-                    default="results/ResNet18-LogMel-l1e5-b128-l201-d95-7500-ts5-ns5-m1-e64-20200509-055859",
+                    default="results/ResNet18-LogMel-l1e5-b128-l2001-d95-7500-ts5-ns5-m1-e128-20200511-162832",
                     help="Model to load")
 parser.add_argument("--classifier_type",
                     default="Logistic",
                     help="Which classifier to use, dense or logistic")
+parser.add_argument("--eval_on_test_at_end",
+                    default="True",
+                    help="If the embedding model an the on top trained classifier should be evaluated on the test set.")
 
 
-def train():
+def training():
     dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.TRAIN,
                                             shuffle=params_classifier.shuffle_dataset, return_labels=True)
     # iterate over the batches of the dataset
@@ -102,7 +105,7 @@ def train():
         tf.summary.scalar("classifier/train_f1_epochs", metric_train_f1_epochs.result(), step=epoch)
 
 
-def evaluate():
+def evaluating():
     logger.info("Starting to evaluate")
     pipeline.reinitialise()
     dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.EVAL,
@@ -113,21 +116,9 @@ def evaluate():
     global_predictions = []
 
     # iterate over the batches of the dataset
-    for batch_index, (anchor, neighbour, opposite, triplet_metadata) in enumerate(dataset_iterator):
+    for batch_index, batch in enumerate(dataset_iterator):
         # embed the triplets into the embedding space
-        emb_anchor, emb_neighbour, emb_opposite = embed_triplet(anchor, neighbour, opposite)
-
-        # retrieve labels from metadata
-        triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
-
-        # run the forward pass of the layer
-        pred_anchor = classifier(emb_anchor)
-        pred_neighbour = classifier(emb_neighbour)
-        pred_opposite = classifier(emb_opposite)
-
-        pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
-        labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
-        labels = tf.dtypes.cast(labels, tf.int32)
+        pred, labels = get_predictions_from_triplet(batch)
 
         global_labels.append(labels)
         global_predictions.append(np.argmax(pred.numpy(), axis=1))
@@ -153,6 +144,41 @@ def evaluate():
     logger.info("Classification Report:\n{}".format(class_report))
 
 
+def testing():
+    logger.info("Starting to test")
+    pipeline.reinitialise()
+    dataset_iterator = pipeline.get_dataset(extractor, dataset_type=DatasetType.TEST,
+                                            shuffle=params_classifier.shuffle_dataset, return_labels=True)
+
+    # arrays to save the labels and predictions over the entire eval set
+    global_labels = []
+    global_predictions = []
+
+    # iterate over the batches of the dataset
+    for batch_index, batch in enumerate(dataset_iterator):
+        # embed the triplets into the embedding space
+        pred, labels = get_predictions_from_triplet(batch)
+
+        global_labels.append(labels)
+        global_predictions.append(np.argmax(pred.numpy(), axis=1))
+
+        metric_test_accuracy_epochs(labels, pred)
+        metric_test_f1_epochs.update_state(tf.one_hot(labels, len(dataset.LABELS)), pred)
+
+        logger.info("TEST - batch index: {0}, f1: {1:.2f}".format(batch_index, metric_test_f1_epochs.result()))
+
+    # write epoch loss to summary writer
+    with train_summary_writer.as_default():
+        # write summary of epoch loss
+        tf.summary.scalar("classifier/test_accuracy", metric_test_accuracy_epochs.result(), step=0)
+        tf.summary.scalar("classifier/test_f1", metric_test_f1_epochs.result(), step=0)
+
+    global_labels = tf.concat(global_labels, axis=0)
+    global_predictions = tf.concat(global_predictions, axis=0)
+    class_report = classification_report(global_labels, global_predictions, target_names=dataset.LABELS)
+    logger.info("Classification Report on TEST set:\n{}".format(class_report))
+
+
 def embed_triplet(anchor, neighbour, opposite):
     if model_embedding is not None:
         emb_anchor = model_embedding(anchor, training=False)
@@ -162,7 +188,30 @@ def embed_triplet(anchor, neighbour, opposite):
         emb_anchor = anchor
         emb_neighbour = neighbour
         emb_opposite = opposite
+
     return emb_anchor, emb_neighbour, emb_opposite
+
+
+def get_predictions_from_triplet(batch):
+    # unpack batch
+    anchor, neighbour, opposite, triplet_metadata = batch
+
+    # embed the triplets into the embedding space
+    emb_anchor, emb_neighbour, emb_opposite = embed_triplet(anchor, neighbour, opposite)
+
+    # retrieve labels from metadata
+    triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
+
+    # run the forward pass of the layer
+    pred_anchor = classifier(emb_anchor)
+    pred_neighbour = classifier(emb_neighbour)
+    pred_opposite = classifier(emb_opposite)
+
+    pred = tf.concat([pred_anchor, pred_neighbour, pred_opposite], axis=0)
+    labels = tf.concat([triplet_labels[:, 0], triplet_labels[:, 1], triplet_labels[:, 2]], axis=0)
+    labels = tf.dtypes.cast(labels, tf.int32)
+
+    return pred, labels
 
 
 if __name__ == "__main__":
@@ -255,6 +304,9 @@ if __name__ == "__main__":
     metric_eval_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS), average="macro")
     metric_eval_loss_epochs = tf.keras.metrics.Mean("eval_loss_epochs", dtype=tf.float32)
 
+    metric_test_accuracy_epochs = tf.keras.metrics.SparseCategoricalAccuracy()
+    metric_test_f1_epochs = tfa.metrics.F1Score(num_classes=len(dataset.LABELS), average="macro")
+
     # define checkpoint and checkpoint manager
     ckpt_classifier = tf.train.Checkpoint(optimizer=classifier_optimizer, step=tf.Variable(1), net=classifier)
     manager_classifier = tf.train.CheckpointManager(ckpt_classifier, save_path, max_to_keep=3)
@@ -263,9 +315,9 @@ if __name__ == "__main__":
         logger.info("Starting epoch {0} from {1}".format(epoch + 1, params_classifier.epochs))
 
         # train the classifier
-        train()
+        training()
         # evaluate the classifier
-        evaluate()
+        evaluating()
 
         # reset metrics every epoch
         metric_train_accuracy_batches.reset_states()
@@ -287,3 +339,6 @@ if __name__ == "__main__":
         # reinitialise pipeline after epoch
         pipeline.reinitialise()
         logger.info("Epoch end")
+
+    if args.eval_on_test_at_end == "True":
+        testing()

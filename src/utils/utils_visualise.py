@@ -236,7 +236,7 @@ def visualise_embedding_on_training_end(model, pipeline, extractor, tensorb_path
     :return: None.
     """
     pipeline.reinitialise()
-    dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, dataset_type=DatasetType.FULL)
+    dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, dataset_type=DatasetType.TRAIN_AND_EVAL)
 
     # lists for embeddings and labels from entire dataset
     embeddings = []

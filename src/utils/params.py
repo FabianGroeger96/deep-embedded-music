@@ -19,6 +19,8 @@ class Params:
         self.dcase_dataset_path = None
         self.dcase_dataset_fold = None
 
+        self.dcase_eval_dataset_path = None
+
         self.music_dataset_path = None
 
         self.log_level = None

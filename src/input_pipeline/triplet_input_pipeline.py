@@ -102,7 +102,7 @@ class TripletsInputPipeline:
                 neighbour_audio_seg = self.dataset.split_audio_in_segment(anchor_audio, neighbour_seg[1])
                 opposite_audio_seg = self.dataset.split_audio_in_segment(opposite_audio, opposite_seg[1])
 
-                if self.dataset_type == DatasetType.EVAL or self.dataset_type == DatasetType.FULL or return_labels:
+                if self.dataset_type == DatasetType.EVAL or self.dataset_type == DatasetType.TRAIN_AND_EVAL or return_labels:
                     labels = [[anchor.label, anchor.label, opposite_entry[1]],
                               [anchor["name"], anchor["name"], opposite_entry[2]]]
                 else:

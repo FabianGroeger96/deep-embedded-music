@@ -18,11 +18,12 @@ class DatasetType(Enum):
     TRAIN: used to train the model.
     EVAL: used to evaluate the model.
     TEST: used to test the model.
+    TRAIN_AND_EVAL: used to visualise the model on the EVAL and TRAIN set.
     """
     TRAIN = 0
     EVAL = 1
     TEST = 2
-    FULL = 3
+    TRAIN_AND_EVAL = 3
 
 
 class BaseDataset(ABC):
@@ -158,8 +159,8 @@ class BaseDataset(ABC):
             self.df = self.df_eval
         elif dataset_type == DatasetType.TEST:
             self.df = self.df_test
-        elif dataset_type == DatasetType.FULL:
-            self.df = pd.concat([self.df_train, self.df_eval, self.df_test])
+        elif dataset_type == DatasetType.TRAIN_AND_EVAL:
+            self.df = pd.concat([self.df_train, self.df_eval])
 
         self.df = self.df.sample(frac=1).reset_index(drop=True)
 
