@@ -173,21 +173,13 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, sum
         metric_dist_neighbour(dist_neighbour)
         metric_dist_opposite(dist_opposite)
 
-        embeddings.append(emb_anchor)
-        embeddings.append(emb_neighbour)
-        embeddings.append(emb_opposite)
-
         # retrieve labels from metadata
         triplet_labels = tf.strings.to_number(triplet_metadata[:, 0], tf.float32)
         triplet_names = triplet_metadata[:, 1]
 
+        embeddings.append(emb_anchor)
         labels.append(triplet_labels[:, 0])
-        labels.append(triplet_labels[:, 1])
-        labels.append(triplet_labels[:, 2])
-
         names.append(triplet_names[:, 0])
-        names.append(triplet_names[:, 1])
-        names.append(triplet_names[:, 2])
 
     # stack the embeddings and labels to get a tensor from shape (dataset_size, ...)
     embeddings = tf.concat(embeddings, axis=0)
