@@ -1,4 +1,4 @@
-tensorflow-addons
+tensorflow-addons==0.9.1
 tensorboard_plugin_profile
 dtw
 pandas
