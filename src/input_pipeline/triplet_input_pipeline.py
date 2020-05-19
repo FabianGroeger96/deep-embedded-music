@@ -104,7 +104,9 @@ class TripletsInputPipeline:
 
                 if self.dataset_type == DatasetType.EVAL or self.dataset_type == DatasetType.TRAIN_AND_EVAL or return_labels:
                     labels = [[anchor.label, anchor.label, opposite_entry[1]],
-                              [anchor["name"], anchor["name"], opposite_entry[2]]]
+                              [anchor["name"] + "__" + str(anchor_seg[1]),
+                               anchor["name"] + "__" + str(neighbour_seg[1]),
+                               opposite_entry[2] + "__" + str(opposite_seg[1])]]
                 else:
                     labels = [["None", "None", "None"],
                               ["None", "None", "None"]]
