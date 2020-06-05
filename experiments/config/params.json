@@ -1,5 +1,5 @@
 {
-  "experiment_name": "LogMel-l1e4-e16",
+  "experiment_name": "DEBUG",
 
   "dcase_dataset_path": "/tf/data/DCASE18-Task5-development/",
   "dcase_dataset_fold": 1,

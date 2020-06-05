@@ -188,8 +188,6 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, sum
 
     # clustering metrics
     silhouette_score = metrics.silhouette_score(embeddings, labels, metric="euclidean")
-    calinski_harabasz_score = metrics.calinski_harabasz_score(embeddings, labels)
-    davies_bouldin_score = metrics.davies_bouldin_score(embeddings, labels)
 
     # write batch losses to summary writer
     with summary_writer.as_default():
@@ -199,8 +197,6 @@ def visualise_model_on_epoch_end(model, pipeline, extractor, epoch, loss_fn, sum
         tf.summary.scalar("triplet_loss_eval/dist_sq_neighbour", metric_dist_neighbour.result(), step=epoch)
         tf.summary.scalar("triplet_loss_eval/dist_sq_opposite", metric_dist_opposite.result(), step=epoch)
         tf.summary.scalar("triplet_loss_eval/silhouette_score", silhouette_score, step=epoch)
-        tf.summary.scalar("triplet_loss_eval/calinski_harabasz_score", calinski_harabasz_score, step=epoch)
-        tf.summary.scalar("triplet_loss_eval/davies_bouldin_score", davies_bouldin_score, step=epoch)
 
     # get used dataset from pipeline
     dataset = pipeline.dataset
@@ -228,7 +224,7 @@ def visualise_embedding_on_training_end(model, pipeline, extractor, tensorb_path
     :return: None.
     """
     pipeline.reinitialise()
-    dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, dataset_type=DatasetType.TRAIN_AND_EVAL)
+    dataset_iterator = pipeline.get_dataset(extractor, shuffle=False, dataset_type=DatasetType.EVAL)
 
     # lists for embeddings and labels from entire dataset
     embeddings = []
